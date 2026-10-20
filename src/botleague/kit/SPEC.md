@@ -94,7 +94,7 @@ too much to it and the bot learns the past, not the market. It says nothing abou
 | `GET /api/bot/spec` | (no key needed) | the limits above, as JSON |
 | `POST /api/bot/check` | `{"bot": {...}}` | `{"ok": true, "rules": [...]}` or `{"detail": ..., "problems": [...]}` with status 400 |
 | `POST /api/bot/backtest` | `{"bot": {...}, "years": 1}` | the backtest: returns, volatility, drawdown, months, holdings, against SPY |
-| `PUT /api/bot` | `{"bot": {...}, "handle": "your name"}` | your bot as sent in. `handle` is only needed the first time you show anywhere in the community |
+| `PUT /api/bot` | `{"bot": {...}}` | your bot as sent in, shown under the first name of the account your key was made in |
 | `PATCH /api/bot` | `{"bot": {...}}` | your bot with the change waiting for the next close (`pending`); its record goes on |
 | `GET /api/bot` | | your bot: returns, rank, holdings, rules |
 

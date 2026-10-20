@@ -422,12 +422,12 @@
   "2025-08-14",
   "2025-08-15"
  ],
- "key": "mhb_WDhSw0aUCe7_CFepH1J4pY-vcECmzbjDbmVC6r_Kutg",
+ "key": "mhb_cwQt55Mw-ac1fB1h5UIqrScH3bHVPDyQT1Z_Fy1JI9A",
  "bots": {
   "portal-user-1": {
    "user_id": "portal-user-1",
-   "handle": "ana bots",
-   "handle_key": "anabots",
+   "handle": "Ana",
+   "public_id": "d62c00ecaf",
    "spec": {
     "format": "markethub-bot/1",
     "name": "Trend",
@@ -550,11 +550,12 @@
   }
  },
  "keys": {
-  "9ced9996b84ec2efcafd59eda85cd2e0e5f7b8bc1c6dfdca3b377b31b161621f": {
-   "hash": "9ced9996b84ec2efcafd59eda85cd2e0e5f7b8bc1c6dfdca3b377b31b161621f",
+  "5e26c84e4bc6f3e63e85c4d5ff9e61d37b275fa9bbcdcb8d35ed32eda8e0b1f5": {
+   "hash": "5e26c84e4bc6f3e63e85c4d5ff9e61d37b275fa9bbcdcb8d35ed32eda8e0b1f5",
    "user_id": "portal-user-1",
    "created_utc": "2025-06-23T15:00:00+00:00",
-   "used_utc": null
+   "used_utc": null,
+   "name": "Ana"
   }
  },
  "meta": {
@@ -1576,7 +1577,8 @@
   ]
  },
  "mine": {
-  "handle": "ana bots",
+  "handle": "Ana",
+  "id": "d62c00ecaf",
   "name": "Trend",
   "about": "Rides what is over its average.",
   "submitted_utc": "2025-06-23T15:00:00+00:00",
@@ -1769,7 +1771,8 @@
  },
  "overview_rows": [
   {
-   "handle": "ana bots",
+   "id": "d62c00ecaf",
+   "handle": "Ana",
    "stand_in": false,
    "name": "Trend",
    "about": "Rides what is over its average.",

@@ -3,7 +3,7 @@
 
     python tools/mh.py check     [bot.json]
     python tools/mh.py backtest  [bot.json] [--years 1|2|3]
-    python tools/mh.py submit    [bot.json] [--handle "your name"]   a new bot: its record starts again
+    python tools/mh.py submit    [bot.json]                          a new bot: its record starts again
     python tools/mh.py update    [bot.json]                          new rules for the bot running, keeping its record
     python tools/mh.py status
     python tools/mh.py spec
@@ -85,10 +85,7 @@ def main(argv: list[str]) -> int:
         return ask("POST", "/api/bot/backtest", {"bot": bot(rest), "years": int(option(rest, "--years") or 1)})
     if what == "update":
         return ask("PATCH", "/api/bot", {"bot": bot(rest)})
-    body = {"bot": bot(rest)}
-    if option(rest, "--handle"):
-        body["handle"] = option(rest, "--handle")
-    return ask("PUT", "/api/bot", body)
+    return ask("PUT", "/api/bot", {"bot": bot(rest)})
 
 
 if __name__ == "__main__":

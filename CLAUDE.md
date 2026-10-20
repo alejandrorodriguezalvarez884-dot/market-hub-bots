@@ -13,7 +13,7 @@ Reglas que no se negocian:
   se usa ningún conector de broker, ni siquiera para descargar precios. Los bots corren en papel.
 - **Describir, no recomendar.** La web ordena bots por lo que han hecho, nada más. Nada de
   "compra", "vende", predicciones ni alertas. Un backtest es para su dueño y se dice que es una
-  simulación del pasado. Los bots de la casa son referencias, nunca se clasifican.
+  simulación del pasado. El S&P 500 es la única referencia del tablero y nunca se clasifica.
 - **El motor es el del portal.** `src/botleague/engine.py` es copia de
   `market-hub-landing/src/markethub/bots.py` con solo los imports cambiados: mismo formato
   (`markethub-bot/1`), mismas comprobaciones, mismo motor, mismos documentos y mismo hash de la
@@ -25,12 +25,15 @@ Reglas que no se negocian:
   avanzan los bots (refresh), se hacen el kit y las claves y se contesta al agente (`/api/bot/*`).
   El portal lee los mismos documentos, pide el refresh a `/api/board/refresh` cuando los encuentra
   atrasados, deja retirar un bot o una clave y los borra con la cuenta; sus `/api/bot/*` contestan
-  410 con esta dirección. Lo propio de esta web va en `league.py` y en su documento
-  `bot_meta/house` (bots de la casa y el índice), que no es de ningún usuario.
+  410 con esta dirección. Lo propio de esta web va en `league.py`. Desde el 2026-10-20 no hay bots
+  de la casa (el usuario los quitó): `bot_meta/house` queda en Firestore sin leerse ni escribirse.
 - **Los datos del usuario son suyos.** Aquí no se guarda nada nuevo de un usuario: solo lo que ya
   dice la página de privacidad del portal (su bot, su clave hasheada). **El tablero es público**
-  (decisión del usuario, 2026-10-20, y así lo dice la privacidad del portal): cualquiera ve el
-  nombre, el bot, su idea, sus rentabilidades, su curva y lo que tiene. `BOTLEAGUE_PUBLIC_BOARD=0`
+  (decisión del usuario, 2026-10-20, y así lo dice la privacidad del portal): cualquiera ve el bot,
+  su idea, sus rentabilidades, su curva, lo que tiene y **el nombre de pila de la cuenta** de su
+  dueño, nunca el apellido, el email ni la foto (decisión del usuario). El jugador no elige nombre:
+  sale de la sesión (o, para el agente, el que se guardó con su clave al hacerla con sesión), nunca
+  de la petición. Cada bot se encuentra por un id público aleatorio y estable (`public_id`). `BOTLEAGUE_PUBLIC_BOARD=0`
   lo cierra a los miembros con sesión. Las reglas de un bot solo las ve su dueño. Borrar la cuenta (en el portal) borra el bot y la clave.
 - **El login es el de Market Hub.** Se lee la cookie `mh_session` del portal con su secreto
   (`HUB_SESSION_SECRET`); nunca se pone ni se cambia. Las rutas del agente (`/api/bot/*`) solo leen

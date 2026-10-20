@@ -59,8 +59,8 @@ def test_what_is_written_here_has_the_portals_shape():
     store = MemoryBots()
     bots, clock, market = here(store, 380)
     clock.when = at(LONG[380], 11)
-    bots.issue_key("u2")
-    bots.submit("u2", {**TREND, "name": "Other"}, handle="bea bots")
+    bots.issue_key("u2", "Bea Ortiz")
+    bots.submit("u2", {**TREND, "name": "Other"})
     market.upto, clock.when = LONG[385], at(LONG[385], 17)
     bots.refresh(force=True)
     theirs, mine = PORTAL["bots"]["portal-user-1"], store.get("u2")
@@ -68,9 +68,3 @@ def test_what_is_written_here_has_the_portals_shape():
     assert [type(x) for x in mine["curve"][0]] == [type(x) for x in theirs["curve"][0]]
     assert set(store.keys_of("u2")[0]) == set(next(iter(PORTAL["keys"].values())))
     assert set(store.meta()) == set(PORTAL["meta"])
-
-
-def test_a_name_on_the_portal_is_taken_here():
-    bots, *_ = here(portal_store(), 385)
-    with pytest.raises(Exception, match="Someone else"):
-        bots.submit("u3", TREND, handle="Ana-Bots")

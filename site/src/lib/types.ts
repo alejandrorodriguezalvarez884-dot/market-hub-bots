@@ -3,16 +3,16 @@ export type Period = "1d" | "1w" | "1m" | "1y" | "all";
 export type Returns = Record<Period, number | null>;
 export type Holding = { ticker: string; weight: number }; // weight as a fraction
 
-// A line of the board: a member's bot, or a house bot (house: true, never ranked).
+// A line of the board: a member's bot, shown under the first name of its owner's account.
 export type Line = {
-  slug: string; house: boolean; you: boolean; handle: string; name: string; about: string; since: string | null; as_of: string | null;
+  slug: string; id: string | null; you: boolean; handle: string; name: string; about: string; since: string | null; as_of: string | null;
   sessions: number; returns: Returns; ranks: Partial<Record<Period, number>>; holdings: Holding[]; holding: number; cash: number | null;
   spark: number[]; stand_in?: boolean;
 };
 
 export type Board = {
   sample: boolean; as_of: string | null; stale: boolean; periods: { key: Period; label: string }[];
-  visible: boolean; signed_in: boolean; rows: Line[]; house: Line[]; entrants: number;
+  visible: boolean; signed_in: boolean; rows: Line[]; entrants: number;
   benchmark: { ticker: string; returns: Returns | null }; index: { date: string; value: number }[];
   rules: { cost: number; universe: number; hold: number };
 };
@@ -42,7 +42,7 @@ export type Bot = {
 export type Me = { user: { name: string; picture: string } | null; signin: string | null; hub: string | null; local: boolean };
 
 export type MyBot = {
-  handle: string; name: string; about: string; submitted_utc: string; since: string | null; as_of: string | null; sessions: number;
+  handle: string; id: string | null; name: string; about: string; submitted_utc: string; since: string | null; as_of: string | null; sessions: number;
   returns: Returns | null; ranks: Partial<Record<Period, number>>; entrants: number; holdings: Holding[]; cash: number | null;
   rules: string[]; universe: number; curve: { date: string; value: number }[];
   bot: Bot; paused: boolean; exclude: string[]; preview: Preview; rules_changed_utc: string | null; log: Move[];

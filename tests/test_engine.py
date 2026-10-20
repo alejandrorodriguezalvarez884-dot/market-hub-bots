@@ -130,10 +130,10 @@ LONG = sessions(420)
 NAMES = [f"T{i:02d}" for i in range(30)]
 
 
-def competition(day: int, hour: int = 17, names=None):
+def competition(day: int, hour: int = 17):
     clock, market = Clock(at(LONG[day], hour)), Market(LONG, LONG[day])
     store = MemoryBots()
-    bots = Bots(store, market, lambda n: NAMES[:n], member_name=names or (lambda user_id: ""), now=clock)
+    bots = Bots(store, market, lambda n: NAMES[:n], now=clock)
     return bots, store, clock, market
 
 
@@ -143,7 +143,7 @@ TREND = {"format": FORMAT, "name": "Trend", "universe": {"largest": 20}, "rebala
 
 def test_a_bot_is_measured_from_its_first_close_and_moved_on_session_by_session():
     bots, store, clock, market = competition(380, hour=11)
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     assert bots.mine("u1")["since"] is None and bots.mine("u1")["returns"] is None
     clock.when = at(LONG[380], 17)
     assert bots.behind() is True
@@ -167,17 +167,17 @@ def test_a_bot_is_measured_from_its_first_close_and_moved_on_session_by_session(
 
 def test_sending_in_another_bot_starts_the_record_again():
     bots, store, clock, market = competition(380)
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     market.upto, clock.when = LONG[383], at(LONG[383], 17)
     bots.refresh()
     assert len(store.get("u1")["curve"]) == 3
     bots.submit("u1", {**TREND, "name": "Trend two"})  # the name it showed under stays
-    assert store.get("u1")["curve"] == [] and store.get("u1")["handle"] == "ana bots"
+    assert store.get("u1")["curve"] == [] and store.get("u1")["handle"] == "Ana"
 
 
 def test_a_refresh_does_not_bring_back_a_bot_withdrawn_meanwhile():
     bots, store, clock, market = competition(380)
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     market.upto, clock.when = LONG[381], at(LONG[381], 17)
     real = store.get
     store.get = lambda user_id: None  # withdrawn while the refresh ran
@@ -186,33 +186,62 @@ def test_a_refresh_does_not_bring_back_a_bot_withdrawn_meanwhile():
     assert store.get("u1")["curve"] == []
 
 
-def test_the_name_a_bot_shows_under():
-    bots, *_ = competition(380, names=lambda user_id: "plays already" if user_id == "u2" else "")
-    with pytest.raises(Refused, match="Pick a name"):
-        bots.submit("u1", TREND)
-    for bad in ("x", "admin", "northwind"):
-        with pytest.raises(Refused):
-            bots.submit("u1", TREND, handle=bad)
-    bots.submit("u1", TREND, handle="ana bots")
-    with pytest.raises(Refused, match="Someone else"):
-        bots.submit("u3", TREND, handle="Ana-Bots")
-    assert bots.submit("u2", TREND)["handle"] == "plays already"  # the name they already show under
+def test_a_bot_is_shown_under_the_first_name_of_its_account():
+    bots, store, *_ = competition(380)
+    key = bots.issue_key("u1", "Ana María Torres")
+    assert bots.submit("u1", TREND)["handle"] == "Ana"  # the agent sends no name: it was kept with its key
+    assert store.keys_of("u1")[0]["name"] == "Ana" and "Torres" not in str(store.get("u1"))
+    first = store.get("u1")["public_id"]
+    assert len(first) == 10 and bots.submit("u1", {**TREND, "name": "Again"})["id"] == first  # the same id for the member's bot
+    assert bots.submit("u2", TREND, name="Ana López")["handle"] == "Ana"  # two players may share a first name
+    assert store.get("u2")["public_id"] != first
+    assert bots.submit("u3", TREND)["handle"] == "Member"  # no key, no session: a neutral name
+    bots.sync_player("u1", "Anabel Ruiz")
+    assert store.get("u1")["handle"] == "Anabel" and store.keys_of("u1")[0]["name"] == "Anabel"
+    assert bots.who(key) == "u1"
+
+
+def test_renaming_a_bot_keeps_its_record_and_is_not_the_days_change():
+    bots, store, clock, market = competition(380)
+    bots.submit("u1", TREND, name="Ana Torres")
+    market.upto, clock.when = LONG[382], at(LONG[382], 17)
+    bots.refresh()
+    clock.when = at(LONG[383], 10)
+    bots.edit("u1", {**TREND, "hold": 4})
+    mine = bots.rename("u1", "Calm trend", "Over the average, calmly.")
+    assert mine["name"] == "Calm trend" and mine["about"] == "Over the average, calmly." and mine["pending"]["bot"]["name"] == "Calm trend"
+    assert mine["versions"][-1]["what"] == ["renamed from Trend"] and len(store.get("u1")["curve"]) == 2
+    with pytest.raises(Refused, match="name"):
+        bots.rename("u1", "x")
+    market.upto, clock.when = LONG[384], at(LONG[384], 17)
+    bots.refresh(force=True)
+    assert store.get("u1")["spec"]["name"] == "Calm trend" and store.get("u1")["spec"]["hold"] == 4
+    assert store.get("u1")["versions"][-1]["what"] == ["rules"]  # the rules changed at the close; the name already had
+
+
+def test_a_bot_sent_in_before_public_ids_gets_one():
+    bots, store, *_ = competition(380)
+    bots.submit("u1", TREND, name="Ana Torres")
+    old = store.get("u1")
+    old.pop("public_id")
+    store.put(old)
+    assert bots.ensure_ids() == 1 and len(store.get("u1")["public_id"]) == 10 and bots.ensure_ids() == 0
 
 
 def test_the_board_ranks_each_period_among_the_bots_that_ran_it():
     bots, store, clock, market = competition(300)
-    bots.submit("u1", TREND, handle="early bird")
+    bots.submit("u1", TREND, name="Early Bird")
     market.upto, clock.when = LONG[330], at(LONG[330], 17)
     bots.refresh()
-    bots.submit("u2", {**TREND, "name": "Late", "hold": 10}, handle="late comer")
+    bots.submit("u2", {**TREND, "name": "Late", "hold": 10}, name="Late Comer")
     market.upto, clock.when = LONG[333], at(LONG[333], 17)
     bots.refresh(force=True)
     o = bots.overview("u2")
     rows = {r["handle"]: r for r in o["rows"]}
-    assert set(rows) == {"early bird", "late comer"} and all("user_id" not in r for r in o["rows"])
-    assert rows["late comer"]["you"] and not rows["early bird"]["you"]
-    assert rows["late comer"]["returns"]["1m"] is None and "1m" not in rows["late comer"]["ranks"]
-    assert rows["early bird"]["ranks"]["1m"] == 1 and rows["early bird"]["sessions"] == 33
+    assert set(rows) == {"Early", "Late"} and all("user_id" not in r for r in o["rows"])
+    assert rows["Late"]["you"] and not rows["Early"]["you"]
+    assert rows["Late"]["returns"]["1m"] is None and "1m" not in rows["Late"]["ranks"]
+    assert rows["Early"]["ranks"]["1m"] == 1 and rows["Early"]["sessions"] == 33
     assert {rows[h]["ranks"]["1d"] for h in rows} == {1, 2}
     assert o["benchmark"]["returns"]["1d"] is not None and o["benchmark"]["returns"]["all"] is None
     assert o["you"]["rules"][0] == "Looks at the 20 largest US companies." and o["you"]["bot"]["hold"] == 10
@@ -238,7 +267,7 @@ def test_the_key_is_kept_hashed_and_a_new_one_replaces_it():
     second = bots.issue_key("u1")
     assert bots.who(key) is None and bots.who(second) == "u1"
     assert bots.who("mhb_nothing") is None and bots.who(None) is None and bots.who("other") is None
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     bots.forget("u1")
     assert bots.who(second) is None and store.get("u1") is None
 
@@ -277,7 +306,7 @@ def test_each_rebalance_is_logged_with_what_it_bought_sold_raised_and_cut():
 
 def test_new_rules_keep_the_record_and_apply_from_the_next_close():
     bots, store, clock, market = competition(380)
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     market.upto, clock.when = LONG[383], at(LONG[383], 17)
     bots.refresh()
     before = store.get("u1")["curve"]
@@ -293,7 +322,7 @@ def test_new_rules_keep_the_record_and_apply_from_the_next_close():
     assert kept["spec"]["hold"] == 3 and "pending" not in kept and len(kept["weights"]) == 3
     assert kept["versions"] == [{"from": LONG[384], "changed_utc": mine["pending"]["changed_utc"], "what": ["rules"], "spec": kept["spec"]}]
     assert kept["log"][-1]["date"] in (LONG[384], LONG[385], LONG[386]) and any(e["date"] == LONG[384] for e in kept["log"])  # rebalanced at its close
-    row = next(r for r in bots.overview("u2")["rows"] if r["handle"] == "ana bots")
+    row = next(r for r in bots.overview("u2")["rows"] if r["handle"] == "Ana")
     assert row["changed"] == LONG[384] and "spec" not in row and "versions" not in row
     clock.when = at(LONG[387], 11)
     assert bots.edit("u1", {**TREND, "hold": 4})["pending"]["what"] == ["rules"]  # a new day, a new change
@@ -301,7 +330,7 @@ def test_new_rules_keep_the_record_and_apply_from_the_next_close():
 
 def test_a_bot_that_has_not_started_just_becomes_the_new_one():
     bots, store, clock, market = competition(380, hour=11)
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     assert store.get("u1")["preview"]["as_of"] == LONG[379] and len(store.get("u1")["preview"]["weights"]) == 5
     mine = bots.edit("u1", {**TREND, "hold": 2})
     assert mine["pending"] is None and mine["bot"]["hold"] == 2 and len(mine["preview"]["weights"]) == 2
@@ -310,7 +339,7 @@ def test_a_bot_that_has_not_started_just_becomes_the_new_one():
 
 def test_pause_exclude_and_resume_apply_at_the_next_close():
     bots, store, clock, market = competition(380)
-    bots.submit("u1", {**TREND, "hold": 5}, handle="ana bots")
+    bots.submit("u1", {**TREND, "hold": 5}, name="Ana Torres")
     market.upto, clock.when = LONG[382], at(LONG[382], 17)
     bots.refresh()
     held = max(store.get("u1")["weights"], key=store.get("u1")["weights"].get)
@@ -339,7 +368,7 @@ def test_pause_exclude_and_resume_apply_at_the_next_close():
 
 def test_a_refresh_does_not_undo_a_change_made_meanwhile():
     bots, store, clock, market = competition(380)
-    bots.submit("u1", TREND, handle="ana bots")
+    bots.submit("u1", TREND, name="Ana Torres")
     market.upto, clock.when = LONG[382], at(LONG[382], 17)
     bots.refresh()
     clock.when = at(LONG[383], 17)

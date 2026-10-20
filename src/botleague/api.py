@@ -4,7 +4,7 @@ Open to everyone:
     GET    /api/health
     GET    /api/me                  who is signed in to Market Hub, and where to sign in
     GET    /api/board               the board: the members' bots (to members, or to all when the
-                                    board is public), the house bots and the index
+                                    board is public) and the index
     POST   /api/board/refresh       move the bots on to the last close, if they are behind
     GET    /api/board/bot/{slug}    a bot's page: its curve against the index, what it holds
 The member's own, with Market Hub's session cookie (the same routes as the portal's Community):
@@ -16,13 +16,14 @@ The member's own, with Market Hub's session cookie (the same routes as the porta
     GET    /api/bots/mine           what is kept of the member's bot and key
     POST   /api/bots/preview        {bot}: its rules in words and what they would hold at the last close
     PUT    /api/bots/mine/rules     {bot}: new rules, from the next close, keeping the record (once a day)
+    PUT    /api/bots/mine/name      {name, about?}: rename the bot, at once, keeping the record
     POST   /api/bots/mine/switch    {action, ticker?}: pause, resume, exclude or include, from the next close
     POST   /api/bots/mine/chat      {message, history?}: a change of rules proposed by Claude, to confirm
 The routes of the member's agent, with the bot key (Authorization: Bearer mhb_...), never the cookie:
     GET    /api/bot/spec            what a bot can be (no key needed)
     POST   /api/bot/check           {bot}: whether it is a bot, and its rules in words
     POST   /api/bot/backtest        {bot, years}: what it would have done, for its owner
-    PUT    /api/bot                 {bot, handle?}: send it in, in place of the one there was
+    PUT    /api/bot                 {bot}: send it in, in place of the one there was
     PATCH  /api/bot                 {bot}: change its rules from the next close, keeping its record
     GET    /api/bot                 the member's bot: returns, rank, holdings, rules
 
@@ -54,7 +55,7 @@ from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_P
 from .engine import BotStore, Bots
 from .hubauth import Hub
 from .hubauth import settings as hub_settings
-from .league import FileHouse, FirestoreHouse, FirestoreMembers, HouseStore, League, Members, NoMembers, Remembering
+from .league import League, Remembering
 from .market import Directory, MarketUnavailable, Sample, Yahoo
 
 log = logging.getLogger("botleague.api")
@@ -95,7 +96,7 @@ def _firestore() -> bool:
     return os.environ.get("MARKETHUB_FIRESTORE") == "1"
 
 
-def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None = None, members: Members | None = None,
+def create_app(bot_store: BotStore | None = None,
                closes: Callable[[set[str]], dict] | None = None, largest: Callable[[int], list[str]] | None = None,
                hub: tuple[str, str] | None | bool = True, public: bool | None = None, sample: bool | None = None,
                clock: Callable[[], datetime] | None = None, static_dir: str | None = None, chat: Chat | None = None) -> FastAPI:
@@ -117,10 +118,8 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
             yahoo, directory = Yahoo(), Directory()
             closes, largest = closes or yahoo.closes, largest or directory.largest
     store = Remembering(bot_store or engine.default_bots())
-    house_store = house_store or (FirestoreHouse() if _firestore() else FileHouse())
-    members = members or (FirestoreMembers() if _firestore() else NoMembers())
-    bots = Bots(store, closes, largest, taken=members.taken, member_name=members.name, sample=False, now=clock)
-    league = League(bots, store, house_store, closes, largest, public=PUBLIC_BOARD if public is None else public, sample=sample, now=clock)
+    bots = Bots(store, closes, largest, sample=False, now=clock)
+    league = League(bots, store, public=PUBLIC_BOARD if public is None else public, sample=sample, now=clock)
     gate = Hub(hub_settings() if hub is True else hub or None)
 
     limiter = RateLimiter(PER_IP_PER_HOUR)
@@ -221,6 +220,8 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
     def overview(request: Request) -> dict:
         user = member(request)
         allow(request)
+        # The bot is shown under the first name of the account the member signed in with.
+        bots.sync_player(user["id"], user.get("name"))
         return bots.overview(user["id"])
 
     @app.post("/api/bots/refresh")
@@ -233,7 +234,7 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
     def kit(request: Request) -> Response:
         user = member(request)
         allow(request)
-        key = bots.issue_key(user["id"])
+        key = bots.issue_key(user["id"], user.get("name"))
         log.info("bot kit downloaded with a new key")
         return Response(engine.kit(str(request.base_url).rstrip("/"), key), media_type="application/zip",
                         headers={"Content-Disposition": 'attachment; filename="markethub-bot.zip"'})
@@ -243,7 +244,7 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
         user = member(request)
         allow(request)
         log.info("bot key issued")
-        return {"key": bots.issue_key(user["id"]), "status": bots.key_status(user["id"])}
+        return {"key": bots.issue_key(user["id"], user.get("name")), "status": bots.key_status(user["id"])}
 
     @app.delete("/api/bots/key")
     def drop_key(request: Request) -> dict:
@@ -289,6 +290,18 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot rules changed")
+        return mine
+
+    @app.put("/api/bots/mine/name")
+    def rename(request: Request, name: str = Body(embed=True, max_length=200), about: str | None = Body(None, embed=True, max_length=1000)):
+        user_id = member(request)["id"]
+        allow(request)
+        changes_allowed(user_id)
+        try:
+            mine = bots.rename(user_id, name, about)
+        except engine.Refused as exc:
+            return refused(exc)
+        log.info("bot renamed")
         return mine
 
     @app.post("/api/bots/mine/switch")
@@ -366,12 +379,12 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
             market_down(exc)
 
     @app.put("/api/bot")
-    def submit(request: Request, bot: dict = Body(embed=True), handle: str | None = Body(None, embed=True, max_length=40)):
+    def submit(request: Request, bot: dict = Body(embed=True)):
         user_id = agent(request)
         if not sending.allow(user_id):
             raise HTTPException(429, f"That is {BOT_SUBMISSIONS_PER_USER_PER_DAY} bots sent in a day. Try again tomorrow.")
         try:
-            mine = bots.submit(user_id, bot, handle)
+            mine = bots.submit(user_id, bot)
         except engine.Refused as exc:
             return refused(exc)
         except MarketUnavailable as exc:

@@ -1,6 +1,6 @@
 ---
 // The whole board: every bot over the day, week, month, year or since it started, ranked among
-// those that have run that long, with the house bots and the index as lines of reference.
+// those that have run that long, with the index as the line of reference.
 import Layout from "../../layouts/Layout.astro";
 ---
 
@@ -12,7 +12,7 @@ import Layout from "../../layouts/Layout.astro";
 			<span class="live" id="asof">loading</span>
 		</div>
 		<p class="mt-3 max-w-2xl text-[14px] text-muted" id="lede">
-			A bot shows in a period once it has run that long. The S&P 500 and the house bots are on the board for reference and are never ranked.
+			A bot shows in a period once it has run that long, under the first name of its player. The S&P 500 is on the board for reference and is never ranked.
 		</p>
 		<div class="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
 			<div id="tabs"></div>
@@ -50,13 +50,13 @@ import Layout from "../../layouts/Layout.astro";
 		}
 		const r = e.line;
 		const rank = r.ranks[period];
-		const a = h("a", `${grid} hover:bg-raised ${r.house ? "bg-white/[0.015]" : ""} ${r.you ? "bg-signal-soft shadow-[inset_2px_0_0_var(--color-signal)]" : ""}`);
+		const a = h("a", `${grid} hover:bg-raised ${r.you ? "bg-signal-soft shadow-[inset_2px_0_0_var(--color-signal)]" : ""}`);
 		a.href = botUrl(r.slug);
-		add(a, h("span", `num text-[13px] ${rank && rank <= 3 ? "text-ink-strong" : "text-muted"}`, rank ? String(rank) : r.house ? "·" : ""),
+		add(a, h("span", `num text-[13px] ${rank && rank <= 3 ? "text-ink-strong" : "text-muted"}`, rank ? String(rank) : ""),
 			add(h("span", "flex min-w-0 items-center gap-3"), robot(r.slug, 30), add(h("span", "min-w-0"),
-				add(h("span", "flex min-w-0 items-center gap-2"), h("span", `truncate font-semibold ${r.house ? "text-ink" : "text-ink-strong"}`, r.name),
-					r.house ? h("span", "tag shrink-0", "house") : null, r.you ? h("span", "tag tag-you shrink-0", "you") : null),
-				h("span", "block truncate text-[12px] text-muted", r.house ? "Bot League · from the kit" : `by ${r.handle}`))),
+				add(h("span", "flex min-w-0 items-center gap-2"), h("span", "truncate font-semibold text-ink-strong", r.name),
+					r.you ? h("span", "tag tag-you shrink-0", "you") : null),
+				h("span", "block truncate text-[12px] text-muted", `by ${r.handle}`))),
 			add(h("span", "hidden justify-end md:flex"), sparkline(r.spark, 88, 26)),
 			h("span", `num text-right font-semibold ${tone(e.value)}`, e.value == null ? (r.since ? "—" : "next close") : signedPct(e.value, digits(period))),
 			h("span", `num hidden text-right md:block ${tone(r.returns.all)}`, signedPct(r.returns.all, 1)),
@@ -74,7 +74,7 @@ import Layout from "../../layouts/Layout.astro";
 			history.replaceState(null, "", `?p=${p}`);
 			draw();
 		}));
-		document.getElementById("count")!.textContent = `${plural(b.entrants, "member's bot", "members' bots")} · ${plural(b.house.length, "house bot")}`;
+		document.getElementById("count")!.textContent = `${plural(b.entrants, "bot")}`;
 		const head = add(h("div", `${grid} !py-2 text-[12px] text-muted`), h("span", "", "#"), h("span", "", "Bot"), h("span", "hidden md:block"),
 			h("span", "text-right", PERIODS.find((p) => p.key === period)!.label), h("span", "hidden text-right md:block", "Since start"), h("span", "hidden text-right md:block", "Running"),
 			h("span", "hidden md:block", "Largest holdings"));

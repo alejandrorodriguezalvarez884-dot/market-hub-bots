@@ -1,7 +1,6 @@
 ---
 // A bot's own page (/bot/?b=slug): its idea, its returns and ranks, its curve against the S&P 500
-// from its first close, and what it holds. A house bot's rules are public, as are the kit's; a
-// member's are shown to its owner alone.
+// from its first close, and what it holds. Its rules are shown to its owner alone.
 import Layout from "../../layouts/Layout.astro";
 ---
 
@@ -31,7 +30,7 @@ import Layout from "../../layouts/Layout.astro";
 				const rank = b.ranks[p.key];
 				return add(h("div", "bg-page p-4"), h("div", "label", p.label),
 					h("div", `num mt-1 text-[22px] font-semibold ${tone(v)}`, v == null ? "—" : signedPct(v, digits(p.key))),
-					h("div", "mt-0.5 text-[12px] text-muted", b.house ? (v == null ? "not yet" : "house · not ranked") : rank ? `${ordinal(rank)} of ${b.entrants}` : v == null ? "not yet" : " "));
+					h("div", "mt-0.5 text-[12px] text-muted", rank ? `${ordinal(rank)} of ${b.entrants}` : v == null ? "not yet" : " "));
 			}));
 	}
 
@@ -58,14 +57,14 @@ import Layout from "../../layouts/Layout.astro";
 		return [
 			section("What it did", "Each rebalance, the latest first: bought (+), sold (−), raised (↑) and cut (↓)", moves(b.log)),
 			over ? section("What it held over time", "After each rebalance; darker is more", over) : null,
-			b.house ? null : section("Changes", "When its owner changed its rules or pressed a switch. The rules themselves stay theirs.", versions(b.versions)),
+			section("Changes", "When its owner changed its rules or pressed a switch. The rules themselves stay theirs.", versions(b.versions)),
 		].filter((x): x is HTMLElement => !!x);
 	}
 
 	function rules(b: BotPage): HTMLElement | null {
 		if (!b.rules) return null;
 		const sec = add(h("section", "sec mt-12"), add(h("div", "sec-head"), h("h2", "sec-title", "Its rules"),
-			h("span", "sec-note", b.house ? "A house bot: the kit's example, open to all" : "Only you see them")));
+			h("span", "sec-note", "Only you see them")));
 		add(sec, add(h("ul", "max-w-3xl space-y-2 text-[14px] text-ink"), ...b.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-signal", "›"), h("span", "", r)))));
 		if (b.bot) {
 			const d = add(h("details", "mt-5 max-w-3xl"), h("summary", "cursor-pointer text-[13px] text-muted hover:text-ink-strong", "The file"),
@@ -85,9 +84,9 @@ import Layout from "../../layouts/Layout.astro";
 		add(root,
 			add(h("a", "text-[13px] text-muted hover:text-ink-strong"), "← The board"),
 			add(h("div", "mt-5 flex items-center gap-4 sm:gap-6"), robot(b.slug, 104, "robot-big"), add(h("div", "min-w-0"),
-				add(h("div", "flex flex-wrap items-center gap-2"), b.house ? h("span", "tag", "house bot") : null, b.you ? h("span", "tag tag-you", "your bot") : null),
+				add(h("div", "flex flex-wrap items-center gap-2"), b.you ? h("span", "tag tag-you", "your bot") : null),
 				h("h1", "h2 mt-1", b.name),
-				h("p", "mt-1 text-[14px] text-muted", b.house ? "By Bot League, from the kit's examples" : `By ${b.handle}`))),
+				h("p", "mt-1 text-[14px] text-muted", `By ${b.handle}`))),
 			b.about ? h("p", "mt-4 max-w-2xl text-[16px] text-ink", b.about) : null,
 			h("p", "mt-3 text-[13px] text-muted", started),
 			stats(b),

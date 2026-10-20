@@ -139,15 +139,54 @@ import Layout from "../../layouts/Layout.astro";
 		return h("span", "status", `Running · ${plural(you.sessions, "session")} since ${day(you.since)}`);
 	}
 
+	// Renaming it: at once, keeping its record, and not the day's change of rules.
+	let renaming = false;
+
+	function title(you: MyBot): HTMLElement {
+		if (!renaming) {
+			return add(h("div"),
+				add(h("div", "mt-1 flex flex-wrap items-baseline gap-x-3"), h("h1", "h2", you.name),
+					button("text-[13px] text-muted hover:text-ink-strong", "Rename", () => {
+						renaming = true;
+						draw(lastMe!);
+					})),
+				you.about ? h("p", "mt-1 max-w-2xl text-[14px] text-muted", you.about) : null);
+		}
+		const name = h("input", "field max-w-md");
+		name.value = you.name;
+		name.maxLength = 40;
+		const about = h("textarea", "field mt-2 min-h-[56px] max-w-2xl");
+		about.value = you.about;
+		about.maxLength = 280;
+		const note = h("p", "mt-1 text-[12.5px] text-muted", "The new name shows at once and the record goes on. Its page says it was renamed.");
+		const save = button("btn btn-primary py-1.5 text-[13px]", "Save", async (el) => {
+			el.disabled = true;
+			try {
+				await api("/api/bots/mine/name", { method: "PUT", body: { name: name.value, about: about.value } });
+				renaming = false;
+				await reload();
+			} catch (e) {
+				note.textContent = e instanceof Error ? e.message : "That did not work.";
+				note.className = "mt-1 text-[12.5px] text-warn";
+				el.disabled = false;
+			}
+		});
+		const cancel = button("btn btn-ghost py-1.5 text-[13px]", "Cancel", () => {
+			renaming = false;
+			draw(lastMe!);
+		});
+		return add(h("div", "mt-1 w-full"), add(h("label", "block"), h("span", "label block pb-1", "Name"), name),
+			add(h("label", "block"), h("span", "label mt-2 block pb-1", "Idea"), about), note, add(h("div", "mt-2 flex gap-2"), save, cancel));
+	}
+
 	function head(you: MyBot): HTMLElement {
-		const slug = slugOf(you.handle);
+		const slug = you.id ?? "";
 		const pending = you.pending ? button("status is-waiting hover:border-muted", `Next close: ${said(you.pending.what) || "a change"}`, () => toggleChange(true)) : null;
 		return add(h("div", "flex flex-wrap items-center gap-x-6 gap-y-4"),
 			robot(slug, 104, "robot-big"),
 			add(h("div", "min-w-0 flex-1"),
-				h("p", "kicker", `Your bot · shown as ${you.handle}`),
-				h("h1", "h2 mt-1", you.name),
-				you.about ? h("p", "mt-1 max-w-2xl text-[14px] text-muted", you.about) : null,
+				h("p", "kicker", `Your bot · by ${you.handle}, the first name of your account`),
+				title(you),
 				add(h("div", "mt-3 flex flex-wrap items-center gap-2"), statusOf(you), pending)),
 			add(h("div", "flex w-full flex-wrap items-center gap-3 sm:w-auto"),
 				button("btn btn-signal", changeOpen ? "Close" : "Change it", () => toggleChange(!changeOpen)),
@@ -372,7 +411,7 @@ import Layout from "../../layouts/Layout.astro";
 	let lastMe: Me | null = null;
 
 	async function readPage(you: MyBot | null) {
-		page = you ? await api<BotPage>(`/api/board/bot/${encodeURIComponent(slugOf(you.handle))}`).catch(() => null) : null;
+		page = you?.id ? await api<BotPage>(`/api/board/bot/${encodeURIComponent(you.id)}`).catch(() => null) : null;
 	}
 
 	async function reload() {

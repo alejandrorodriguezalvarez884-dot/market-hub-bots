@@ -79,7 +79,8 @@ export const said = (what: string[]) => what.map((w) => WORDS[w] ?? w).join(" ·
 export function versions(list: Version[]): HTMLElement {
   if (!list.length) return h("p", "text-[13px] text-muted", "Its rules have not changed since it was sent in.");
   return add(h("ul", "space-y-1.5 text-[13px]"), ...list.slice().reverse().map((v) =>
-    add(h("li", "flex flex-wrap gap-x-3"), h("span", "num text-ink-strong", `From the close of ${day(v.from)}`), h("span", "text-ink", said(v.what)))));
+    add(h("li", "flex flex-wrap gap-x-3"), h("span", "num text-ink-strong", v.what.every((w) => w.startsWith("renamed")) ? day(v.from) : `From the close of ${day(v.from)}`),
+      h("span", "text-ink", said(v.what)))));
 }
 
 export const holdingCount = (weights: Record<string, number>) => plural(Object.keys(weights).length, "stock");

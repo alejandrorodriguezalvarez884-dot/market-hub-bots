@@ -18,6 +18,26 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **Sin bots de la casa, renombrar el bot y el jugador es el login.** Pedido del usuario:
+> "quitar los bots random de prueba", poder cambiar el nombre del bot, y que el usuario sea el del login;
+> eligió mostrar **solo el nombre de pila** (como en los comentarios de opinión).
+> - Fuera los seis bots de la casa: ya no se ejecutan ni se enseñan. `bot_meta/house` **queda en
+>   Firestore** sin leerse ni escribirse (no lo borré: es del usuario decidirlo). El índice de las
+>   páginas de bot sale ahora del `benchmark` de `bot_meta/board` (el último año). Los ejemplos siguen
+>   en el kit.
+> - El jugador ya no elige nombre: `handle` es el **nombre de pila de la cuenta** (`engine.first_name`),
+>   de la sesión en la web (`sync_player` en `GET /api/bots`) o, para el agente, el que se guardó con su
+>   clave al hacerla con sesión (`issue_key(user_id, name)`); nunca de la petición. Fuera las reglas de
+>   nombres únicos y las lecturas de `shared_portfolios`/`competition_entries` (`FirestoreMembers`).
+> - Cada bot tiene un **id público aleatorio** (`public_id`, 10 hex), estable para el miembro, que es su
+>   dirección (`/bot/?b=<id>`) y la semilla de su robot. Los bots de antes lo reciben en el siguiente
+>   refresh (`ensure_ids`); el de "alejandros portfolio" pasa a "Alejandro" cuando su dueño abra su
+>   página.
+> - **Renombrar**: `PUT /api/bots/mine/name` (`Bots.rename`) cambia el nombre y la idea al momento,
+>   conserva el historial, no cuenta como el cambio del día y deja en el registro público "renamed from
+>   <nombre anterior>". En "Your bot", un botón "Rename" junto al nombre.
+> - Mismo parche en el `bots.py` del portal, sus tests, su privacidad y su `CLAUDE.md`. Sin desplegar.
+
 > 2026-10-20: **"Your bot" (`/me/`), más simple y dibujada** (**desplegada** como `bot-league-00006-nr7`, export limpio de 664f4ac, configuración igual). El usuario
 > la quería "mucho más visual": sin bot, solo crearlo; con bot, el bot ocupa la página y lo de
 > hacerlo de cero queda en un rincón pequeño.

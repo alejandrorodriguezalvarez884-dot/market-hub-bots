@@ -29,8 +29,8 @@ store = MemoryBots()
 bots = Bots(store, closes, lambda n: NAMES[:n], now=lambda: clock["now"])
 TREND = {"format": FORMAT, "name": "Trend", "about": "Rides what is over its average.", "universe": {"largest": 20}, "rebalance": "weekly",
          "filters": [{"factor": "trend", "days": 50, "min": 0}], "score": [{"factor": "momentum", "days": 63, "weight": 1}], "hold": 5}
-key = bots.issue_key("portal-user-1")
-bots.submit("portal-user-1", TREND, handle="ana bots")
+key = bots.issue_key("portal-user-1", "Ana Torres")
+bots.submit("portal-user-1", TREND)
 clock["now"], upto["d"] = at(LONG[385], 17), LONG[385]
 bots.refresh(force=True)
 json.dump({"written_by": "market-hub-landing src/markethub/bots.py", "sessions": LONG, "key": key,

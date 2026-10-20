@@ -1,22 +1,15 @@
-"""The names members show under, and the words nothing is shown with.
-
-The same rules as Market Hub's Community (market-hub-landing: community.py and opinion.py), so a
-name is taken or refused the same here as there. A change there is made here too.
+"""The words nothing is shown with: the same floor as Market Hub's (market-hub-landing: opinion.py).
+A player is shown under the first name of their account (engine.first_name), refused if it has one
+of these words. A change there is made here too.
 """
 
 from __future__ import annotations
 
 import re
 
-HANDLE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9_\-]| (?! )){1,18}[A-Za-z0-9]")
-RESERVED = {"you", "average", "admin", "markethub", "market hub", "market-hub", "sp500", "s&p 500", "index"}
-# The portal's sample members: names nobody can take, so a sample line is never mistaken for one.
+# The portal's sample members, for its sample stand-ins (bots.py runs them on sample figures).
 SAMPLE_NAMES = ["northwind", "tape_reader", "quiet compounder", "delta nine", "harbour lane", "second derivative", "plainvanilla",
                 "long_duration", "copper kettle", "margin of error", "sunday charts", "basis point"]
-
-
-def handle_key(handle: str) -> str:
-    return re.sub(r"[\s_\-]+", "", handle).lower()
 
 
 # Words a name or a bot's note is not shown with: slurs and the coarsest insults, in English and in

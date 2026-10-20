@@ -46,11 +46,10 @@ Talk to the member in their language. Keep it light: they may not know what mome
    past, among today's largest companies, so it looks better than the past was, and it says
    nothing about the future. A few rounds of changes are fine; past that, warn them that tuning
    to the past makes a bot good at the past only.
-7. **Send it in, only when they say so.** Before it, sum up: the name it will be shown under (on a
-   public board), the rules (which stay theirs alone), and that it replaces any bot they had (its
-   record starts again). Then
-   `python tools/mh.py submit` (add `--handle "name"` if the answer asks for a name: 3 to 20
-   letters, digits, spaces, hyphens or underscores). Tell them where to see it: their page of
+7. **Send it in, only when they say so.** Before it, sum up: the bot's name, that the public board
+   shows it next to the first name of their Market Hub account, the rules (which stay theirs alone),
+   and that it replaces any bot they had (its record starts again). Then `python tools/mh.py submit`.
+   The bot's name can be changed later from their page without losing its record. Tell them where to see it: their page of
    Bot League ({{SITE}}/me/) and the board ({{SITE}}/board/), and when its record starts.
 8. **Later:** `python tools/mh.py status` shows how it is doing and where it stands.
 
