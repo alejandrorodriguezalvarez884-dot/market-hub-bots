@@ -61,9 +61,9 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
   function live() {
     const lines = diff(describe(o.before), describe(bot));
     words.replaceChildren(rulesDiff(lines));
-    const differs = changed(lines) || bot.name !== o.before.name || bot.about !== o.before.about;
+    const differs = changed(lines);
     apply.disabled = applyBar.disabled = !differs || !!o.blocked;
-    const n = lines.filter((l) => l.kind === "new").length + (bot.name !== o.before.name || bot.about !== o.before.about ? 1 : 0);
+    const n = lines.filter((l) => l.kind === "new").length;
     count.textContent = !differs ? "No change yet" : n === 0 ? "A rule goes" : `${n} ${n === 1 ? "rule changes" : "rules change"} · at the next close`;
     clearTimeout(timer);
     if (differs && !resting) timer = window.setTimeout(preview, 1200);
@@ -212,19 +212,7 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
         })),
       bot.market ? factor(bot.market, "market", null) : null);
 
-    const name = h("input", "field");
-    name.value = bot.name;
-    name.maxLength = 40;
-    name.setAttribute("aria-label", "Name");
-    name.addEventListener("input", () => ((bot.name = name.value), live()));
-    const about = h("textarea", "field min-h-[60px]");
-    about.value = bot.about;
-    about.maxLength = 280;
-    about.setAttribute("aria-label", "Idea");
-    about.addEventListener("input", () => ((bot.about = about.value), live()));
-    const named = group("Its name and idea", null, add(h("div", "grid gap-2"), name, about));
-
-    controls.replaceChildren(universe, keeps, ranks, holds, market, named);
+    controls.replaceChildren(universe, keeps, ranks, holds, market);
     live();
   }
 
