@@ -25,7 +25,8 @@ reglas privadas.
 > `site/public/favicon.svg` y `brand/share.mjs`; si cambia, se cambian los tres. `make icons` dibuja
 > `favicon.ico`, `favicon-192.png`, `apple-touch-icon.png` y `logo.png` desde el SVG, y `make share`
 > la imagen de un enlace compartido (`share.png`, 1200×630), las dos con el Chrome del equipo, como en
-> el portal. El `<head>` enlaza los iconos y pone `og:image` con tarjeta grande.
+> el portal. El `<head>` enlaza los iconos y pone `og:image` con tarjeta grande. **Desplegado** como
+> `bot-league-00004-52g` desde un export limpio de 7aff24f (configuración igual antes y después).
 
 > 2026-10-20: **El aspecto, el de The Market Hub.** Al usuario no le gustó que la web cambiara tanto
 > el look & feel frente al portal, y pidió "by The Market Hub" con enlace a la web. Fuera el violeta,
