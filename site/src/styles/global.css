@@ -757,3 +757,126 @@
     display: none;
   }
 }
+
+/* The owner's page (lib/mybot.ts): what the bot holds as tiles, its rank as a mark on a line. */
+@layer components {
+  .treemap {
+    position: relative;
+    height: 260px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--color-panel);
+  }
+  @media (min-width: 640px) {
+    .treemap {
+      height: 300px;
+    }
+  }
+  .treemap.is-preview {
+    outline: 1px dashed var(--color-muted);
+    outline-offset: 3px;
+  }
+  .tile {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--color-page);
+    border-radius: 3px;
+    background: rgb(242 240 234 / var(--a, 0.12));
+    padding: 6px 8px;
+    transition: background 0.15s;
+  }
+  a.tile:hover {
+    background: rgb(242 240 234 / calc(var(--a, 0.12) + 0.1));
+  }
+  .tile.is-cash {
+    background: repeating-linear-gradient(135deg, var(--color-raised) 0 6px, var(--color-panel) 6px 12px);
+  }
+  .tile-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--color-ink-strong);
+  }
+  .tile-w {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-ink);
+  }
+  .rank {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+  }
+  .rank-track {
+    position: relative;
+    display: flex;
+    gap: 3px;
+    height: 6px;
+  }
+  .rank-track i {
+    flex: 1;
+    max-width: 14px;
+    border-radius: 1px;
+    background: var(--color-line-strong);
+  }
+  .rank-track i.on {
+    background: var(--color-ink-strong);
+  }
+  .rank-track.is-line {
+    border-radius: 3px;
+    background: var(--color-line);
+  }
+  .rank-mark {
+    position: absolute;
+    top: -3px;
+    width: 4px;
+    height: 12px;
+    margin-left: -2px;
+    border-radius: 2px;
+    background: var(--color-ink-strong);
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 99px;
+    padding: 3px 11px;
+    font-size: 12.5px;
+    color: var(--color-ink);
+  }
+  .status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 99px;
+    background: var(--color-ink-strong);
+  }
+  .status.is-waiting::before {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--color-ink-strong);
+  }
+  .status.is-paused::before {
+    border-radius: 1px;
+    background: var(--color-muted);
+  }
+  /* The small corner at the foot of the page: building a bot again from scratch. */
+  .corner > summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 12.5px;
+    color: var(--color-muted);
+  }
+  .corner > summary::-webkit-details-marker {
+    display: none;
+  }
+  .corner > summary:hover {
+    color: var(--color-ink-strong);
+  }
+}

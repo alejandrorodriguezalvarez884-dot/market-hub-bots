@@ -18,6 +18,33 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **"Your bot" (`/me/`), más simple y dibujada** (en main, sin desplegar). El usuario
+> la quería "mucho más visual": sin bot, solo crearlo; con bot, el bot ocupa la página y lo de
+> hacerlo de cero queda en un rincón pequeño.
+> - **Sin bot**: el robot en gris (con el nombre del miembro), "Create your bot" y tres tarjetas:
+>   descargar el kit (con la clave), abrirlo con el agente, decir "Let's build my bot". La clave,
+>   plegada debajo ("Already have the kit?").
+> - **Con bot**: cabecera con su robot, nombre, idea y una píldora de estado (en marcha desde…, en
+>   pausa, o "Starts at the close of …"), el cambio que espera al próximo cierre (abre "Change it"),
+>   y dos acciones: **Change it** (abre el editor, el chat y los interruptores, con las pestañas
+>   "Rules · Ask Claude · Pause or leave out", y "Done" para cerrar) y su página pública. Debajo:
+>   las cinco cifras con su puesto dibujado como una marca en una fila (el 1.º a la izquierda); la
+>   curva **contra el S&P 500** (lee `/api/board/bot/{slug}`, que ya da la curva con el índice y
+>   `starts`; si falla, la curva sola de `/api/bots`); **lo que tiene** como un treemap (cada
+>   empresa del tamaño de su peso, la liquidez rayada; enlaza a la ficha del portal); lo que ha
+>   tenido (`strip()`); y **lo que ha hecho** como una línea de tiempo: cada rebalanceo una barra
+>   arriba (compró o subió) y otra abajo (vendió o bajó), en escala de raíz cuadrada, y un rombo
+>   por cada cambio de reglas, pausa o reanudación; al pasar o tocar se lee debajo. Las empresas
+>   excluidas, en fichas. Las reglas en palabras y "Start again from scratch" (kit, clave y
+>   retirar el bot), plegados al pie.
+> - **Sin empezar**: el treemap de lo que tendría, con borde discontinuo y la etiqueta "preview",
+>   junto a la curva en espera con la fecha en que empieza.
+> - Dibujos nuevos en `site/src/lib/mybot.ts` (`treemap`, `rankMeter`, `timeline`, `detail`); CSS
+>   al final de `global.css`. **La API no cambia**: ni el portal ni la app de móvil se tocan.
+> - Probado con `make check` (50 tests, `astro check` limpio) y en local con `make demo`, de
+>   escritorio y a 375 px sin scroll lateral, en los tres estados (con historial, recién enviado,
+>   sin bot), abriendo "Change it" y sus pestañas, el rincón y la lectura de la línea de tiempo.
+
 > 2026-10-20: **Desplegado** `bot-league-00005-4lj` desde un export limpio de b17c2a0 (la rama
 > `visuals` fusionada en main sin conflictos, con el OK del usuario, más la actividad, el editor y el
 > chat). El chat queda **encendido**: `BOTLEAGUE_CHAT=1`, `claude-haiku-5-5`, esfuerzo `high`, 15

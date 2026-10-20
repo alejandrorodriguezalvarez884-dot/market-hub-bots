@@ -1,28 +1,33 @@
 ---
-// The member's own page: their bot (how it is doing, what it holds, its rules), the kit to build
-// one with their agent, and the key the agent uses. Signed in with the Market Hub account.
+// The member's own page. With no bot yet: how to create one, nothing else. With a bot: the bot
+// drawn, at a glance (what it holds, how it is doing, what it has done), the tools to change it
+// behind one button, and building again from scratch in a small corner at the foot.
+// Signed in with the Market Hub account.
 import Layout from "../../layouts/Layout.astro";
 ---
 
 <Layout title="Your bot · Bot League" description="Your bot in Bot League, the kit to build it with your AI agent, and your key." page="me" noindex>
 	<section class="wrap pt-10" id="me">
-		<div class="skeleton h-6 w-40"></div><div class="skeleton mt-4 h-12 w-80"></div><div class="mt-8 grid gap-4 lg:grid-cols-2"><div class="skeleton h-72"></div><div class="skeleton h-72"></div></div>
+		<div class="flex items-center gap-5"><div class="skeleton h-24 w-24"></div><div class="flex-1"><div class="skeleton h-9 w-72 max-w-full"></div><div class="skeleton mt-3 h-5 w-48"></div></div></div>
+		<div class="skeleton mt-10 h-72"></div>
 	</section>
 </Layout>
 
 <script>
-	import { chartWaiting, lineChart } from "../../lib/chart";
+	import { chartWaiting, lineChart, type Series } from "../../lib/chart";
 	import { add, h } from "../../lib/dom";
-	import { day, ordinal, pct, plural, signedPct, timeAgo, tone } from "../../lib/format";
-	import { robot } from "../../lib/robot";
-	import { API, ApiError, api, botUrl, hubQuoteUrl, localVisitor } from "../../lib/site";
-	import { PERIODS, digits, type Bot, type ChatAnswer, type Key, type Me, type MyBot, type Overview, type Spec } from "../../lib/types";
-	import { moves, said, versions } from "../../lib/doings";
+	import { day, plural, signedPct, timeAgo, tone } from "../../lib/format";
+	import { detail, rankMeter, timeline, treemap } from "../../lib/mybot";
+	import { robot, robotSvg } from "../../lib/robot";
+	import { API, ApiError, api, botUrl, localVisitor } from "../../lib/site";
+	import { PERIODS, digits, type Bot, type BotPage, type ChatAnswer, type Key, type Me, type MyBot, type Overview, type Spec } from "../../lib/types";
+	import { said, strip } from "../../lib/doings";
 	import { asBot, editor } from "../../lib/editor";
 
 	localVisitor();
 	const root = document.getElementById("me")!;
 	let data: Overview;
+	let page: BotPage | null = null; // the bot's public page, read for its curve against the index and its start
 	let shownKey: string | null = null; // a key just made: shown once, until the page is left
 
 	const button = (cls: string, text: string, onClick: (b: HTMLButtonElement) => void) => {
@@ -32,6 +37,9 @@ import Layout from "../../layouts/Layout.astro";
 		return b;
 	};
 	const anchor = (cls: string, text: string, href: string) => Object.assign(h("a", cls, text), { href });
+	const slugOf = (handle: string) => handle.replace(/[\s_-]+/g, "").toLowerCase();
+	const section = (title: string, note?: Node | string | null) =>
+		add(h("section", "sec mt-10"), add(h("div", "sec-head"), h("h2", "sec-title", title), note ? add(h("span", "sec-note"), note) : null));
 
 	// --- Signed out ---
 
@@ -43,59 +51,7 @@ import Layout from "../../layouts/Layout.astro";
 			signin ? anchor("btn btn-signal btn-big relative mt-8", "Sign in to The Market Hub", signin) : h("p", "relative mt-6 text-[13px] text-muted", "Sign-in is not set up on this copy of the site.")));
 	}
 
-	// --- The member's bot ---
-
-	function mine(o: Overview): HTMLElement {
-		const you = o.you;
-		const panel = add(h("section", "frame p-5 sm:p-6"), h("p", "label", "Your bot"));
-		if (!you) {
-			return add(panel, h("h2", "mt-1 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", "No bot yet"),
-				h("p", "mt-3 max-w-prose text-[14px] text-muted",
-					"A bot is a few rules, not code: which of the largest US companies it looks at, what it scores them on, how many it holds and how often it looks again. Your agent writes them with you, backtests them and sends them in. It runs on paper, with no money and no broker, and is ranked from the next close."),
-				h("p", "mt-3 text-[13px] text-muted", "Download the kit beside this to start."));
-		}
-		const live = you.returns;
-		const stat = (p: (typeof PERIODS)[number]) => {
-			const v = live?.[p.key] ?? null;
-			const rank = you.ranks[p.key];
-			return add(h("div", "min-w-0 bg-panel p-3"), h("div", "label", p.label), h("div", `num mt-1 text-lg font-semibold ${tone(v)}`, v == null ? "—" : signedPct(v, digits(p.key))),
-				h("div", "truncate text-[12px] text-muted", rank ? `${ordinal(rank)} of ${you.entrants}` : v == null ? "not yet" : " "));
-		};
-		const started = you.since
-			? `Running since the close of ${day(you.since)} · ${plural(you.sessions, "session")} · as of ${day(you.as_of)}`
-			: `Sent in ${timeAgo(you.submitted_utc)}: its record starts at the next close.`;
-		const chart = h("div", "mt-4");
-		const rules = add(h("details", "mt-4 rounded-[3px] border border-line"),
-			h("summary", "cursor-pointer px-3 py-2 text-[13px] font-semibold text-ink", "Its rules · only you see them"),
-			add(h("ul", "space-y-1.5 px-3 pb-3 text-[13px] text-ink"), ...you.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-signal", "›"), h("span", "", r)))));
-		const page = anchor("link text-[13px] text-signal", "Its page on the board →", botUrl(you.handle.replace(/[\s_-]+/g, "").toLowerCase()));
-		add(panel,
-			add(h("div", "mt-2 flex items-center gap-4"), robot(you.handle.replace(/[\s_-]+/g, "").toLowerCase(), 64),
-				h("h2", "min-w-0 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", you.name)),
-			h("p", "mt-0.5 text-[12.5px] text-muted", `Shown as ${you.handle} · ${you.universe} companies to choose from`),
-			you.about ? h("p", "mt-3 max-w-prose text-[14px] text-ink", you.about) : null,
-			h("p", "mt-3 text-[12.5px] text-muted", started),
-			live ? add(h("div", "mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[3px] border border-line bg-line xl:grid-cols-5"), ...PERIODS.map(stat)) : null,
-			chart,
-			you.holdings.length ? add(h("div", "mt-4"), h("p", "label pb-1.5", "Holds now"), add(h("div", "flex flex-wrap gap-1.5"),
-				...you.holdings.map((x) => anchor("chip hover:text-ink-strong", `${x.ticker} ${pct(x.weight, x.weight < 0.1 ? 1 : 0)}`, hubQuoteUrl(x.ticker))),
-				you.cash && you.cash > 0.005 ? h("span", "chip text-muted", `cash ${pct(you.cash, 0)}`) : null)) : null,
-			rules,
-			add(h("div", "mt-4 flex flex-wrap items-center gap-3 text-[12.5px] text-muted"), page,
-				button("btn btn-ghost py-1.5 text-[13px]", "Withdraw it", async (el) => {
-					if (!confirm("Withdraw your bot? Its record goes with it, and a new one starts from zero.")) return;
-					el.disabled = true;
-					await api("/api/bots/mine", { method: "DELETE" });
-					await load();
-				})),
-			h("p", "mt-3 text-[12.5px] text-muted", "Change it below, or ask your agent to update it: its record goes on. A new bot sent in starts again."));
-		if (you.curve.length > 1) {
-			requestAnimationFrame(() => lineChart(chart, you.curve.map((p) => p.date), [{ name: you.name, values: you.curve.map((p) => p.value), color: "var(--color-signal)" }], 220));
-		} else requestAnimationFrame(() => chartWaiting(chart, you.since ? "Its line shows from its second close." : "Its line starts at the next close.", 150));
-		return panel;
-	}
-
-	// --- Building one ---
+	// --- The kit and the key ---
 
 	async function downloadKit(): Promise<void> {
 		const res = await fetch(`${API}/api/bots/kit`, { method: "POST", credentials: "include" });
@@ -108,36 +64,24 @@ import Layout from "../../layouts/Layout.astro";
 		setTimeout(() => URL.revokeObjectURL(url), 10_000);
 	}
 
-	function build(o: Overview): HTMLElement {
-		const status = h("p", "mt-2 text-[12.5px] text-muted");
-		const step = (n: number, title: string, ...body: (Node | string | null)[]) => add(h("li", "grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3"),
-			h("span", "step-n", String(n)), add(h("div", "min-w-0"), h("div", "text-[15px] font-semibold text-ink-strong", title), ...body));
-		let keyBox = keys(o);
-		const kit = button("btn btn-signal mt-3", "Download the kit", async (el) => {
+	function kitButton(cls: string, status: HTMLElement, after: () => void): HTMLButtonElement {
+		return button(cls, "Download the kit", async (el) => {
 			el.disabled = true;
 			status.textContent = "Making your key and the kit…";
 			try {
 				await downloadKit();
 				status.textContent = "Downloaded, with a new key in its .env. Any key you had before no longer works.";
 				data = await api<Overview>("/api/bots");
-				keyBox.replaceWith((keyBox = keys(data)));
+				after();
 			} catch (e) {
 				status.textContent = e instanceof Error ? e.message : "The kit could not be made.";
 			}
 			el.disabled = false;
 		});
-		return add(h("section", "frame p-5 sm:p-6"),
-			h("p", "label", "Build it with your AI agent"),
-			h("h2", "mt-1 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", o.you ? "Change it, or start again" : "Three steps, and a conversation"),
-			add(h("ol", "mt-5 space-y-5"),
-				step(1, "Download the kit", h("p", "text-[13.5px] text-muted", "Instructions for your agent, the format of a bot, six examples and a small tool, with your key inside."), kit, status),
-				step(2, "Open the folder with your agent", h("p", "text-[13.5px] text-muted", "Unzip it, then in a terminal: cd into it and run claude, codex or the agent you use.")),
-				step(3, "Say “Let's build my bot”", h("p", "text-[13.5px] text-muted", "It asks for your idea or proposes some, writes the rules, backtests them against the S&P 500 and sends the bot in when you say so."))),
-			keyBox);
 	}
 
 	function keys(o: Overview): HTMLElement {
-		const box = h("div", "mt-6 border-t border-line pt-4");
+		const box = h("div");
 		const k: Key | null = o.key;
 		const make = button("btn btn-ghost py-1.5 text-[13px]", k ? "New key" : "Make a key", async (el) => {
 			el.disabled = true;
@@ -153,32 +97,160 @@ import Layout from "../../layouts/Layout.astro";
 			data = await api<Overview>("/api/bots");
 			box.replaceWith(keys(data));
 		}) : null;
-		add(box, h("p", "label pb-1", "Your key"),
-			h("p", "text-[12.5px] text-muted", k
-				? `Made ${timeAgo(k.created_utc)}, ${k.used_utc ? `last used ${timeAgo(k.used_utc)}` : "not used yet"}. It lets your agent check, backtest and send in your bot, nothing else. It works on The Market Hub too. Keep it to yourself.`
-				: "No key: your agent needs one. Downloading the kit makes one, or make it here for a kit you already have."));
+		add(box, h("p", "text-[12.5px] text-muted", k
+			? `Your key: made ${timeAgo(k.created_utc)}, ${k.used_utc ? `last used ${timeAgo(k.used_utc)}` : "not used yet"}. It lets your agent check, backtest and send in your bot, nothing else. Keep it to yourself.`
+			: "No key yet. Downloading the kit makes one, or make it here for a kit you already have."));
 		if (shownKey && k) {
 			const code = h("code", "num block min-w-0 flex-1 truncate rounded-[3px] border border-line bg-page px-2 py-1.5 text-[12.5px] text-ink-strong", shownKey);
 			const copy = button("btn btn-ghost py-1.5 text-[13px]", "Copy", (el) => navigator.clipboard.writeText(shownKey!).then(() => (el.textContent = "Copied")));
 			add(box, add(h("div", "mt-2 flex items-center gap-2"), code, copy), h("p", "mt-1 text-[12px] text-warn", "Shown this once. Paste it in the kit's .env as MARKETHUB_BOT_KEY=…"));
 		}
-		return add(box, add(h("p", "mt-3 flex flex-wrap gap-2"), make, drop));
+		return add(box, add(h("p", "mt-2 flex flex-wrap gap-2"), make, drop));
 	}
 
-	// --- Changing it: editor, chat and switches -------------------------------------------------
+	// --- No bot yet: create one ---
+
+	function create(me: Me) {
+		const status = h("p", "mt-2 min-h-[1.2em] text-[12.5px] text-muted");
+		let keyBox = keys(data);
+		const step = (n: number, title: string, ...body: (Node | null)[]) => add(h("li", "frame flex flex-col p-5"),
+			h("span", "step-n", String(n)), h("h3", "mt-4 text-[16px] font-semibold text-ink-strong", title), ...body);
+		const blueprint = h("span", "robot opacity-40");
+		blueprint.innerHTML = robotSvg(slugOf(me.user?.name ?? "you"), 104);
+		root.replaceChildren(
+			add(h("div", "flex items-center gap-5"), blueprint, add(h("div", "min-w-0"),
+				h("p", "kicker", me.user?.name ? `Hello, ${me.user.name.split(" ")[0]}` : "Your bot"),
+				h("h1", "h2 mt-1", "Create your bot"),
+				h("p", "mt-2 max-w-xl text-[14px] text-muted", "A few rules, written with your AI agent. It runs on paper and is ranked from the next close."))),
+			add(h("ol", "mt-10 grid gap-4 md:grid-cols-3"),
+				step(1, "Get the kit", h("p", "text-[13.5px] text-muted", "Your key is inside."), add(h("div", "mt-auto pt-4"), kitButton("btn btn-signal", status, () => keyBox.replaceWith((keyBox = keys(data)))), status)),
+				step(2, "Open it with your agent", h("p", "text-[13.5px] text-muted", "Unzip it and start Claude Code, Codex or yours inside."),
+					h("p", "term mt-auto rounded-[3px] border border-line bg-page px-3 py-2 pt-2", "$ cd markethub-bot && claude")),
+				step(3, "Say “Let's build my bot”", h("p", "text-[13.5px] text-muted", "It writes the rules with you, backtests them and sends the bot in."),
+					h("p", "term mt-auto rounded-[3px] border border-line bg-page px-3 py-2 text-ink-strong", "› Let's build my bot"))),
+			add(h("details", "corner mt-8"), h("summary", "", "Already have the kit? Your key ›"), add(h("div", "mt-3 max-w-xl"), keyBox)));
+	}
+
+	// --- A bot: drawn ---
+
+	function statusOf(you: MyBot): HTMLElement {
+		if (!you.since) return h("span", "status is-waiting", `Starts at the close of ${page?.starts ? day(page.starts) : "the next session"}`);
+		if (you.paused) return h("span", "status is-paused", "Paused · in cash");
+		return h("span", "status", `Running · ${plural(you.sessions, "session")} since ${day(you.since)}`);
+	}
+
+	function head(you: MyBot): HTMLElement {
+		const slug = slugOf(you.handle);
+		const pending = you.pending ? button("status is-waiting hover:border-muted", `Next close: ${said(you.pending.what) || "a change"}`, () => toggleChange(true)) : null;
+		return add(h("div", "flex flex-wrap items-center gap-x-6 gap-y-4"),
+			robot(slug, 104, "robot-big"),
+			add(h("div", "min-w-0 flex-1"),
+				h("p", "kicker", `Your bot · shown as ${you.handle}`),
+				h("h1", "h2 mt-1", you.name),
+				you.about ? h("p", "mt-1 max-w-2xl text-[14px] text-muted", you.about) : null,
+				add(h("div", "mt-3 flex flex-wrap items-center gap-2"), statusOf(you), pending)),
+			add(h("div", "flex w-full flex-wrap items-center gap-3 sm:w-auto"),
+				button("btn btn-signal", changeOpen ? "Close" : "Change it", () => toggleChange(!changeOpen)),
+				anchor("text-[13px] text-muted hover:text-ink-strong", "Its public page →", botUrl(slug))));
+	}
+
+	function numbers(you: MyBot): HTMLElement {
+		return add(h("div", "mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-5"),
+			...PERIODS.map((p) => {
+				const v = you.returns?.[p.key] ?? null;
+				return add(h("div", `min-w-0 bg-page p-4 ${p.key === "all" ? "col-span-2 sm:col-span-1" : ""}`), h("div", "label", p.label),
+					h("div", `num mt-1 text-[22px] font-semibold ${tone(v)}`, v == null ? "—" : signedPct(v, digits(p.key))),
+					v == null ? h("div", "mt-2 text-[12px] text-faint", "not yet") : rankMeter(you.ranks[p.key], you.entrants));
+			}));
+	}
+
+	function curve(you: MyBot): HTMLElement {
+		const chart = h("div");
+		const sec = add(section("How it's doing", page?.curve.length ? "against the S&P 500" : null), chart);
+		requestAnimationFrame(() => {
+			if (page && page.curve.length) {
+				const series: Series[] = [
+					{ name: "S&P 500", values: page.curve.map((p) => p.index), color: "var(--color-muted)", width: 1.5 },
+					{ name: you.name, values: page.curve.map((p) => p.bot), color: "var(--color-signal)", width: 2.25 },
+				];
+				lineChart(chart, page.curve.map((p) => p.date), series, 260);
+			} else if (you.curve.length > 1) {
+				lineChart(chart, you.curve.map((p) => p.date), [{ name: you.name, values: you.curve.map((p) => p.value), color: "var(--color-signal)" }], 260);
+			} else chartWaiting(chart, you.since ? "Its line shows from its second close." : `Its line starts at the close of ${page?.starts ? day(page.starts) : "the next session"}.`, 160);
+		});
+		return sec;
+	}
+
+	function holds(you: MyBot): HTMLElement {
+		if (!you.since && you.preview) {
+			return add(section("What it would hold", add(h("span", "flex items-center gap-2"), h("span", "tag", "preview"), `at the close of ${day(you.preview.as_of)}`)),
+				treemap(you.preview.weights, null, { preview: true }));
+		}
+		const weights = Object.fromEntries(you.holdings.map((x) => [x.ticker, x.weight]));
+		return add(section("What it holds", you.as_of ? `after the close of ${day(you.as_of)}` : null), treemap(weights, you.cash));
+	}
+
+	function held(you: MyBot): HTMLElement | null {
+		const grid = strip(you.log, 30, 10);
+		return grid ? add(section("What it has held", "darker for more"), grid) : null;
+	}
+
+	function done(you: MyBot): HTMLElement | null {
+		if (!you.since) return null;
+		const versions = you.versions.map(({ from, what }) => ({ from, what }));
+		const read = h("div", "mt-3 min-h-[2rem] border-t border-line pt-3");
+		const first = you.log[0] ?? versions[versions.length - 1];
+		if (first) read.append(detail(first, said));
+		else read.append(h("p", "text-[13px] text-muted", "No rebalance yet."));
+		const out = add(section("What it has done", you.log.length ? plural(you.log.length, "rebalance") : null),
+			timeline(you.log, versions, you.since, you.as_of ?? you.since, (item) => read.replaceChildren(detail(item, said))), read);
+		if (you.exclude.length) out.append(add(h("div", "mt-4 flex flex-wrap items-center gap-1.5"), h("span", "mr-1 text-[12.5px] text-muted", "Left out"),
+			...you.exclude.map((t) => h("span", "chip num", t))));
+		return out;
+	}
+
+	function rules(you: MyBot): HTMLElement {
+		return add(h("details", "corner mt-10"), h("summary", "", "Its rules, in words · only you see them ›"),
+			add(h("ul", "mt-3 max-w-3xl space-y-1.5 text-[13.5px] text-ink"), ...you.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", r)))));
+	}
+
+	// Building again from scratch: the kit, the key and withdrawing, folded away.
+	function corner(o: Overview): HTMLElement {
+		const status = h("p", "mt-1 text-[12.5px] text-muted");
+		let keyBox = keys(o);
+		return add(h("details", "corner mt-4 border-t border-line pt-4"), h("summary", "", "Start again from scratch · the kit and your key ›"),
+			add(h("div", "mt-4 grid max-w-3xl gap-5 sm:grid-cols-2"),
+				add(h("div"), h("p", "text-[12.5px] text-muted", "A new bot sent in with your agent replaces this one and its record starts again."),
+					add(h("div", "mt-2"), kitButton("btn btn-ghost py-1.5 text-[13px]", status, () => keyBox.replaceWith((keyBox = keys(data))))), status,
+					add(h("p", "mt-3"), button("btn btn-ghost py-1.5 text-[13px]", "Withdraw this bot", async (el) => {
+						if (!confirm("Withdraw your bot? Its record goes with it, and a new one starts from zero.")) return;
+						el.disabled = true;
+						await api("/api/bots/mine", { method: "DELETE" });
+						await reload();
+					}))),
+				keyBox));
+	}
+
+	// --- Changing it: editor, chat and switches, behind "Change it" -------------------------------
 
 	let spec: Spec | null = null;
 	let chatOn = false;
+	let changeOpen = false;
 	let tab: "editor" | "chat" | "switches" = "editor";
 	const history: { role: "user" | "assistant"; text: string }[] = []; // this visit only: nothing of the chat is kept
 	let startBot: Bot | null = null;
 	let changeBox: HTMLElement | null = null;
-	let lastMe: Me | null = null;
+
+	function toggleChange(open: boolean) {
+		changeOpen = open;
+		if (lastMe) draw(lastMe);
+		if (open) changeBox?.scrollIntoView({ behavior: "smooth", block: "start" });
+	}
 
 	function waiting(you: MyBot): HTMLElement | null {
 		const p = you.pending;
 		if (!p) return null;
-		return add(h("div", "frame mt-4 p-4"), h("p", "label", "Waiting for the next close"),
+		return add(h("div", "frame mb-5 p-4"), h("p", "label", "Waiting for the next close"),
 			h("p", "mt-1 text-[14px] text-ink-strong", said(p.what) || "No change"),
 			h("p", "mt-1 text-[12.5px] text-muted", `Asked ${timeAgo(p.changed_utc)}. It applies at the next close and the bot rebalances on it there; its record goes on.`));
 	}
@@ -269,7 +341,7 @@ import Layout from "../../layouts/Layout.astro";
 	function drawChange(you: MyBot) {
 		if (!changeBox || !spec) return;
 		const tabs = h("div", "tabs");
-		for (const [k, label] of [["editor", "Editor"], ["chat", "Chat"], ["switches", "Switches"]] as const) {
+		for (const [k, label] of [["editor", "Rules"], ["chat", "Ask Claude"], ["switches", "Pause or leave out"]] as const) {
 			const t = h("button", "tab-btn", label);
 			t.type = "button";
 			t.setAttribute("aria-selected", String(tab === k));
@@ -282,43 +354,43 @@ import Layout from "../../layouts/Layout.astro";
 		const body = tab === "editor" ? editor(spec, startBot ?? you.pending?.bot ?? you.bot, () => reload()) : tab === "chat" ? chat(you) : switches(you);
 		changeBox.replaceChildren();
 		add(changeBox,
-			add(h("div", "sec-head"), h("h2", "sec-title", "Change it, live"), h("span", "sec-note",
-				you.rules_changed_utc ? `Rules last changed ${timeAgo(you.rules_changed_utc)}. Once a day, from the next close.` : "Once a day, from the next close. The record goes on.")),
-			waiting(you), add(h("div", "mt-4"), tabs), add(h("div", "mt-5"), body));
+			add(h("div", "sec-head"), h("h2", "sec-title", "Change it"), add(h("span", "sec-note flex flex-wrap items-center gap-3"),
+				you.rules_changed_utc ? `Rules last changed ${timeAgo(you.rules_changed_utc)} · once a day, from the next close` : "Once a day, from the next close · its record goes on",
+				button("btn btn-ghost py-1 text-[13px]", "Done", () => toggleChange(false)))),
+			waiting(you), tabs, add(h("div", "mt-5"), body));
 	}
 
-	function change(you: MyBot | null): HTMLElement | null {
-		if (!you) return null;
-		changeBox = h("section", "sec mt-10");
+	function change(you: MyBot): HTMLElement | null {
+		if (!changeOpen) return (changeBox = null);
+		changeBox = h("section", "frame mt-8 scroll-mt-20 p-5 sm:p-6");
 		drawChange(you);
 		return changeBox;
 	}
 
-	function did(you: MyBot | null): HTMLElement | null {
-		if (!you) return null;
-		const before = you.preview ? ` At the close of ${day(you.preview.as_of)} its rules would hold ${Object.keys(you.preview.weights).length} stocks (a preview).` : "";
-		const list = you.log.length ? moves(you.log, 10) : h("p", "text-[13px] text-muted", you.since ? "No rebalance yet." : `Its record starts at the next close.${before}`);
-		return add(h("section", "sec mt-10"), add(h("div", "sec-head"), h("h2", "sec-title", "What it did"),
-			anchor("link text-[13px] text-muted", "Its page, as everyone sees it", botUrl(you.handle.replace(/[\s_-]+/g, "").toLowerCase()))),
-			list, you.versions.length ? add(h("div", "mt-4"), h("p", "label pb-1", "Changes"), versions(you.versions)) : null);
+	// --- The page ---
+
+	let lastMe: Me | null = null;
+
+	async function readPage(you: MyBot | null) {
+		page = you ? await api<BotPage>(`/api/board/bot/${encodeURIComponent(slugOf(you.handle))}`).catch(() => null) : null;
 	}
 
 	async function reload() {
 		data = await api<Overview>("/api/bots");
+		await readPage(data.you);
 		startBot = null;
+		if (!data.you) changeOpen = false;
 		if (lastMe) draw(lastMe);
 	}
 
 	function draw(me: Me) {
 		lastMe = me;
+		const you = data.you;
+		if (!you) return create(me);
 		root.replaceChildren();
-		add(root,
-			h("p", "kicker", "Your bot"),
-			h("h1", "h2 mt-3", me.user?.name ? `Hello, ${me.user.name.split(" ")[0]}` : "Your bot"),
-			h("p", "mt-2 max-w-2xl text-[14px] text-muted", "One bot per member. It runs on paper and is ranked from the close after you send it in. You can change it here, live: from the next close, keeping its record."),
-			add(h("div", "mt-8 grid gap-4 lg:grid-cols-2"), mine(data), build(data)),
-			did(data.you),
-			change(data.you));
+		const pair = you.since ? [curve(you), add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), held(you) ?? h("div"))]
+			: [add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), curve(you))]; // before it starts: what it would hold first
+		add(root, head(you), change(you), you.since ? numbers(you) : null, ...pair, done(you), rules(you), corner(data));
 	}
 
 	async function load() {
@@ -330,12 +402,11 @@ import Layout from "../../layouts/Layout.astro";
 			if (e instanceof ApiError && e.status === 401) return signedOut(e.signin ?? me.signin);
 			throw e;
 		}
-		[spec, chatOn] = await Promise.all([api<Spec>("/api/bot/spec"), api<{ on: boolean }>("/api/bots/chat").then((c) => c.on).catch(() => false)]);
+		[spec, chatOn] = await Promise.all([api<Spec>("/api/bot/spec"), api<{ on: boolean }>("/api/bots/chat").then((c) => c.on).catch(() => false), readPage(data.you)]);
 		draw(me);
 		if (data.stale) {
 			await api("/api/bots/refresh", { method: "POST" }).catch(() => null);
-			data = await api<Overview>("/api/bots");
-			draw(me);
+			await reload();
 		}
 	}
 	load().catch((e) => root.replaceChildren(h("p", "py-16 text-center text-[15px] text-muted", e instanceof Error ? e.message : "Your page could not be read.")));
