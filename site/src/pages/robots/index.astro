@@ -1,0 +1,50 @@
+---
+// Every bot's face, many at once: the house bots and a crowd of made-up names, at the sizes the
+// pages show them. Not linked from the site; it is here to see the faces side by side.
+import Layout from "../../layouts/Layout.astro";
+import { robotSvg, traits } from "../../lib/robot";
+
+const house = ["low-volatility", "megacap-rotation", "momentum", "near-highs", "oversold-quality", "trend-with-market-filter"].map((s) => `house-${s}`);
+const words = ["tape", "trend", "lucy", "quant", "drift", "nine", "mean", "local", "alpha", "beta", "gamma", "delta", "river", "stone", "maple", "otter",
+	"pixel", "orbit", "comet", "atlas", "lumen", "nova", "echo", "zephyr", "ember", "quill", "fable", "harbor", "copper", "velvet", "tundra", "mosaic"];
+const crowd = Array.from({ length: 72 }, (_, i) => `${words[i % words.length]}${words[(i * 7 + 3) % words.length]}${i}`);
+// Faces told apart by their parts, leaving out where the eyes look and the tilt of the head.
+const looks = new Set(Array.from({ length: 1000 }, (_, i) => {
+	const { look, tilt, ...parts } = traits(`member${i}`);
+	return JSON.stringify(parts);
+})).size;
+---
+
+<Layout title="The faces · Bot League" description="Every bot of Bot League has a face of its own." page="board" noindex>
+	<section class="wrap pt-10">
+		<p class="kicker">The faces</p>
+		<h1 class="h2 mt-3">Every bot has a face of its own</h1>
+		<p class="mt-3 text-[13px] text-muted">{looks} different faces among 1,000 bots.</p>
+
+		<div class="sec mt-10">
+			<div class="sec-head"><h2 class="sec-title">The sizes the pages use</h2></div>
+			<div class="flex flex-wrap items-end gap-6">
+				{[112, 64, 40, 28, 22].map((s) => <span class="robot" set:html={robotSvg("tapeandtrend", s)} />)}
+			</div>
+		</div>
+
+		<div class="sec mt-10">
+			<div class="sec-head"><h2 class="sec-title">The house bots</h2></div>
+			<div class="grid grid-cols-3 gap-4 sm:grid-cols-6">
+				{house.map((s) => (
+					<figure class="min-w-0 text-center">
+						<span class="robot inline-block" set:html={robotSvg(s, 88)} />
+						<figcaption class="mt-1 truncate text-[12px] text-muted">{s.replace("house-", "")}</figcaption>
+					</figure>
+				))}
+			</div>
+		</div>
+
+		<div class="sec mt-10">
+			<div class="sec-head"><h2 class="sec-title">A crowd</h2></div>
+			<div class="grid grid-cols-4 gap-3 sm:grid-cols-8 lg:grid-cols-12">
+				{crowd.map((s) => <span class="robot" title={s} set:html={robotSvg(s, 64)} />)}
+			</div>
+		</div>
+	</section>
+</Layout>

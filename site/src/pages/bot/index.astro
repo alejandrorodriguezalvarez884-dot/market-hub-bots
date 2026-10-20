@@ -12,9 +12,10 @@ import Layout from "../../layouts/Layout.astro";
 </Layout>
 
 <script>
-	import { lineChart } from "../../lib/chart";
+	import { chartWaiting, lineChart } from "../../lib/chart";
 	import { add, h } from "../../lib/dom";
 	import { day, ordinal, plural, signedPct, tone } from "../../lib/format";
+	import { robot } from "../../lib/robot";
 	import { ApiError, api, link, localVisitor } from "../../lib/site";
 	import { PERIODS, digits, type BotPage } from "../../lib/types";
 	import { bars, moves, strip, versions } from "../../lib/doings";
@@ -83,17 +84,18 @@ import Layout from "../../layouts/Layout.astro";
 		root.replaceChildren();
 		add(root,
 			add(h("a", "text-[13px] text-muted hover:text-ink-strong"), "← The board"),
-			add(h("div", "mt-4 flex flex-wrap items-center gap-2"), b.house ? h("span", "tag", "house bot") : null, b.you ? h("span", "tag tag-you", "your bot") : null),
-			h("h1", "h2 mt-2", b.name),
-			h("p", "mt-1 text-[14px] text-muted", b.house ? "By Bot League, from the kit's examples" : `By ${b.handle}`),
+			add(h("div", "mt-5 flex items-center gap-4 sm:gap-6"), robot(b.slug, 104, "robot-big"), add(h("div", "min-w-0"),
+				add(h("div", "flex flex-wrap items-center gap-2"), b.house ? h("span", "tag", "house bot") : null, b.you ? h("span", "tag tag-you", "your bot") : null),
+				h("h1", "h2 mt-1", b.name),
+				h("p", "mt-1 text-[14px] text-muted", b.house ? "By Bot League, from the kit's examples" : `By ${b.handle}`))),
 			b.about ? h("p", "mt-4 max-w-2xl text-[16px] text-ink", b.about) : null,
 			h("p", "mt-3 text-[13px] text-muted", started),
 			stats(b),
-			b.curve.length ? add(h("section", "sec mt-12"),
+			add(h("section", "sec mt-12"),
 				add(h("div", "sec-head"), h("h2", "sec-title", "Against the S&P 500"), add(h("span", "sec-note flex items-center gap-4"),
 					add(h("span", "flex items-center gap-1.5"), Object.assign(h("i", "inline-block h-[3px] w-4 rounded bg-signal"), {}), b.name),
 					add(h("span", "flex items-center gap-1.5"), h("i", "inline-block h-[3px] w-4 rounded bg-muted"), "S&P 500"))),
-				chart) : null,
+				chart),
 			holdings(b),
 			preview(b),
 			...doings(b),
@@ -105,7 +107,7 @@ import Layout from "../../layouts/Layout.astro";
 				{ name: "S&P 500", values: b.curve.map((p) => p.index), color: "var(--color-muted)", width: 1.5 },
 				{ name: b.name, values: b.curve.map((p) => p.bot), color: "var(--color-signal)", width: 2.25 },
 			]);
-		}
+		} else chartWaiting(chart, "Its line starts at the next close.");
 	}
 
 	api<BotPage>(`/api/board/bot/${encodeURIComponent(slug)}`)

@@ -25,6 +25,7 @@ import Layout from "../../layouts/Layout.astro";
 <script>
 	import { locked, ordered, periodTabs, type Entry } from "../../lib/board";
 	import { sparkline } from "../../lib/chart";
+	import { indexFace, robot } from "../../lib/robot";
 	import { add, h } from "../../lib/dom";
 	import { day, pct, plural, signedPct, tone } from "../../lib/format";
 	import { api, botUrl, localVisitor } from "../../lib/site";
@@ -43,7 +44,7 @@ import Layout from "../../layouts/Layout.astro";
 		const b = board!;
 		if (e.kind === "index") {
 			return add(h("div", `${grid} bg-white/[0.015]`), h("span", "num text-[12px] text-faint", "—"),
-				add(h("span", "min-w-0"), h("span", "text-muted", "S&P 500"), h("span", "tag ml-2", b.benchmark.ticker)),
+				add(h("span", "flex min-w-0 items-center gap-3"), indexFace(30), add(h("span", "min-w-0"), h("span", "text-muted", "S&P 500"), h("span", "tag ml-2", b.benchmark.ticker))),
 				h("span", "hidden md:block"), h("span", `num text-right font-semibold opacity-80 ${tone(e.value)}`, signedPct(e.value, digits(period))),
 				h("span", "hidden md:block"), h("span", "hidden md:block"), h("span", "hidden md:block"));
 		}
@@ -52,10 +53,10 @@ import Layout from "../../layouts/Layout.astro";
 		const a = h("a", `${grid} hover:bg-raised ${r.house ? "bg-white/[0.015]" : ""} ${r.you ? "bg-signal-soft shadow-[inset_2px_0_0_var(--color-signal)]" : ""}`);
 		a.href = botUrl(r.slug);
 		add(a, h("span", `num text-[13px] ${rank && rank <= 3 ? "text-ink-strong" : "text-muted"}`, rank ? String(rank) : r.house ? "·" : ""),
-			add(h("span", "min-w-0"),
+			add(h("span", "flex min-w-0 items-center gap-3"), robot(r.slug, 30), add(h("span", "min-w-0"),
 				add(h("span", "flex min-w-0 items-center gap-2"), h("span", `truncate font-semibold ${r.house ? "text-ink" : "text-ink-strong"}`, r.name),
 					r.house ? h("span", "tag shrink-0", "house") : null, r.you ? h("span", "tag tag-you shrink-0", "you") : null),
-				h("span", "block truncate text-[12px] text-muted", r.house ? "Bot League · from the kit" : `by ${r.handle}`)),
+				h("span", "block truncate text-[12px] text-muted", r.house ? "Bot League · from the kit" : `by ${r.handle}`))),
 			add(h("span", "hidden justify-end md:flex"), sparkline(r.spark, 88, 26)),
 			h("span", `num text-right font-semibold ${tone(e.value)}`, e.value == null ? (r.since ? "—" : "next close") : signedPct(e.value, digits(period))),
 			h("span", `num hidden text-right md:block ${tone(r.returns.all)}`, signedPct(r.returns.all, 1)),
