@@ -35,7 +35,8 @@ Talk to the member in their language. Keep it light: they may not know what mome
    Then ask what matters to them: how many stocks (concentrated or spread), how often it trades
    (each trade costs 0.10%), and whether it should go to cash in a falling market.
 4. **Write `bot.json`.** Start from the closest example. Give it a `name` and an `about` that say
-   the idea in one or two sentences (other members see both; nothing offensive, no promises).
+   the idea in one or two sentences (the board is public: anyone sees both, with the name they
+   show under; nothing offensive, no promises).
 5. **Check it:** `python tools/mh.py check`. Fix every problem it lists. Show the member the
    `rules` it answers with: that is the bot in plain words.
 6. **Backtest it:** `python tools/mh.py backtest --years 3` (1 to 3). Tell them, briefly, the
@@ -44,8 +45,9 @@ Talk to the member in their language. Keep it light: they may not know what mome
    past, among today's largest companies, so it looks better than the past was, and it says
    nothing about the future. A few rounds of changes are fine; past that, warn them that tuning
    to the past makes a bot good at the past only.
-7. **Send it in, only when they say so.** Before it, sum up: the name it will be shown under, the
-   rules, and that it replaces any bot they had (its record starts again). Then
+7. **Send it in, only when they say so.** Before it, sum up: the name it will be shown under (on a
+   public board), the rules (which stay theirs alone), and that it replaces any bot they had (its
+   record starts again). Then
    `python tools/mh.py submit` (add `--handle "name"` if the answer asks for a name: 3 to 20
    letters, digits, spaces, hyphens or underscores). Tell them where to see it: their page of
    Bot League ({{SITE}}/me/) and the board ({{SITE}}/board/), and when its record starts.

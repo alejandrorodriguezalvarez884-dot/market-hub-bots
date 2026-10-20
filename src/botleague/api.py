@@ -126,11 +126,16 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
         foreign page can use a browser's cookie on them."""
         return request.url.path == "/api/bot" or request.url.path.startswith("/api/bot/")
 
+    def open_route(request: Request) -> bool:
+        """Asking for the bots to be moved on reads no cookie and changes nothing of anyone's: it
+        is open to any caller, at the competition's pace (the portal asks it from its server)."""
+        return request.url.path == "/api/board/refresh"
+
     @app.middleware("http")
     async def same_site_writes(request: Request, call_next):
         """Writes must come from this site: a foreign page can neither send the hub's cookie on a
         POST (SameSite=Lax) nor pass this check. The agent's writes carry its key instead."""
-        if request.method in UNSAFE and request.url.path.startswith("/api/") and not agent_route(request):
+        if request.method in UNSAFE and request.url.path.startswith("/api/") and not agent_route(request) and not open_route(request):
             origin = request.headers.get("origin")
             host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
             if origin not in {f"{request.url.scheme}://{request.url.netloc}", f"https://{host}", *origins}:

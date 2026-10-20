@@ -21,15 +21,17 @@ Reglas que no se negocian:
   `tests/test_shared.py` comprueba con documentos escritos por el código del portal
   (`scripts/portal_docs.py`) que aquí se leen, se avanzan y se escriben igual. `names.py` copia las
   reglas de nombres del portal (`community.py`, `opinion.publishable`).
-- **Un solo escritor de las curvas.** Hasta que el usuario decida (ver HANDOFF), portal y Bot
-  League pueden avanzar los bots; los dos comparten el candado y el ritmo de `bot_meta/board`. Lo
-  propio de esta web va en `league.py` y en su documento `bot_meta/house` (bots de la casa y el
-  índice), que no es de ningún usuario.
+- **Un solo escritor de las curvas: Bot League** (decisión del usuario, 2026-10-20). Aquí se
+  avanzan los bots (refresh), se hacen el kit y las claves y se contesta al agente (`/api/bot/*`).
+  El portal lee los mismos documentos, pide el refresh a `/api/board/refresh` cuando los encuentra
+  atrasados, deja retirar un bot o una clave y los borra con la cuenta; sus `/api/bot/*` contestan
+  410 con esta dirección. Lo propio de esta web va en `league.py` y en su documento
+  `bot_meta/house` (bots de la casa y el índice), que no es de ningún usuario.
 - **Los datos del usuario son suyos.** Aquí no se guarda nada nuevo de un usuario: solo lo que ya
-  dice la página de privacidad del portal (su bot, su clave hasheada). Los bots de los miembros los
-  ven los miembros con sesión; `BOTLEAGUE_PUBLIC_BOARD=1` los enseña a todos y no se activa sin
-  que el usuario lo pida y sin cambiar antes la página de privacidad del portal. Las reglas de un
-  bot solo las ve su dueño. Borrar la cuenta (en el portal) borra el bot y la clave.
+  dice la página de privacidad del portal (su bot, su clave hasheada). **El tablero es público**
+  (decisión del usuario, 2026-10-20, y así lo dice la privacidad del portal): cualquiera ve el
+  nombre, el bot, su idea, sus rentabilidades, su curva y lo que tiene. `BOTLEAGUE_PUBLIC_BOARD=0`
+  lo cierra a los miembros con sesión. Las reglas de un bot solo las ve su dueño. Borrar la cuenta (en el portal) borra el bot y la clave.
 - **El login es el de Market Hub.** Se lee la cookie `mh_session` del portal con su secreto
   (`HUB_SESSION_SECRET`); nunca se pone ni se cambia. Las rutas del agente (`/api/bot/*`) solo leen
   la clave, nunca la cookie. Las escrituras con cookie pasan el control de `Origin`.

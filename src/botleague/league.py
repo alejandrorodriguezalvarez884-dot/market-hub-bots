@@ -13,8 +13,11 @@ one document of its own, ``bot_meta/house``:
 - **The index** over the last three years (SPY's closes), so a bot's page can draw it under the
   bot from the bot's first close.
 
-The member's bots are seen by signed-in members (what Market Hub's privacy page says), or by
-everyone when PUBLIC_BOARD is on. Rules are their owner's alone.
+The members' bots are seen by everyone while PUBLIC_BOARD is on (the default, and what Market
+Hub's privacy page says), or by signed-in members alone when it is off. Rules are their owner's alone.
+
+Bot League is the only service that moves the curves (refresh): the portal's Community section
+reads the same documents and, when it finds them behind, asks this site to move them.
 """
 
 from __future__ import annotations

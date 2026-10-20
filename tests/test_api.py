@@ -153,7 +153,8 @@ def test_the_member_routes_need_market_hubs_session(app):
     assert got.status_code == 401 and got.json()["signin"].startswith(f"{HUB}/signin/?next=")
     assert visitor.post("/api/bots/kit").status_code == 401
     assert TestClient(app).post("/api/bots/key").status_code == 403  # no Origin: refused before anything
-    assert TestClient(app).post("/api/board/refresh").status_code == 403
+    # Asking for the bots to be moved on is open: the portal asks it from its server, with no Origin.
+    assert TestClient(app).post("/api/board/refresh").status_code == 200
 
 
 def test_the_agent_routes_take_the_key_and_never_the_cookie(app):

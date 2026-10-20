@@ -18,7 +18,7 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-10-20: **Repo creado, todo en local, sin desplegar y sin remoto.** Nombre de producto
+> 2026-10-20: **Repo creado (primera versión, en local).** Nombre de producto
 > elegido aquí: **Bot League** (by Market Hub); carpeta `market-hub-bots/`, paquete `botleague`.
 > Se puede cambiar.
 > - **Backend** (`src/botleague/`): `engine.py` es copia del `bots.py` del portal (solo cambian
@@ -52,34 +52,40 @@ reglas privadas.
 >   horizontal; de punta a punta con el kit (descargar con clave → `mh.py status/check/backtest/submit`);
 >   y el código del portal lee los bots que escribió este servicio en el mismo almacén.
 
-## Pendiente: lo que tiene que decidir el usuario
+> 2026-10-20 (tarde): **El usuario contestó las cuatro preguntas.**
+> - Repo: https://github.com/alejandrorodriguezalvarez884-dot/market-hub-bots, submódulo del workspace.
+> - Dominio: **bots.themarkethub.app**. Más adelante querrá además un dominio propio (abajo, qué
+>   haría falta). Nada en el código fija el host: el kit toma la dirección de la petición, la web
+>   llama a su propio origen y solo `site/SITE_URL` (enlaces canónicos) nombra el subdominio.
+> - **Bot League es el único que avanza las curvas** y el dueño del kit, las claves y `/api/bot/*`.
+>   Hecho también en el portal (`market-hub-landing`, fd9a91a): su refresh se lo pide a
+>   `/api/board/refresh` de aquí (ruta abierta, sin cookie, al ritmo de la competición), ya no hace
+>   kit ni claves nuevas, su página es un resumen con el camino aquí y sus `/api/bot/*` contestan 410
+>   con esta dirección. La app de móvil (700bda2) solo cambia textos.
+> - **Tablero público**: la privacidad del portal ya lo dice; `BOTLEAGUE_PUBLIC_BOARD` vale 1 por
+>   defecto. Textos del kit (SPEC, AGENTS), portada y reglas, cambiados.
 
-1. **El nombre del repo en GitHub** (se propone `market-hub-bots`) para añadirlo como submódulo.
-2. **El dominio.** Se propone `bots.themarkethub.app` (o `league.themarkethub.app`): la cookie de
-   sesión de Market Hub vive en `.themarkethub.app`, así que un subdominio entra con la misma sesión
-   sin hacer nada. Un dominio propio (p. ej. `botleague.app`) necesitaría un paso de entrada nuevo
-   en el portal (como `appweb.py` para la app de móvil), porque la cookie no viaja a otro dominio.
-3. **Mover el motor y la API del agente fuera del portal.** Propuesta:
-   - Bot League es el **único que avanza las curvas** (el refresh) y el dueño del kit, las claves y
-     `/api/bot/*`.
-   - En el portal, Community > Bot competition pasa a ser una tarjeta con el tablero resumido y el
-     enlace a Bot League; se quitan su `POST /api/bots/refresh` y el kit. Mientras haya kits viejos
-     apuntando a `themarkethub.app`, el portal puede seguir contestando `/api/bot/*` (escribe en las
-     mismas colecciones y no toca curvas) o devolver un mensaje con la dirección nueva; `mh.py` no
-     sigue redirecciones de un `PUT`.
-   - El portal sigue borrando bot y clave al borrar la cuenta (ya lo hace) y su página de
-     privacidad y la de cuenta nombran Bot League como el sitio donde se ve el bot.
-   - Hasta que se haga, los dos pueden avanzar los bots sin pisarse: comparten el candado
-     (`running_utc`) y el ritmo (`checked_utc`) de `bot_meta/board`, y cada uno comprueba antes de
-     escribir que el bot sigue siendo el que leyó.
-4. **¿Tablero público?** Hoy los bots de los miembros solo los ven los miembros con sesión (lo que
-   dice la privacidad del portal). Enseñarlos a todos en la portada (`BOTLEAGUE_PUBLIC_BOARD=1`)
-   exige cambiar antes la página de privacidad del portal.
+## Un segundo dominio, más adelante
+
+La sesión de Market Hub es la cookie `mh_session` del portal, en `.themarkethub.app`: en otro
+dominio (p. ej. `botleague.app`) el navegador no la manda. Haría falta:
+1. **Un paso de entrada en el portal**, como `appweb.py` para la app de móvil: el visitante pulsa
+   "Sign in" en el dominio nuevo, va al portal, que (con sesión) le devuelve a una ruta de Bot League
+   con un token firmado y de un solo uso; Bot League lo comprueba con el secreto del hub y pone **su
+   propia** cookie de sesión en su dominio. El portal debe aceptar solo direcciones de vuelta que él
+   nombre (lista cerrada).
+2. En Bot League, leer esa cookie propia además de `mh_session` (`hubauth.py`), y cerrar sesión en los dos.
+3. Mapear el dominio en Cloud Run al mismo servicio y su DNS; `site/SITE_URL` decide cuál es el canónico.
+4. Las escrituras con cookie ya comparan `Origin` con el host de la petición: valen en los dos dominios.
+El kit y la API del agente no necesitan nada: la clave no depende del dominio.
 
 ## Otros pendientes
 
-- Desplegar (`make deploy`, Cloud Run `bot-league`, 2 GiB y 300 s por el refresh de 500 tickers),
-  mapear el dominio y el CNAME en Cloudflare: solo con el OK del usuario.
+- **Desplegar** (`make deploy`, Cloud Run `bot-league`, 2 GiB y 300 s por el refresh de 500
+  tickers), luego el portal, en ese orden (los `410` del portal mandan aquí). Mapeo de dominio
+  `gcloud beta run domain-mappings create --service bot-league --domain bots.themarkethub.app
+  --region europe-west1` y en Cloudflare un CNAME `bots` → `ghs.googlehosted.com` (sin proxy). El
+  usuario dio el OK al dominio; el despliegue se le confirma antes, con lo que sale.
 - Imagen para compartir (`og:image`) propia; la portada aún no tiene.
 - Que el healthcheck del mantenimiento diario lea la web cuando esté desplegada.
 - La app de móvil no tiene la competición.

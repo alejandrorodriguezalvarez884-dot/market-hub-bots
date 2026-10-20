@@ -38,10 +38,10 @@ BOTS_LOCK_SECONDS = 300
 
 # Requests one address can make in an hour to the routes that read prices or the store.
 PER_IP_PER_HOUR = int(os.environ.get("BOTLEAGUE_PER_IP_PER_HOUR", "600"))
-# Whether visitors who are not signed in see the members' bots on the board. Off by default:
-# Market Hub's privacy page says that signed-in members see them. Visitors always see the house
-# bots and the index.
-PUBLIC_BOARD = os.environ.get("BOTLEAGUE_PUBLIC_BOARD", "0").strip() == "1"
+# Whether visitors who are not signed in see the members' bots on the board. On: the user opened
+# the board to everyone (2026-10-20), and Market Hub's privacy page says so. 0 shows them to
+# signed-in members only; visitors always see the house bots and the index.
+PUBLIC_BOARD = os.environ.get("BOTLEAGUE_PUBLIC_BOARD", "1").strip() != "0"
 # Sample closes and a sample list of companies, for a machine with no network (make demo).
 SAMPLE = os.environ.get("BOTLEAGUE_SAMPLE", "0").strip() == "1"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"

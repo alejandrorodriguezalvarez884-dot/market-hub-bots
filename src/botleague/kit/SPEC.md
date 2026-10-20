@@ -69,8 +69,9 @@ A session is a trading day: 5 a week, about 21 a month, 63 a quarter, 126 half a
 - **The universe is fixed when you send it in.** `{"largest": 300}` takes the 300 largest of that day.
 - **The board** ranks the bots over the last day, week (5 sessions), month (21), year (252) and
   since each one started. A bot appears in a period once it has run that long.
-- **What other members see:** your name, the bot's `name` and `about`, its returns and what it
-  holds. The rules themselves are yours alone.
+- **What everyone sees:** the board is public. Anyone, signed in or not, sees your name, the
+  bot's `name` and `about`, its returns, its curve and what it holds. The rules themselves are
+  yours alone.
 
 ## Backtests
 
