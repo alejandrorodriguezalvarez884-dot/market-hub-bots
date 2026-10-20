@@ -18,6 +18,18 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **Desplegado en https://bots.themarkethub.app** (Cloud Run `bot-league`, revisión
+> `bot-league-00002-ptm`, desde un export limpio de 67afcca), con el OK del usuario. La primera
+> revisión (00001, de 3d8ea41) falló al escribir en Firestore: **Firestore no admite un array dentro
+> de otro**, y las curvas son `[[fecha, valor], …]`. Ahora `FirestoreBots` y `FirestoreHouse` guardan
+> cada fila como `{"row": [...]}` y la desenvuelven al leer (`engine.packed`/`unpacked`, igual en el
+> `bots.py` del portal). Mapeo de dominio creado y CNAME `bots` → `ghs.googlehosted.com` (sin proxy)
+> en Cloudflare; HTTPS desde las 12:18 UTC. El primer refresh arrancó los seis bots de la casa (su
+> historial empieza al cierre del 2026-10-20) y guardó el índice. Aún no hay bots de miembros.
+> Entorno: `MARKETHUB_FIRESTORE=1`, `market-hub`, `HUB_URL`, `HUB_SESSION_SECRET` (secreto
+> `market-hub-session-secret`), `SEC_USER_AGENT`, `BOTLEAGUE_PUBLIC_BOARD=1`; 2 GiB, 300 s, 0–2.
+> Un `POST` sin cuerpo a Cloud Run necesita `Content-Length` (curl `-d ''`); httpx ya lo manda.
+
 > 2026-10-20: **Repo creado (primera versión, en local).** Nombre de producto
 > elegido aquí: **Bot League** (by Market Hub); carpeta `market-hub-bots/`, paquete `botleague`.
 > Se puede cambiar.
