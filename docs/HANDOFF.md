@@ -18,6 +18,10 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **Desplegado** `bot-league-00007-6c8` desde un export limpio de bca6636 (sin bots de la casa, jugador = nombre de
+> pila, id público, renombrar), sin cambios de configuración. El bot de producción ya tiene id (`c398143b54`); pasa a
+> "Alejandro" cuando su dueño abra su página.
+
 > 2026-10-20: **Sin bots de la casa, renombrar el bot y el jugador es el login.** Pedido del usuario:
 > "quitar los bots random de prueba", poder cambiar el nombre del bot, y que el usuario sea el del login;
 > eligió mostrar **solo el nombre de pila** (como en los comentarios de opinión).
