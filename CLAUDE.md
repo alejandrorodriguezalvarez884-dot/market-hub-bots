@@ -39,8 +39,10 @@ Reglas que no se negocian:
 - **Nada programado y nada en GitHub Actions.** Todo se lanza a mano desde el `Makefile`. Los bots
   se avanzan cuando una visita los encuentra atrasados.
 - **No gasta en ninguna API, salvo el chat.** Cierres de Yahoo Finance y lista de empresas de la SEC,
-  sin clave. El chat del dueño (`chat.py`) gasta con la clave de Anthropic del usuario: apagado hasta
-  que él dé el OK al modelo y a los topes, y sus topes no se suben sin preguntarle.
+  sin clave. El chat del dueño (`chat.py`) gasta con la clave de Anthropic del usuario (secreto
+  `ANTHROPIC_API_KEY`). Modelo y topes son decisión suya (2026-10-20): Claude Haiku 5.5 con esfuerzo
+  alto, 15 mensajes al día por jugador y **sin tope diario del servicio**, por decisión del usuario
+  (como PlayGround). No se cambian sin preguntarle.
 - **Cambiar un bot conserva su historial**: desde el próximo cierre, una vez al día, y su página dice
   en público cuándo cambió (no qué). Interruptores sí (pausar, excluir), órdenes no.
 

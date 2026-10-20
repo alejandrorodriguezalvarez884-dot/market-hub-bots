@@ -8,8 +8,9 @@ Nothing of the chat is kept: the page sends the last few turns with each message
 Anthropic is the member's message, those turns and the bot's rules, never who the member is.
 
 It spends on the owner's Anthropic key, so it is off unless BOTLEAGUE_CHAT=1 and a key is set,
-with a cap of messages per member a day (in memory, per instance) and a cap of dollars a day for
-the whole service (a ledger in bot_meta/chat, which keeps no one's identity).
+with a cap of messages per member a day (in memory, per instance) and, if the owner sets one, a cap
+of dollars a day for the whole service. A ledger in bot_meta/chat, which keeps no one's identity,
+counts what it spends either way.
 """
 
 from __future__ import annotations
@@ -24,8 +25,8 @@ from pathlib import Path
 from typing import Callable, Protocol
 
 from . import engine
-from .config import (CHAT_DAILY_MAX_USD, CHAT_ENABLED, CHAT_MODEL, CHAT_PER_MEMBER_PER_DAY, CHAT_PRICES, CHAT_REQUEST_MAX_USD,
-                     DATA_DIR, FIRESTORE_DATABASE)
+from .config import (CHAT_DAILY_MAX_USD, CHAT_EFFORT, CHAT_ENABLED, CHAT_MODEL, CHAT_PER_MEMBER_PER_DAY, CHAT_PRICES,
+                     CHAT_REQUEST_MAX_USD, DATA_DIR, FIRESTORE_DATABASE)
 
 log = logging.getLogger("botleague.chat")
 
@@ -113,9 +114,9 @@ def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
 
 class Chat:
     def __init__(self, ledger: Ledger, client: Callable[[], object] | None = None, enabled: bool = CHAT_ENABLED,
-                 model: str = CHAT_MODEL, daily_max: float = CHAT_DAILY_MAX_USD, request_max: float = CHAT_REQUEST_MAX_USD,
-                 per_member: int = CHAT_PER_MEMBER_PER_DAY, now: Callable[[], datetime] | None = None):
-        self.ledger, self.enabled, self.model = ledger, enabled, model
+                 model: str = CHAT_MODEL, daily_max: float | None = CHAT_DAILY_MAX_USD, request_max: float = CHAT_REQUEST_MAX_USD,
+                 per_member: int = CHAT_PER_MEMBER_PER_DAY, effort: str = CHAT_EFFORT, now: Callable[[], datetime] | None = None):
+        self.ledger, self.enabled, self.model, self.effort = ledger, enabled, model, effort
         self.daily_max, self.request_max, self.per_member = daily_max, request_max, per_member
         self.now = now or (lambda: datetime.now(timezone.utc))
         self._client_factory = client
@@ -149,9 +150,10 @@ class Chat:
                 asked.popleft()
             if len(asked) >= self.per_member:
                 raise ChatOff(f"That is {self.per_member} messages today. The editor still works; the chat is back tomorrow.")
-            spent = (self.ledger.get() or {}).get("days", {}).get(self._day(), 0.0)
-            if spent + self.request_max > self.daily_max:
-                raise ChatOff("The chat has reached today's limit for everyone. The editor still works; the chat is back tomorrow.")
+            if self.daily_max is not None:
+                spent = (self.ledger.get() or {}).get("days", {}).get(self._day(), 0.0)
+                if spent + self.request_max > self.daily_max:
+                    raise ChatOff("The chat has reached today's limit for everyone. The editor still works; the chat is back tomorrow.")
             asked.append(t)
 
     def _book(self, usd: float) -> None:
@@ -179,7 +181,7 @@ class Chat:
         self._reserve(user_id)
         content = f"My bot now:\n{json.dumps(bot, indent=1)}\n\nMy instruction: {message}"
         params = dict(model=self.model, max_tokens=8000, system=system_prompt(), messages=[*turns, {"role": "user", "content": content}],
-                      output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}})
+                      output_config={"effort": self.effort, "format": {"type": "json_schema", "schema": SCHEMA}})
         try:
             if self.model.startswith(("claude-opus-5-5", "claude-sonnet-5-5")):
                 # On a policy decline the API runs the same request on a fallback model, in the same call.

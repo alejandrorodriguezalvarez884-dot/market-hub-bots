@@ -271,12 +271,13 @@ def test_the_chat_is_off_until_switched_on(app):
 def test_the_chat_proposes_rules_the_code_checks_and_counts_what_it_spends():
     claude = Claude({"reply": "Fewer stocks, and cash when the index falls.", "bot": json.dumps({**BOT, "hold": 5})})
     ledger = MemoryLedger()
-    app = make(chat=Chat(ledger, client=lambda: claude, enabled=True, model="claude-haiku-5-5", per_member=2, daily_max=1.0, request_max=0.01))
+    app = make(chat=Chat(ledger, client=lambda: claude, enabled=True, model="claude-haiku-5-5", per_member=2, daily_max=None, effort="high"))
     send(app, "u1")
     owner = client(app, "u1")
     got = owner.post("/api/bots/mine/chat", json={"message": "hold fewer", "history": [{"role": "assistant", "text": "hi"}, {"role": "user", "text": "x"}]}).json()
     assert got["proposal"]["hold"] == 5 and got["rules"][2].startswith("Holds the best 5") and got["reply"].startswith("Fewer")
     assert claude.calls[0]["messages"][0] == {"role": "user", "content": "x"} and '"hold": 8' in claude.calls[0]["messages"][-1]["content"]
+    assert claude.calls[0]["model"] == "claude-haiku-5-5" and claude.calls[0]["output_config"]["effort"] == "high" and "fallbacks" not in claude.calls[0]
     assert ledger.get()["calls"] == 1 and ledger.get()["total_usd"] == pytest.approx((3000 * 0.10 + 800 * 0.50) / 1e6)
     claude.answer = {"reply": "Here.", "bot": json.dumps({**BOT, "hold": 999})}
     assert owner.post("/api/bots/mine/chat", json={"message": "hold all"}).json()["problems"]

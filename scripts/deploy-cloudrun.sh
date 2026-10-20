@@ -38,6 +38,13 @@ env_value() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -e 's/^"
 HUB_URL="$(env_value HUB_URL)"
 SEC_USER_AGENT="$(env_value SEC_USER_AGENT)"
 PUBLIC_BOARD="$(env_value BOTLEAGUE_PUBLIC_BOARD)"
+# The chat on a member's page: on with BOTLEAGUE_CHAT=1, with the owner's Anthropic key from Secret
+# Manager (the secret ANTHROPIC_API_KEY, the one the portal reads). Its model and caps are the owner's.
+CHAT="$(env_value BOTLEAGUE_CHAT)"
+CHAT_MODEL="$(env_value BOTLEAGUE_CHAT_MODEL)"
+CHAT_EFFORT="$(env_value BOTLEAGUE_CHAT_EFFORT)"
+CHAT_PER_MEMBER="$(env_value BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY)"
+CHAT_DAILY_MAX="$(env_value BOTLEAGUE_CHAT_DAILY_MAX_USD)"
 
 [[ -n "$HUB_URL" ]] || fail "HUB_URL is not set: members sign in with their Market Hub account."
 [[ "$SEC_USER_AGENT" == *@* ]] || fail "SEC_USER_AGENT in $ENV_FILE needs a contact email."
@@ -70,6 +77,15 @@ gcp firestore databases describe --database="$FIRESTORE_DATABASE" >/dev/null 2>&
 gcp secrets describe market-hub-session-secret >/dev/null 2>&1 \
   || fail "Market Hub's secret market-hub-session-secret does not exist. Deploy the hub first."
 grant secrets market-hub-session-secret roles/secretmanager.secretAccessor
+SECRETS="HUB_SESSION_SECRET=market-hub-session-secret:latest"
+CHAT_ENV=""
+if [[ "$CHAT" == "1" ]]; then
+  gcp secrets describe ANTHROPIC_API_KEY >/dev/null 2>&1 || fail "BOTLEAGUE_CHAT=1 but the secret ANTHROPIC_API_KEY does not exist."
+  grant secrets ANTHROPIC_API_KEY roles/secretmanager.secretAccessor
+  SECRETS="$SECRETS,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest"
+  CHAT_ENV="|BOTLEAGUE_CHAT=1|BOTLEAGUE_CHAT_MODEL=${CHAT_MODEL:-claude-haiku-5-5}|BOTLEAGUE_CHAT_EFFORT=${CHAT_EFFORT:-high}|BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY=${CHAT_PER_MEMBER:-15}|BOTLEAGUE_CHAT_DAILY_MAX_USD=$CHAT_DAILY_MAX"
+  echo "→ With the chat on (${CHAT_MODEL:-claude-haiku-5-5})"
+fi
 
 echo "→ Building with Cloud Build and deploying '$SERVICE_NAME' to $GCP_REGION (a few minutes)"
 # Memory and time for a refresh: five years of closes of the 500 largest companies, read and run.
@@ -83,8 +99,8 @@ gcp run deploy "$SERVICE_NAME" \
   --min-instances 0 \
   --max-instances "$MAX_INSTANCES" \
   --timeout 300 \
-  --set-secrets "HUB_SESSION_SECRET=market-hub-session-secret:latest" \
-  --set-env-vars "^|^MARKETHUB_FIRESTORE=1|MARKETHUB_FIRESTORE_DATABASE=$FIRESTORE_DATABASE|HUB_URL=$HUB_URL|SEC_USER_AGENT=$SEC_USER_AGENT|BOTLEAGUE_PUBLIC_BOARD=${PUBLIC_BOARD:-0}"
+  --set-secrets "$SECRETS" \
+  --set-env-vars "^|^MARKETHUB_FIRESTORE=1|MARKETHUB_FIRESTORE_DATABASE=$FIRESTORE_DATABASE|HUB_URL=$HUB_URL|SEC_USER_AGENT=$SEC_USER_AGENT|BOTLEAGUE_PUBLIC_BOARD=${PUBLIC_BOARD:-1}$CHAT_ENV"
 
 URL="$(gcp run services describe "$SERVICE_NAME" --region "$GCP_REGION" --format 'value(status.url)')"
 if curl -fsS "$URL/api/health" >/dev/null 2>&1; then
