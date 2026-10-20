@@ -109,10 +109,10 @@ class FirestoreHouse:
 
     def get(self):
         snap = self.ref.get()
-        return snap.to_dict() if snap.exists else None
+        return engine.unpacked(snap.to_dict()) if snap.exists else None
 
     def put(self, doc):
-        self.ref.set(doc)
+        self.ref.set(engine.packed(doc))
 
 
 # --- Who else shows under a name in Market Hub's community -----------------------------------------

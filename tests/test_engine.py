@@ -9,7 +9,7 @@ import pytest
 
 from botleague.config import BOT_COST
 from botleague.engine import (FORMAT, Bots, MemoryBots, Prices, Refused, check, decide, describe, examples, first_session, last_settled,
-                              resolve, run)
+                              packed, resolve, run, unpacked)
 from conftest import Clock, Market, at, sessions, steady
 
 
@@ -241,3 +241,19 @@ def test_the_key_is_kept_hashed_and_a_new_one_replaces_it():
     bots.submit("u1", TREND, handle="ana bots")
     bots.forget("u1")
     assert bots.who(second) is None and store.get("u1") is None
+
+
+def test_firestore_takes_no_array_inside_an_array_so_rows_are_packed():
+    doc = {"user_id": "u1", "curve": [["2026-10-19", 1.01], ["2026-10-20", 1.02]], "weights": {"AAA": 0.5}, "spec": {"filters": [{"factor": "trend"}]},
+           "bots": {"house-x": {"curve": [["2026-10-20", 0.99]]}}, "universe": ["AAA", "BBB"], "empty": []}
+
+    def nested(v):
+        if isinstance(v, dict):
+            return any(nested(x) for x in v.values())
+        if isinstance(v, list):
+            return any(isinstance(x, list) or nested(x) for x in v)
+        return False
+
+    assert nested(doc) and not nested(packed(doc))
+    assert packed(doc)["curve"][0] == {"row": ["2026-10-19", 1.01]}
+    assert unpacked(packed(doc)) == doc
