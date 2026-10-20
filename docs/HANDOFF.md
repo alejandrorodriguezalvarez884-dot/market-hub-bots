@@ -18,7 +18,7 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-10-20: **"Your bot" (`/me/`), más simple y dibujada** (en main, sin desplegar). El usuario
+> 2026-10-20: **"Your bot" (`/me/`), más simple y dibujada** (**desplegada** como `bot-league-00006-nr7`, export limpio de 664f4ac, configuración igual). El usuario
 > la quería "mucho más visual": sin bot, solo crearlo; con bot, el bot ocupa la página y lo de
 > hacerlo de cero queda en un rincón pequeño.
 > - **Sin bot**: el robot en gris (con el nombre del miembro), "Create your bot" y tres tarjetas:
