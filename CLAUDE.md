@@ -26,7 +26,7 @@ Reglas que no se negocian:
   El portal lee los mismos documentos, pide el refresh a `/api/board/refresh` cuando los encuentra
   atrasados, deja retirar un bot o una clave y los borra con la cuenta; sus `/api/bot/*` contestan
   410 con esta dirección. Lo propio de esta web va en `league.py`. Desde el 2026-10-20 no hay bots
-  de la casa (el usuario los quitó): `bot_meta/house` queda en Firestore sin leerse ni escribirse.
+  de la casa (el usuario los quitó), y su documento `bot_meta/house` se borró de Firestore con su OK.
 - **Los datos del usuario son suyos.** Aquí no se guarda nada nuevo de un usuario: solo lo que ya
   dice la página de privacidad del portal (su bot, su clave hasheada). **El tablero es público**
   (decisión del usuario, 2026-10-20, y así lo dice la privacidad del portal): cualquiera ve el bot,

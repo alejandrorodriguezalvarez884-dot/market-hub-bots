@@ -14,7 +14,7 @@ Bot League is the only service that moves the curves (refresh): the portal's Com
 reads the same documents and, when it finds them behind, asks this site to move them.
 
 Until 2026-10-20 the site also ran six house bots, kept in bot_meta/house; the owner removed them,
-and that document is no longer read or written.
+and that document was deleted.
 """
 
 from __future__ import annotations

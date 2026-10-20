@@ -18,6 +18,9 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: Con el OK del usuario, **borrado `bot_meta/house`** de Firestore (los bots de la casa y su índice).
+> En `bot_meta` queda solo `board` (y `chat` cuando el chat gaste algo).
+
 > 2026-10-20: **Desplegado** `bot-league-00007-6c8` desde un export limpio de bca6636 (sin bots de la casa, jugador = nombre de
 > pila, id público, renombrar), sin cambios de configuración. El bot de producción ya tiene id (`c398143b54`); pasa a
 > "Alejandro" cuando su dueño abra su página.
