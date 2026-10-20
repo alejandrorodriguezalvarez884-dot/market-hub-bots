@@ -1,0 +1,68 @@
+---
+// The rules of the competition and the format of a bot, for members and for the curious. The
+// figures a bot can use come from the service (/api/bot/spec), so this page and the checks agree.
+import Layout from "../../layouts/Layout.astro";
+
+const rules = [
+	["A bot is a file of rules", "Not code. The format is markethub-bot/1, below and in the kit's SPEC.md. Your agent writes it with you; the service checks every field and refuses anything it does not describe."],
+	["Paper only", "Bot League runs every bot with no money, no broker and no orders. On the sessions a bot looks again, it decides at the close and trades at that close."],
+	["The 500 largest US companies", "A bot chooses among them, funds left out, from the list of the day it is sent in. It holds 1 to 50 of them, long only: no short sales and no borrowing."],
+	["Costs and returns", "Each rebalance pays 0.10% of what changes hands. Returns are on price, dividends left out, and cash earns nothing."],
+	["Ranked from the next close", "A bot's record starts at the first close after it is sent in. Nothing before counts: a backtest is a simulation of the past, for its owner alone."],
+	["Day, week, month, year and since start", "Over the last 1, 5, 21 and 252 sessions, and since each bot started, each ranked among the bots that have run that long. The S&P 500 (SPY) and the house bots are on the board for reference, never ranked."],
+	["One bot per member", "Sending in another one replaces it and starts its record again. Withdrawing it removes it and its record."],
+	["What others see", "Members see the name you show under, the bot's name and idea, its returns and what it holds. Its rules are yours alone."],
+	["Your key", "The kit carries a key that lets your agent check, backtest and send in your bot, nothing else. Only its fingerprint is kept. A new key replaces the old one; you can take it back at any time."],
+];
+---
+
+<Layout title="Rules and format · Bot League" description="The rules of Bot League and the format of a bot: the companies, the seven figures a bot can use, costs, ranking and what others see." page="rules">
+	<section class="wrap pt-10">
+		<p class="kicker">Rules and format</p>
+		<h1 class="h2 mt-3 max-w-2xl">The same closes, the same costs and the same start for every bot.</h1>
+		<div class="mt-12 grid gap-x-12 gap-y-8 md:grid-cols-2">
+			{rules.map(([t, b]) => (
+				<div class="border-t border-line-strong pt-4">
+					<h2 class="text-[16px] font-semibold text-ink-strong">{t}</h2>
+					<p class="mt-1.5 text-[14px] text-muted">{b}</p>
+				</div>
+			))}
+		</div>
+	</section>
+
+	<section class="wrap pt-24">
+		<p class="kicker">The format</p>
+		<h2 class="h2 mt-3">What a bot can say</h2>
+		<div class="mt-8 grid gap-10 lg:grid-cols-[1fr_1.2fr]">
+			<div class="space-y-5 text-[14px] text-muted">
+				<p><span class="num text-ink">universe</span> · <span class="num text-ink">{"{"}"largest": 20–500{"}"}</span> or a list of 2 to 100 tickers among the largest, and an <span class="num text-ink">exclude</span> list.</p>
+				<p><span class="num text-ink">filters</span> · up to 8 figures, each with a <span class="num text-ink">min</span>, a <span class="num text-ink">max</span> or both: a company outside them is left out.</p>
+				<p><span class="num text-ink">score</span> · 1 to 8 figures, each with a <span class="num text-ink">weight</span> from −5 to 5 (below 0 prefers the lowest). Each figure is turned into a z-score across the companies left, capped at ±3, and the weighted sum ranks them.</p>
+				<p><span class="num text-ink">hold</span> · how many of the best it holds, 1 to 50. <span class="num text-ink">weighting</span> · equal, inverse_volatility or score. <span class="num text-ink">max_weight</span> · the most one stock can be, 2% to 100%.</p>
+				<p><span class="num text-ink">rebalance</span> · daily, weekly (the first close of each week) or monthly (the first close of each month).</p>
+				<p><span class="num text-ink">market</span> · a figure of the S&P 500 with its bounds, and the share to hold in cash when it is outside them.</p>
+			</div>
+			<div class="frame overflow-hidden">
+				<div class="frame-head"><span class="text-[13px] font-semibold text-ink-strong">The seven figures</span><span class="text-[12px] text-muted">all from daily closes</span></div>
+				<div id="factors" class="divide-y divide-line"><div class="space-y-2 p-4"><div class="skeleton h-8"></div><div class="skeleton h-8"></div><div class="skeleton h-8"></div></div></div>
+			</div>
+		</div>
+	</section>
+</Layout>
+
+<script>
+	import { add, h } from "../../lib/dom";
+	import { api, localVisitor } from "../../lib/site";
+	import type { Spec } from "../../lib/types";
+
+	localVisitor();
+	const box = document.getElementById("factors")!;
+	api<Spec>("/api/bot/spec")
+		.then((s) => {
+			box.replaceChildren(...Object.entries(s.factors).map(([name, f]) => add(h("div", "px-4 py-3"),
+				add(h("div", "flex flex-wrap items-baseline gap-x-3"), h("span", "num text-[13px] font-medium text-signal-strong", name),
+					h("span", "num text-[12px] text-muted", Object.entries(f.settings).map(([k, v]) => `${k} ${v.min}–${v.max}${v.default !== undefined ? ` (default ${v.default})` : ""}`).join(" · "))),
+				h("p", "mt-1 text-[13px] text-ink", f.means.replace(/`/g, "")))));
+		})
+		.catch(() => box.replaceChildren(h("p", "p-4 text-[13px] text-muted", "The figures could not be read just now.")));
+</script>

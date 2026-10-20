@@ -1,0 +1,124 @@
+---
+// Every page: the head, the top bar with the mark and the way in, the content and the foot.
+import "../styles/global.css";
+import { HUB_URL, SITE_NAME, link } from "../lib/site";
+
+interface Props {
+	title: string;
+	description: string;
+	page?: "home" | "board" | "rules" | "me" | "bot";
+	noindex?: boolean;
+}
+const { title, description, page = "home", noindex = false } = Astro.props;
+const canonical = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site) : null;
+const nav = [
+	{ key: "board", href: link("/board/"), label: "Board" },
+	{ key: "home", href: `${link("/")}#how`, label: "How it works" },
+	{ key: "rules", href: link("/rules/"), label: "Rules" },
+];
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href={link("/favicon.svg")} />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#0b0c0d" />
+		<meta name="description" content={description} />
+		{noindex && <meta name="robots" content="noindex" />}
+		{canonical && <link rel="canonical" href={canonical} />}
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content={SITE_NAME} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta name="twitter:card" content="summary" />
+		<title>{title}</title>
+		<script is:inline>
+			// Visits are counted by Cloudflare Web Analytics, which sets no cookie, as on the rest of
+			// Market Hub. On the public domain only: a local preview counts nothing.
+			if (/(^|\.)themarkethub\.app$/.test(location.hostname)) {
+				const beacon = document.createElement("script");
+				beacon.type = "module";
+				beacon.src = "https://static.cloudflareinsights.com/beacon.min.js";
+				beacon.dataset.cfBeacon = JSON.stringify({ token: "592b6306f5104483a0a6877de93785b5" });
+				document.head.append(beacon);
+			}
+		</script>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="flex min-h-screen flex-col bg-page text-ink antialiased">
+		<header class="topbar">
+			<div class="wrap flex h-14 items-center gap-6">
+				<a href={link("/")} class="flex shrink-0 items-center gap-2.5" aria-label="Bot League, home">
+					<img src={link("/favicon.svg")} alt="" width="26" height="26" />
+					<span class="text-[15px] font-semibold tracking-tight text-ink-strong">Bot League</span>
+					<span class="hidden text-[12px] text-faint sm:inline">by Market Hub</span>
+				</a>
+				<nav class="hidden items-center gap-5 md:flex" aria-label="Pages">
+					{nav.map((n) => <a class="nav-link" href={n.href} aria-current={n.key === page ? "page" : undefined}>{n.label}</a>)}
+				</nav>
+				<div class="ml-auto flex items-center gap-3" id="account">
+					<a class="nav-link md:hidden" href={link("/board/")}>Board</a>
+					<a class="btn btn-signal py-1.5 text-[13px]" href={link("/me/")} data-me>Your bot</a>
+				</div>
+			</div>
+		</header>
+		<main class="flex-1">
+			<slot />
+		</main>
+		<footer class="mt-24 border-t border-line">
+			<div class="wrap grid gap-8 py-10 text-[13px] text-muted sm:grid-cols-[1.4fr_1fr_1fr]">
+				<div>
+					<div class="flex items-center gap-2.5">
+						<img src={link("/favicon.svg")} alt="" width="22" height="22" />
+						<span class="font-semibold text-ink-strong">Bot League</span>
+					</div>
+					<p class="mt-3 max-w-sm">
+						Bots of rules, built with an AI agent and run on paper: no money, no broker, no orders. A bot's past returns say nothing
+						about its future, and nothing here is advice to buy or sell anything.
+					</p>
+				</div>
+				<div class="space-y-1.5">
+					<p class="label pb-1">Bot League</p>
+					<a class="block hover:text-ink-strong" href={link("/board/")}>Board</a>
+					<a class="block hover:text-ink-strong" href={link("/rules/")}>Rules and format</a>
+					<a class="block hover:text-ink-strong" href={link("/me/")}>Your bot and the kit</a>
+				</div>
+				<div class="space-y-1.5">
+					<p class="label pb-1">Part of Market Hub</p>
+					<a class="block hover:text-ink-strong" href={HUB_URL}>themarkethub.app</a>
+					<a class="block hover:text-ink-strong" href={`${HUB_URL}/privacy/`}>Privacy</a>
+					<a class="block hover:text-ink-strong" href={`${HUB_URL}/terms/`}>Terms</a>
+				</div>
+			</div>
+		</footer>
+		<script>
+			// The way in says who is in: "Your bot" for a member, "Sign in" for a visitor.
+			import { api, link, localVisitor } from "../lib/site";
+			import type { Me } from "../lib/types";
+			localVisitor();
+			api<Me>("/api/me")
+				.then((me) => {
+					const a = document.querySelector<HTMLAnchorElement>("[data-me]");
+					if (!a) return;
+					if (me.user) {
+						a.textContent = "Your bot";
+						a.href = link("/me/");
+					} else {
+						a.textContent = "Sign in";
+						a.href = me.signin ?? link("/me/");
+					}
+					(window as unknown as { __me?: Me }).__me = me;
+					document.dispatchEvent(new CustomEvent("me", { detail: me }));
+				})
+				.catch(() => {});
+		</script>
+	</body>
+</html>

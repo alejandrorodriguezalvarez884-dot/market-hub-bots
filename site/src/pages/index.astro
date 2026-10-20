@@ -1,0 +1,301 @@
+---
+// The landing: what Bot League is, the board live as its first screen, how a bot is built with an
+// agent in three steps, what a bot is, who it is for, the rules and the questions people ask.
+import Layout from "../layouts/Layout.astro";
+import { link } from "../lib/site";
+
+// A bot of the kit (examples/trend-with-market-filter.json) and its rules as the service words them.
+const example = `{
+  "format": "markethub-bot/1",
+  "name": "Trend follower",
+  "about": "The strongest large caps over their long average.",
+  "universe": { "largest": 300 },
+  "rebalance": "weekly",
+  "filters": [{ "factor": "trend", "days": 200, "min": 0 }],
+  "score": [{ "factor": "momentum", "days": 126, "skip": 5, "weight": 1 }],
+  "hold": 15,
+  "weighting": "equal",
+  "market": { "factor": "trend", "days": 200, "min": 0, "cash": 1 }
+}`;
+const coloured = example
+	.replace(/&/g, "&amp;")
+	.replace(/</g, "&lt;")
+	.replace(/("[a-z_]+")(\s*:)/g, '<span class="k">$1</span>$2')
+	.replace(/(:\s*)("[^"]*")/g, '$1<span class="s">$2</span>')
+	.replace(/(:\s*|\[\s*)(-?\d+(?:\.\d+)?)/g, '$1<span class="n">$2</span>');
+const words = [
+	"Looks at the 300 largest US companies.",
+	"Keeps those where its close against its 200-session average is at least 0%.",
+	"Scores them on its return over 126 sessions, leaving out the last 5 (higher is better, weight 1).",
+	"Holds the best 15, in equal parts.",
+	"Looks again at the first close of each week.",
+	"When, for the S&P 500, its close against its 200-session average is not at least 0%, holds 100% in cash.",
+];
+const audience = [
+	{ title: "You have an idea, not a codebase", body: "Momentum, calm stocks, buying dips in an uptrend: say it in your own words. The agent turns it into rules and shows you what they mean." },
+	{ title: "You build, and want a fair test", body: "Every bot runs on the same closes, pays the same cost and starts at the same kind of moment: the close after it is sent in. No curve fitting counts." },
+	{ title: "You want to see what an agent can do", body: "A whole loop on your own machine: an interview, a file, a check, a three-year backtest, a submission. You decide at every step." },
+];
+const rules = [
+	["Paper only", "No money, no broker, no orders. Ever."],
+	["500 largest US companies", "Long only. Up to 50 holdings, funds left out."],
+	["0.10% per trade", "On what changes hands at each rebalance."],
+	["From the next close", "Nothing before counts. A backtest is for you."],
+	["One bot per member", "A new one replaces it and starts again."],
+	["Your rules stay yours", "Others see the name, the idea, returns, holdings."],
+];
+const faq = [
+	["Is any money involved?", "No. Bot League runs every bot on paper, with the closing prices of each session. There is no broker and no order, and there is nothing to deposit or win."],
+	["Do I need to know how to code?", "No. A bot is a short file of rules, and your agent writes it with you. You need an AI coding agent on your computer (Claude Code, Codex, Gemini CLI or another) and a Market Hub account."],
+	["Which figures can a bot use?", "Seven, all worked out from daily closes: momentum, trend, a moving-average cross, volatility, RSI, distance from the high and beta to the S&P 500. It can filter on them, score on them, cap its weights and step aside when the index falls."],
+	["Can others copy my bot?", "Its rules are yours alone. Other members see the name you show under, the bot's name and idea, its returns and what it holds."],
+	["How is it ranked?", "By return over the day, the week, the month, the year and since it started, each among the bots that have run that long. The S&P 500 and the house bots sit on the board for reference."],
+	["What does it cost?", "Nothing. Bot League is part of Market Hub, and it is free."],
+];
+---
+
+<Layout title="Bot League · Build a stock bot with your AI agent" description="Describe an idea to your AI agent. It writes the rules, backtests them and sends the bot in. Bot League runs it on paper against every member's bot, from the next close." page="home">
+	<!-- The first screen: the promise, and the board live beside it. -->
+	<section class="hero">
+		<div class="wrap grid items-center gap-12 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+			<div>
+				<p class="kicker">Market Hub's bot competition</p>
+				<h1 class="display mt-4">Your AI agent builds the bot. <em>The market</em> keeps score.</h1>
+				<p class="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink">
+					Tell Claude Code or Codex how you would pick stocks. It writes the rules, backtests them and sends the bot in. Bot League
+					runs it on paper against every member's bot, from the next close, and ranks them all.
+				</p>
+				<div class="mt-8 flex flex-wrap items-center gap-3">
+					<a class="btn btn-signal btn-big" href={link("/me/")} data-cta>Get the kit, it's free</a>
+					<a class="btn btn-ghost btn-big" href={link("/board/")}>See the board</a>
+				</div>
+				<p class="mt-4 text-[12.5px] text-muted">With your Market Hub account · paper only · no code needed</p>
+			</div>
+			<div class="frame" id="hero-board">
+				<div class="frame-head">
+					<span class="whitespace-nowrap text-[13px] font-semibold text-ink-strong">The board</span>
+					<span class="live whitespace-nowrap" id="hero-asof">loading</span>
+					<span class="ml-auto" id="hero-tabs"></span>
+				</div>
+				<div id="hero-rows">
+					<div class="space-y-px p-3"><div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div></div>
+				</div>
+				<a class="block border-t border-line px-4 py-2.5 text-[12.5px] text-muted hover:text-ink-strong" href={link("/board/")}>The whole board →</a>
+			</div>
+		</div>
+	</section>
+
+	<!-- Three steps, with the agent at work beside them. -->
+	<section id="how" class="wrap scroll-mt-20 pt-6">
+		<p class="kicker">How it works</p>
+		<h2 class="h2 mt-3 max-w-2xl">Three steps, and a conversation with your agent.</h2>
+		<div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.15fr]">
+			<ol class="space-y-8">
+				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+					<span class="step-n">1</span>
+					<div>
+						<h3 class="text-[17px] font-semibold text-ink-strong">Get the kit</h3>
+						<p class="mt-1 text-[14px] text-muted">
+							Sign in with your Market Hub account and download a folder: instructions for your agent, the format of a bot, six bots
+							that work, a small tool, and your personal key inside it.
+						</p>
+					</div>
+				</li>
+				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+					<span class="step-n">2</span>
+					<div>
+						<h3 class="text-[17px] font-semibold text-ink-strong">Open it with your agent</h3>
+						<p class="mt-1 text-[14px] text-muted">
+							Unzip it and start Claude Code, Codex or the agent you use inside it. Say <span class="text-ink">“Let's build my bot”</span>.
+							It asks what you have in mind, or offers ideas in plain words.
+						</p>
+					</div>
+				</li>
+				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+					<span class="step-n">3</span>
+					<div>
+						<h3 class="text-[17px] font-semibold text-ink-strong">It races from the next close</h3>
+						<p class="mt-1 text-[14px] text-muted">
+							The agent checks the rules, backtests them over up to three years against the S&P 500, and sends the bot in when you
+							say so. From the next close it is on the board, session by session.
+						</p>
+					</div>
+				</li>
+			</ol>
+			<div class="frame overflow-hidden">
+				<div class="frame-head">
+					<span class="dots"><i></i><i></i><i></i></span>
+					<span class="num text-[12px] text-muted">~/markethub-bot · claude</span>
+				</div>
+				<div class="term space-y-1 p-5" id="term">
+					<p class="line"><span class="me">› Let's build my bot</span></p>
+					<p class="line">How would you like it to pick stocks? A few ideas: momentum, trend following, calm stocks, buying pullbacks…</p>
+					<p class="line"><span class="me">› Trend following, and stay out when the whole market falls</span></p>
+					<p class="line"><span class="dim">Writing bot.json from examples/trend-with-market-filter.json</span></p>
+					<p class="line"><span class="dim">$ python tools/mh.py check</span></p>
+					<p class="line"><span class="ok">✓</span> It is a bot. In words: looks at the 300 largest US companies, keeps those over their 200-session average…</p>
+					<p class="line"><span class="dim">$ python tools/mh.py backtest --years 3</span></p>
+					<p class="line"><span class="ok">✓</span> Three years against SPY: total and yearly return, volatility, worst drawdown, best and worst months. A simulation of the past, not a forecast.</p>
+					<p class="line"><span class="me">› Send it in as “tape_and_trend”</span></p>
+					<p class="line"><span class="dim">$ python tools/mh.py submit --handle "tape_and_trend"</span></p>
+					<p class="line"><span class="ok">✓</span> Sent in. Its record starts at the next close.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- What a bot is: a file, and the same file in words. -->
+	<section class="wrap pt-28">
+		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+			<div>
+				<p class="kicker">What a bot is</p>
+				<h2 class="h2 mt-3">A few rules in a file. Not code, not a black box.</h2>
+				<p class="mt-5 max-w-md text-[15px] text-muted">
+					Which companies it looks at, what it filters and scores them on, how many it holds, how it weighs them, how often it looks
+					again and when it steps aside. Every bot is run the same way, on the same closes, so the only difference is the idea.
+				</p>
+				<a class="link mt-5 inline-block text-[14px] text-signal" href={link("/rules/")}>The whole format →</a>
+			</div>
+			<div class="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+				<div class="frame overflow-hidden">
+					<div class="frame-head"><span class="num text-[12px] text-muted">bot.json</span></div>
+					<pre class="code p-4 text-[11.5px] leading-[1.7]" set:html={coloured} />
+				</div>
+				<div class="frame">
+					<div class="frame-head"><span class="text-[12px] text-muted">The same bot, in words</span></div>
+					<ul class="space-y-2.5 p-4 text-[13px] text-ink">
+						{words.map((w) => <li class="flex gap-2"><span class="text-signal">›</span><span>{w}</span></li>)}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Who it is for. -->
+	<section class="wrap pt-28">
+		<p class="kicker">Who it is for</p>
+		<h2 class="h2 mt-3 max-w-2xl">Anyone with an idea about markets and an agent on their computer.</h2>
+		<div class="mt-10 grid gap-px overflow-hidden rounded-md border border-line bg-line md:grid-cols-3">
+			{audience.map((a) => (
+				<div class="bg-page p-6">
+					<h3 class="text-[16px] font-semibold text-ink-strong">{a.title}</h3>
+					<p class="mt-2 text-[14px] text-muted">{a.body}</p>
+				</div>
+			))}
+		</div>
+		<p class="mt-6 text-[13px] text-muted">
+			Works with <span class="text-ink">Claude Code</span>, <span class="text-ink">Codex</span>, <span class="text-ink">Gemini CLI</span> and any agent that reads
+			an <span class="num text-ink">AGENTS.md</span>. The kit's tool needs nothing but Python.
+		</p>
+	</section>
+
+	<!-- The rules in six. -->
+	<section class="wrap pt-28">
+		<div class="flex flex-wrap items-end justify-between gap-4">
+			<div>
+				<p class="kicker">The rules</p>
+				<h2 class="h2 mt-3">Same closes, same costs, same start.</h2>
+			</div>
+			<a class="link text-[14px] text-signal" href={link("/rules/")}>All of them →</a>
+		</div>
+		<div class="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+			{rules.map(([t, b]) => (
+				<div class="border-t border-line-strong pt-4">
+					<h3 class="text-[15px] font-semibold text-ink-strong">{t}</h3>
+					<p class="mt-1 text-[14px] text-muted">{b}</p>
+				</div>
+			))}
+		</div>
+	</section>
+
+	<!-- Questions. -->
+	<section class="wrap pt-28">
+		<div class="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+			<div>
+				<p class="kicker">Questions</p>
+				<h2 class="h2 mt-3">Before you start</h2>
+			</div>
+			<div class="divide-y divide-line border-y border-line">
+				{faq.map(([q, a]) => (
+					<details class="group py-4">
+						<summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-medium text-ink-strong">
+							{q}<span class="text-muted transition group-open:rotate-45">+</span>
+						</summary>
+						<p class="mt-2 max-w-prose text-[14px] text-muted">{a}</p>
+					</details>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<!-- The way in, again. -->
+	<section class="wrap pt-28">
+		<div class="frame relative overflow-hidden px-6 py-12 text-center sm:px-12">
+			<div class="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-2/3 rounded-full bg-signal/20 blur-3xl"></div>
+			<h2 class="h2 relative mx-auto max-w-xl">Your idea, on the board by the next close.</h2>
+			<p class="relative mx-auto mt-4 max-w-md text-[15px] text-muted">Get the kit, open it with your agent and say “Let's build my bot”.</p>
+			<a class="btn btn-signal btn-big relative mt-8" href={link("/me/")} data-cta>Get the kit, it's free</a>
+		</div>
+	</section>
+</Layout>
+
+<script>
+	import { locked, ordered, periodTabs, row } from "../lib/board";
+	import { add, h } from "../lib/dom";
+	import { day } from "../lib/format";
+	import { api, localVisitor } from "../lib/site";
+	import type { Board, Me, Period } from "../lib/types";
+
+	localVisitor();
+	const rows = document.getElementById("hero-rows")!;
+	const asOf = document.getElementById("hero-asof")!;
+	const tabs = document.getElementById("hero-tabs")!;
+	let board: Board | null = null;
+	let period: Period = "1m";
+	let signin: string | null = null;
+	const SHOWN = 7;
+
+	function draw() {
+		if (!board) return;
+		const b = board;
+		asOf.textContent = b.as_of ? `close of ${day(b.as_of)}` : "starting";
+		const shown: { key: Period; label: string }[] = [{ key: "1d", label: "Day" }, { key: "1w", label: "Week" }, { key: "1m", label: "Month" }, { key: "all", label: "Since start" }];
+		tabs.replaceChildren(periodTabs(period, shown, (p) => ((period = p), draw())));
+		const list = ordered(b, period).slice(0, SHOWN);
+		const body = h("div");
+		if (!b.visible) body.append(locked(b, signin));
+		for (const e of list) body.append(row(e, period, b.benchmark.ticker));
+		if (!list.length) body.append(h("p", "px-4 py-8 text-center text-[13px] text-muted", "The first bots start at the next close."));
+		if (b.sample) body.append(h("p", "border-t border-line px-4 py-2 text-[11.5px] text-warn", "Sample figures: this copy of the site is not on the market's closes."));
+		rows.replaceChildren(body);
+	}
+
+	async function load() {
+		board = await api<Board>("/api/board");
+		draw();
+		if (board.stale) {
+			asOf.textContent = "moving the bots on to the last close…";
+			await api("/api/board/refresh", { method: "POST" }).catch(() => null);
+			board = await api<Board>("/api/board");
+			draw();
+		}
+	}
+	document.addEventListener("me", (e) => {
+		const me = (e as CustomEvent<Me>).detail;
+		signin = me.user ? null : me.signin;
+		draw();
+	});
+	load().catch(() => {
+		rows.replaceChildren(add(h("p", "px-4 py-8 text-center text-[13px] text-muted"), "The board could not be read just now. Try again in a minute."));
+	});
+
+	// The terminal types itself out once it is on screen.
+	const lines = [...document.querySelectorAll<HTMLElement>("#term .line")];
+	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+	const seen = new IntersectionObserver((entries) => {
+		if (!entries.some((x) => x.isIntersecting)) return;
+		seen.disconnect();
+		lines.forEach((l, i) => setTimeout(() => l.classList.add("on"), reduced ? 0 : i * 420));
+	}, { threshold: 0.3 });
+	seen.observe(document.getElementById("term")!);
+</script>

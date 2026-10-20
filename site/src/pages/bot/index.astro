@@ -1,0 +1,108 @@
+---
+// A bot's own page (/bot/?b=slug): its idea, its returns and ranks, its curve against the S&P 500
+// from its first close, and what it holds. A house bot's rules are public, as are the kit's; a
+// member's are shown to its owner alone.
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="A bot · Bot League" description="A bot of Bot League: its idea, its returns against the S&P 500 and what it holds." page="bot" noindex>
+	<section class="wrap pt-10" id="bot">
+		<div class="skeleton h-6 w-40"></div><div class="skeleton mt-4 h-12 w-96 max-w-full"></div><div class="skeleton mt-8 h-72"></div>
+	</section>
+</Layout>
+
+<script>
+	import { lineChart } from "../../lib/chart";
+	import { add, h } from "../../lib/dom";
+	import { day, ordinal, pct, plural, signedPct, tone } from "../../lib/format";
+	import { ApiError, api, hubQuoteUrl, link, localVisitor } from "../../lib/site";
+	import { PERIODS, digits, type BotPage } from "../../lib/types";
+
+	localVisitor();
+	const root = document.getElementById("bot")!;
+	const slug = new URLSearchParams(location.search).get("b") ?? "";
+
+	function stats(b: BotPage): HTMLElement {
+		return add(h("div", "mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-5"),
+			...PERIODS.map((p) => {
+				const v = b.returns[p.key];
+				const rank = b.ranks[p.key];
+				return add(h("div", "bg-page p-4"), h("div", "label", p.label),
+					h("div", `num mt-1 text-[22px] font-semibold ${tone(v)}`, v == null ? "—" : signedPct(v, digits(p.key))),
+					h("div", "mt-0.5 text-[12px] text-muted", b.house ? (v == null ? "not yet" : "house · not ranked") : rank ? `${ordinal(rank)} of ${b.entrants}` : v == null ? "not yet" : " "));
+			}));
+	}
+
+	function holdings(b: BotPage): HTMLElement | null {
+		if (!b.holdings.length && !b.cash) return null;
+		const top = Math.max(...b.holdings.map((x) => x.weight), b.cash ?? 0, 0.01);
+		const bar = (label: HTMLElement | string, w: number, muted = false) => add(h("div", "grid grid-cols-[4.5rem_minmax(0,1fr)_3.6rem] items-center gap-3 py-1"),
+			typeof label === "string" ? h("span", "num text-[13px] text-muted", label) : label,
+			add(h("span", "h-2 rounded-sm bg-line"), Object.assign(h("span", `block h-2 rounded-sm ${muted ? "bg-faint" : "bg-ink"}`), { style: `width:${(w / top) * 100}%` })),
+			h("span", "num text-right text-[13px] text-ink", pct(w, w < 0.1 ? 1 : 0)));
+		const rows = b.holdings.map((x) => {
+			const a = h("a", "num text-[13px] font-medium text-ink-strong hover:text-signal", x.ticker);
+			a.href = hubQuoteUrl(x.ticker);
+			return bar(a, x.weight);
+		});
+		if (b.cash && b.cash > 0.005) rows.push(bar("cash", b.cash, true));
+		return add(h("section", "sec mt-12"), add(h("div", "sec-head"), h("h2", "sec-title", "What it holds now"), h("span", "sec-note", `${plural(b.holding, "stock")} · after the close of ${day(b.as_of)}`)),
+			add(h("div", "max-w-2xl"), ...rows));
+	}
+
+	function rules(b: BotPage): HTMLElement | null {
+		if (!b.rules) return null;
+		const sec = add(h("section", "sec mt-12"), add(h("div", "sec-head"), h("h2", "sec-title", "Its rules"),
+			h("span", "sec-note", b.house ? "A house bot: the kit's example, open to all" : "Only you see them")));
+		add(sec, add(h("ul", "max-w-3xl space-y-2 text-[14px] text-ink"), ...b.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-signal", "›"), h("span", "", r)))));
+		if (b.bot) {
+			const d = add(h("details", "mt-5 max-w-3xl"), h("summary", "cursor-pointer text-[13px] text-muted hover:text-ink-strong", "The file"),
+				h("pre", "code frame mt-2 p-4", JSON.stringify(b.bot, null, 2)));
+			sec.append(d);
+		}
+		return sec;
+	}
+
+	function draw(b: BotPage) {
+		document.title = `${b.name} · Bot League`;
+		const chart = h("div", "mt-4");
+		const started = b.since
+			? `Running since the close of ${day(b.since)} · ${plural(b.sessions, "session")}`
+			: "Its record starts at the next close.";
+		root.replaceChildren();
+		add(root,
+			add(h("a", "text-[13px] text-muted hover:text-ink-strong"), "← The board"),
+			add(h("div", "mt-4 flex flex-wrap items-center gap-2"), b.house ? h("span", "tag", "house bot") : null, b.you ? h("span", "tag tag-you", "your bot") : null),
+			h("h1", "h2 mt-2", b.name),
+			h("p", "mt-1 text-[14px] text-muted", b.house ? "By Bot League, from the kit's examples" : `By ${b.handle}`),
+			b.about ? h("p", "mt-4 max-w-2xl text-[16px] text-ink", b.about) : null,
+			h("p", "mt-3 text-[13px] text-muted", started),
+			stats(b),
+			b.curve.length ? add(h("section", "sec mt-12"),
+				add(h("div", "sec-head"), h("h2", "sec-title", "Against the S&P 500"), add(h("span", "sec-note flex items-center gap-4"),
+					add(h("span", "flex items-center gap-1.5"), Object.assign(h("i", "inline-block h-[3px] w-4 rounded bg-signal"), {}), b.name),
+					add(h("span", "flex items-center gap-1.5"), h("i", "inline-block h-[3px] w-4 rounded bg-muted"), "S&P 500"))),
+				chart) : null,
+			holdings(b),
+			rules(b),
+		);
+		(root.firstElementChild as HTMLAnchorElement).href = link("/board/");
+		if (b.curve.length) {
+			lineChart(chart, b.curve.map((p) => p.date), [
+				{ name: "S&P 500", values: b.curve.map((p) => p.index), color: "var(--color-muted)", width: 1.5 },
+				{ name: b.name, values: b.curve.map((p) => p.bot), color: "var(--color-signal)", width: 2.25 },
+			]);
+		}
+	}
+
+	api<BotPage>(`/api/board/bot/${encodeURIComponent(slug)}`)
+		.then(draw)
+		.catch((e) => {
+			const signin = e instanceof ApiError ? e.signin : null;
+			const msg = !slug ? "No bot was asked for." : e instanceof Error ? e.message : "This bot could not be read.";
+			const back = h("a", "btn btn-ghost mt-6", "The board");
+			back.href = link("/board/");
+			const actions = add(h("div", "flex flex-wrap gap-3"), signin ? Object.assign(h("a", "btn btn-signal mt-6", "Sign in"), { href: signin }) : null, back);
+			root.replaceChildren(add(h("div", "py-16 text-center"), h("p", "text-[16px] text-ink", msg), add(h("div", "flex justify-center"), actions)));
+		});
+</script>

@@ -1,0 +1,103 @@
+---
+// The whole board: every bot over the day, week, month, year or since it started, ranked among
+// those that have run that long, with the house bots and the index as lines of reference.
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="The board · Bot League" description="Every member's bot, run on paper and ranked over the day, the week, the month, the year and since it started, against the S&P 500." page="board">
+	<section class="wrap pt-10">
+		<p class="kicker">The board</p>
+		<div class="mt-3 flex flex-wrap items-end justify-between gap-4">
+			<h1 class="h2">Every bot, ranked from its first close</h1>
+			<span class="live" id="asof">loading</span>
+		</div>
+		<p class="mt-3 max-w-2xl text-[14px] text-muted" id="lede">
+			A bot shows in a period once it has run that long. The S&P 500 and the house bots are on the board for reference and are never ranked.
+		</p>
+		<div class="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
+			<div id="tabs"></div>
+			<span class="text-[12.5px] text-muted" id="count"></span>
+		</div>
+		<div id="board" class="mt-2"><div class="space-y-2 pt-3"><div class="skeleton h-10"></div><div class="skeleton h-10"></div><div class="skeleton h-10"></div><div class="skeleton h-10"></div></div></div>
+	</section>
+</Layout>
+
+<script>
+	import { locked, ordered, periodTabs, type Entry } from "../../lib/board";
+	import { sparkline } from "../../lib/chart";
+	import { add, h } from "../../lib/dom";
+	import { day, pct, plural, signedPct, tone } from "../../lib/format";
+	import { api, botUrl, localVisitor } from "../../lib/site";
+	import { PERIODS, digits, type Board, type Me, type Period } from "../../lib/types";
+
+	localVisitor();
+	const root = document.getElementById("board")!;
+	let board: Board | null = null;
+	let period = (new URLSearchParams(location.search).get("p") as Period) || "1m";
+	if (!PERIODS.some((p) => p.key === period)) period = "1m";
+	let signin: string | null = null;
+
+	const grid = "grid grid-cols-[1.8rem_minmax(0,1fr)_5.2rem] md:grid-cols-[2rem_minmax(0,1.5fr)_88px_5.6rem_5.6rem_6rem_minmax(0,1fr)] items-center gap-x-4 px-3 py-2.5";
+
+	function line(e: Entry): HTMLElement {
+		const b = board!;
+		if (e.kind === "index") {
+			return add(h("div", `${grid} bg-white/[0.015]`), h("span", "num text-[12px] text-faint", "—"),
+				add(h("span", "min-w-0"), h("span", "text-muted", "S&P 500"), h("span", "tag ml-2", b.benchmark.ticker)),
+				h("span", "hidden md:block"), h("span", `num text-right font-semibold opacity-80 ${tone(e.value)}`, signedPct(e.value, digits(period))),
+				h("span", "hidden md:block"), h("span", "hidden md:block"), h("span", "hidden md:block"));
+		}
+		const r = e.line;
+		const rank = r.ranks[period];
+		const a = h("a", `${grid} hover:bg-raised ${r.house ? "bg-white/[0.015]" : ""} ${r.you ? "bg-signal-soft shadow-[inset_2px_0_0_var(--color-signal)]" : ""}`);
+		a.href = botUrl(r.slug);
+		add(a, h("span", `num text-[13px] ${rank && rank <= 3 ? "text-ink-strong" : "text-muted"}`, rank ? String(rank) : r.house ? "·" : ""),
+			add(h("span", "min-w-0"),
+				add(h("span", "flex min-w-0 items-center gap-2"), h("span", `truncate font-semibold ${r.house ? "text-ink" : "text-ink-strong"}`, r.name),
+					r.house ? h("span", "tag shrink-0", "house") : null, r.you ? h("span", "tag tag-you shrink-0", "you") : null),
+				h("span", "block truncate text-[12px] text-muted", r.house ? "Bot League · from the kit" : `by ${r.handle}`)),
+			add(h("span", "hidden justify-end md:flex"), sparkline(r.spark, 88, 26)),
+			h("span", `num text-right font-semibold ${tone(e.value)}`, e.value == null ? (r.since ? "—" : "next close") : signedPct(e.value, digits(period))),
+			h("span", `num hidden text-right md:block ${tone(r.returns.all)}`, signedPct(r.returns.all, 1)),
+			h("span", "hidden text-right text-[12.5px] text-muted md:block", r.since ? plural(r.sessions, "session") : "starts next close"),
+			h("span", "hidden truncate text-[12.5px] text-muted md:block", r.holdings.slice(0, 3).map((x) => `${x.ticker} ${pct(x.weight, 0)}`).join(" · ") + (r.cash && r.cash > 0.5 ? ` · cash ${pct(r.cash, 0)}` : "")));
+		return a;
+	}
+
+	function draw() {
+		if (!board) return;
+		const b = board;
+		document.getElementById("asof")!.textContent = b.as_of ? `to the close of ${day(b.as_of)}` : "starting";
+		document.getElementById("tabs")!.replaceChildren(periodTabs(period, PERIODS, (p) => {
+			period = p;
+			history.replaceState(null, "", `?p=${p}`);
+			draw();
+		}));
+		document.getElementById("count")!.textContent = `${plural(b.entrants, "member's bot", "members' bots")} · ${plural(b.house.length, "house bot")}`;
+		const head = add(h("div", `${grid} !py-2 text-[12px] text-muted`), h("span", "", "#"), h("span", "", "Bot"), h("span", "hidden md:block"),
+			h("span", "text-right", PERIODS.find((p) => p.key === period)!.label), h("span", "hidden text-right md:block", "Since start"), h("span", "hidden text-right md:block", "Running"),
+			h("span", "hidden md:block", "Largest holdings"));
+		const list = add(h("div", "divide-y divide-line"), head);
+		if (!b.visible) list.append(add(h("div", "border-y border-signal-line"), locked(b, signin)));
+		for (const e of ordered(b, period)) list.append(line(e));
+		if (b.sample) list.append(h("p", "px-3 py-3 text-[12px] text-warn", "Sample figures: this copy of the site is not on the market's closes."));
+		root.replaceChildren(list);
+	}
+
+	async function load() {
+		board = await api<Board>("/api/board");
+		draw();
+		if (board.stale) {
+			document.getElementById("asof")!.textContent = "moving the bots on to the last close…";
+			await api("/api/board/refresh", { method: "POST" }).catch(() => null);
+			board = await api<Board>("/api/board");
+			draw();
+		}
+	}
+	document.addEventListener("me", (e) => {
+		const me = (e as CustomEvent<Me>).detail;
+		signin = me.user ? null : me.signin;
+		draw();
+	});
+	load().catch(() => root.replaceChildren(h("p", "py-10 text-center text-[14px] text-muted", "The board could not be read just now. Try again in a minute.")));
+</script>

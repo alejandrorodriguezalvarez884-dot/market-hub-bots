@@ -1,0 +1,190 @@
+---
+// The member's own page: their bot (how it is doing, what it holds, its rules), the kit to build
+// one with their agent, and the key the agent uses. Signed in with the Market Hub account.
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Your bot · Bot League" description="Your bot in Bot League, the kit to build it with your AI agent, and your key." page="me" noindex>
+	<section class="wrap pt-10" id="me">
+		<div class="skeleton h-6 w-40"></div><div class="skeleton mt-4 h-12 w-80"></div><div class="mt-8 grid gap-4 lg:grid-cols-2"><div class="skeleton h-72"></div><div class="skeleton h-72"></div></div>
+	</section>
+</Layout>
+
+<script>
+	import { lineChart } from "../../lib/chart";
+	import { add, h } from "../../lib/dom";
+	import { day, ordinal, pct, plural, signedPct, timeAgo, tone } from "../../lib/format";
+	import { API, ApiError, api, botUrl, hubQuoteUrl, localVisitor } from "../../lib/site";
+	import { PERIODS, digits, type Key, type Me, type Overview } from "../../lib/types";
+
+	localVisitor();
+	const root = document.getElementById("me")!;
+	let data: Overview;
+	let shownKey: string | null = null; // a key just made: shown once, until the page is left
+
+	const button = (cls: string, text: string, onClick: (b: HTMLButtonElement) => void) => {
+		const b = h("button", cls, text);
+		b.type = "button";
+		b.addEventListener("click", () => onClick(b));
+		return b;
+	};
+	const anchor = (cls: string, text: string, href: string) => Object.assign(h("a", cls, text), { href });
+
+	// --- Signed out ---
+
+	function signedOut(signin: string | null) {
+		root.replaceChildren(add(h("div", "frame relative mx-auto mt-6 max-w-xl overflow-hidden px-6 py-12 text-center sm:px-10"),
+			h("div", "pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-2/3 rounded-full bg-signal/20 blur-3xl"),
+			h("p", "kicker relative", "Your bot"),
+			h("h1", "h2 relative mt-3", "Sign in with your Market Hub account"),
+			h("p", "relative mx-auto mt-4 max-w-md text-[15px] text-muted", "The same account as Market Hub, with Google or your email. Then download the kit, with your key in it, and build your bot with your agent."),
+			signin ? anchor("btn btn-signal btn-big relative mt-8", "Sign in to Market Hub", signin) : h("p", "relative mt-6 text-[13px] text-muted", "Sign-in is not set up on this copy of the site.")));
+	}
+
+	// --- The member's bot ---
+
+	function mine(o: Overview): HTMLElement {
+		const you = o.you;
+		const panel = add(h("section", "frame p-5 sm:p-6"), h("p", "label", "Your bot"));
+		if (!you) {
+			return add(panel, h("h2", "mt-1 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", "No bot yet"),
+				h("p", "mt-3 max-w-prose text-[14px] text-muted",
+					"A bot is a few rules, not code: which of the largest US companies it looks at, what it scores them on, how many it holds and how often it looks again. Your agent writes them with you, backtests them and sends them in. It runs on paper, with no money and no broker, and is ranked from the next close."),
+				h("p", "mt-3 text-[13px] text-muted", "Download the kit beside this to start."));
+		}
+		const live = you.returns;
+		const stat = (p: (typeof PERIODS)[number]) => {
+			const v = live?.[p.key] ?? null;
+			const rank = you.ranks[p.key];
+			return add(h("div", "min-w-0 bg-panel p-3"), h("div", "label", p.label), h("div", `num mt-1 text-lg font-semibold ${tone(v)}`, v == null ? "—" : signedPct(v, digits(p.key))),
+				h("div", "truncate text-[12px] text-muted", rank ? `${ordinal(rank)} of ${you.entrants}` : v == null ? "not yet" : " "));
+		};
+		const started = you.since
+			? `Running since the close of ${day(you.since)} · ${plural(you.sessions, "session")} · as of ${day(you.as_of)}`
+			: `Sent in ${timeAgo(you.submitted_utc)}: its record starts at the next close.`;
+		const chart = h("div", "mt-4");
+		const rules = add(h("details", "mt-4 rounded-[3px] border border-line"),
+			h("summary", "cursor-pointer px-3 py-2 text-[13px] font-semibold text-ink", "Its rules · only you see them"),
+			add(h("ul", "space-y-1.5 px-3 pb-3 text-[13px] text-ink"), ...you.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-signal", "›"), h("span", "", r)))));
+		const page = anchor("link text-[13px] text-signal", "Its page on the board →", botUrl(you.handle.replace(/[\s_-]+/g, "").toLowerCase()));
+		add(panel,
+			h("h2", "mt-1 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", you.name),
+			h("p", "mt-0.5 text-[12.5px] text-muted", `Shown as ${you.handle} · ${you.universe} companies to choose from`),
+			you.about ? h("p", "mt-3 max-w-prose text-[14px] text-ink", you.about) : null,
+			h("p", "mt-3 text-[12.5px] text-muted", started),
+			live ? add(h("div", "mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[3px] border border-line bg-line xl:grid-cols-5"), ...PERIODS.map(stat)) : null,
+			you.curve.length > 1 ? chart : null,
+			you.holdings.length ? add(h("div", "mt-4"), h("p", "label pb-1.5", "Holds now"), add(h("div", "flex flex-wrap gap-1.5"),
+				...you.holdings.map((x) => anchor("chip hover:text-ink-strong", `${x.ticker} ${pct(x.weight, x.weight < 0.1 ? 1 : 0)}`, hubQuoteUrl(x.ticker))),
+				you.cash && you.cash > 0.005 ? h("span", "chip text-muted", `cash ${pct(you.cash, 0)}`) : null)) : null,
+			rules,
+			add(h("div", "mt-4 flex flex-wrap items-center gap-3 text-[12.5px] text-muted"), page,
+				button("btn btn-ghost py-1.5 text-[13px]", "Withdraw it", async (el) => {
+					if (!confirm("Withdraw your bot? Its record goes with it, and a new one starts from zero.")) return;
+					el.disabled = true;
+					await api("/api/bots/mine", { method: "DELETE" });
+					await load();
+				})),
+			h("p", "mt-3 text-[12.5px] text-muted", "To change it, ask your agent: a new bot replaces this one and starts its record again."));
+		if (you.curve.length > 1) {
+			requestAnimationFrame(() => lineChart(chart, you.curve.map((p) => p.date), [{ name: you.name, values: you.curve.map((p) => p.value), color: "var(--color-signal)" }], 220));
+		}
+		return panel;
+	}
+
+	// --- Building one ---
+
+	async function downloadKit(): Promise<void> {
+		const res = await fetch(`${API}/api/bots/kit`, { method: "POST", credentials: "include" });
+		if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail ?? `Request failed (${res.status}).`);
+		const url = URL.createObjectURL(await res.blob());
+		const a = Object.assign(document.createElement("a"), { href: url, download: "markethub-bot.zip" });
+		document.body.append(a);
+		a.click();
+		a.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 10_000);
+	}
+
+	function build(o: Overview): HTMLElement {
+		const status = h("p", "mt-2 text-[12.5px] text-muted");
+		const step = (n: number, title: string, ...body: (Node | string | null)[]) => add(h("li", "grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3"),
+			h("span", "step-n", String(n)), add(h("div", "min-w-0"), h("div", "text-[15px] font-semibold text-ink-strong", title), ...body));
+		let keyBox = keys(o);
+		const kit = button("btn btn-signal mt-3", "Download the kit", async (el) => {
+			el.disabled = true;
+			status.textContent = "Making your key and the kit…";
+			try {
+				await downloadKit();
+				status.textContent = "Downloaded, with a new key in its .env. Any key you had before no longer works.";
+				data = await api<Overview>("/api/bots");
+				keyBox.replaceWith((keyBox = keys(data)));
+			} catch (e) {
+				status.textContent = e instanceof Error ? e.message : "The kit could not be made.";
+			}
+			el.disabled = false;
+		});
+		return add(h("section", "frame p-5 sm:p-6"),
+			h("p", "label", "Build it with your AI agent"),
+			h("h2", "mt-1 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", o.you ? "Change it, or start again" : "Three steps, and a conversation"),
+			add(h("ol", "mt-5 space-y-5"),
+				step(1, "Download the kit", h("p", "text-[13.5px] text-muted", "Instructions for your agent, the format of a bot, six examples and a small tool, with your key inside."), kit, status),
+				step(2, "Open the folder with your agent", h("p", "text-[13.5px] text-muted", "Unzip it, then in a terminal: cd into it and run claude, codex or the agent you use.")),
+				step(3, "Say “Let's build my bot”", h("p", "text-[13.5px] text-muted", "It asks for your idea or proposes some, writes the rules, backtests them against the S&P 500 and sends the bot in when you say so."))),
+			keyBox);
+	}
+
+	function keys(o: Overview): HTMLElement {
+		const box = h("div", "mt-6 border-t border-line pt-4");
+		const k: Key | null = o.key;
+		const make = button("btn btn-ghost py-1.5 text-[13px]", k ? "New key" : "Make a key", async (el) => {
+			el.disabled = true;
+			shownKey = (await api<{ key: string }>("/api/bots/key", { method: "POST" })).key;
+			data = await api<Overview>("/api/bots");
+			box.replaceWith(keys(data));
+		});
+		const drop = k ? button("btn btn-ghost py-1.5 text-[13px]", "Take it back", async (el) => {
+			if (!confirm("Take your key back? Your agent can no longer send in or follow your bot until you make a new one.")) return;
+			el.disabled = true;
+			shownKey = null;
+			await api("/api/bots/key", { method: "DELETE" });
+			data = await api<Overview>("/api/bots");
+			box.replaceWith(keys(data));
+		}) : null;
+		add(box, h("p", "label pb-1", "Your key"),
+			h("p", "text-[12.5px] text-muted", k
+				? `Made ${timeAgo(k.created_utc)}, ${k.used_utc ? `last used ${timeAgo(k.used_utc)}` : "not used yet"}. It lets your agent check, backtest and send in your bot, nothing else. It works on Market Hub too. Keep it to yourself.`
+				: "No key: your agent needs one. Downloading the kit makes one, or make it here for a kit you already have."));
+		if (shownKey && k) {
+			const code = h("code", "num block min-w-0 flex-1 truncate rounded-[3px] border border-line bg-page px-2 py-1.5 text-[12.5px] text-ink-strong", shownKey);
+			const copy = button("btn btn-ghost py-1.5 text-[13px]", "Copy", (el) => navigator.clipboard.writeText(shownKey!).then(() => (el.textContent = "Copied")));
+			add(box, add(h("div", "mt-2 flex items-center gap-2"), code, copy), h("p", "mt-1 text-[12px] text-warn", "Shown this once. Paste it in the kit's .env as MARKETHUB_BOT_KEY=…"));
+		}
+		return add(box, add(h("p", "mt-3 flex flex-wrap gap-2"), make, drop));
+	}
+
+	function draw(me: Me) {
+		root.replaceChildren(
+			h("p", "kicker", "Your bot"),
+			h("h1", "h2 mt-3", me.user?.name ? `Hello, ${me.user.name.split(" ")[0]}` : "Your bot"),
+			h("p", "mt-2 max-w-2xl text-[14px] text-muted", "One bot per member. It runs on paper and is ranked from the close after you send it in."),
+			add(h("div", "mt-8 grid gap-4 lg:grid-cols-2"), mine(data), build(data)));
+	}
+
+	async function load() {
+		const me = await api<Me>("/api/me");
+		if (!me.user) return signedOut(me.signin);
+		try {
+			data = await api<Overview>("/api/bots");
+		} catch (e) {
+			if (e instanceof ApiError && e.status === 401) return signedOut(e.signin ?? me.signin);
+			throw e;
+		}
+		draw(me);
+		if (data.stale) {
+			await api("/api/bots/refresh", { method: "POST" }).catch(() => null);
+			data = await api<Overview>("/api/bots");
+			draw(me);
+		}
+	}
+	load().catch((e) => root.replaceChildren(h("p", "py-16 text-center text-[15px] text-muted", e instanceof Error ? e.message : "Your page could not be read.")));
+</script>

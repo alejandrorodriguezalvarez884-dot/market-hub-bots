@@ -1,0 +1,32 @@
+[project]
+name = "botleague"
+version = "0.1.0"
+description = "Bot League: bots of rules built with an AI agent, run on paper and ranked, for Market Hub members."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.142.2",
+    "google-cloud-firestore>=2.34.0",
+    "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "python-dotenv>=1.2.4",
+    "tzdata>=2025.2",
+    "uvicorn>=0.54.0",
+    "yfinance>=1.7.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.1",
+    "pytest>=9.1.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
