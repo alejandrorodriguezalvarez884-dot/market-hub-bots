@@ -18,6 +18,13 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **Desplegado** `bot-league-00005-4lj` desde un export limpio de b17c2a0 (la rama
+> `visuals` fusionada en main sin conflictos, con el OK del usuario, más la actividad, el editor y el
+> chat). El chat queda **encendido**: `BOTLEAGUE_CHAT=1`, `claude-haiku-5-5`, esfuerzo `high`, 15
+> mensajes al día por jugador y sin tope diario del servicio (decisión del usuario), con el secreto
+> `ANTHROPIC_API_KEY` que ya lee el portal. La configuración cambia solo en eso. Comprobado: páginas y
+> salud en 200, el chat pide sesión (401). Falta probar un mensaje real con la sesión del usuario.
+
 > 2026-10-20: **Gráficas y una cara para cada bot** (rama `visuals`, sin desplegar). El usuario
 > pidió trabajar la visual de las gráficas y "un monigote de un robot gracioso" por bot.
 > - **Robots** (`site/src/lib/robot.ts`): cada bot tiene un robot dibujado en SVG a partir de su
