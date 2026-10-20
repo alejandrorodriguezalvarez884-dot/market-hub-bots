@@ -24,7 +24,8 @@ reglas privadas.
 > medidas de la portada del portal (titular y capítulos de peso 500, línea fina sobre cada bloque,
 > botones en tinta, marcos como sus tarjetas) y la cabecera y el pie son los del portal, con su
 > marca, "Bot League" y "by The Market Hub" enlazando a https://themarkethub.app. Los textos dicen
-> "The Market Hub". Los nombres `signal` siguen en las páginas, pero valen la tinta. Sin desplegar.
+> "The Market Hub". Los nombres `signal` siguen en las páginas, pero valen la tinta. Desplegado como
+> `bot-league-00003-bjb` desde un export limpio de 80e8185; la configuración del servicio no cambia.
 
 > 2026-10-20: **Desplegado en https://bots.themarkethub.app** (Cloud Run `bot-league`, revisión
 > `bot-league-00002-ptm`, desde un export limpio de 67afcca), con el OK del usuario. La primera
