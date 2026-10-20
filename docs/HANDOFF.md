@@ -18,7 +18,14 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-10-20: **"Change it", mucho más simple y bonito** (rama `change-it`, sin fusionar ni desplegar). El
+> **Pendiente, el tope del chat.** Los 15 mensajes al día por jugador se cuentan en memoria, en cada
+> instancia (`Chat._asked`). El servicio escala a cero y llega a 2 instancias, así que el contador se
+> reinicia a menudo y el tope real es más flojo que el que pidió el usuario. Arreglarlo es guardar la
+> cuenta por miembro y día (por ejemplo en `bot_meta/chat`, con un hash del id), y decirlo antes en
+> la privacidad del portal. Se le ha contado al usuario; no está hecho.
+
+> 2026-10-20: **"Change it", mucho más simple y bonito** (fusionado en main y **desplegado** como
+> `bot-league-00008-vll`, export limpio de d075e3d, configuración igual antes y después). El
 > usuario lo pidió: "simplificar mucho más y hacer más bonita la parte de modificar el bot".
 > - **Lo fácil primero** (`site/src/lib/change.ts`): una caja para decirlo con su botón dentro y chips de un
 >   toque (More defensive, Fewer stocks, More stocks, Look again monthly/weekly, Drop a sector, Pause o
