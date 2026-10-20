@@ -18,6 +18,14 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **El aspecto, el de The Market Hub.** Al usuario no le gustó que la web cambiara tanto
+> el look & feel frente al portal, y pidió "by The Market Hub" con enlace a la web. Fuera el violeta,
+> la rejilla con brillo, las sombras y el titular grueso: la capa propia de `global.css` toma las
+> medidas de la portada del portal (titular y capítulos de peso 500, línea fina sobre cada bloque,
+> botones en tinta, marcos como sus tarjetas) y la cabecera y el pie son los del portal, con su
+> marca, "Bot League" y "by The Market Hub" enlazando a https://themarkethub.app. Los textos dicen
+> "The Market Hub". Los nombres `signal` siguen en las páginas, pero valen la tinta. Sin desplegar.
+
 > 2026-10-20: **Desplegado en https://bots.themarkethub.app** (Cloud Run `bot-league`, revisión
 > `bot-league-00002-ptm`, desde un export limpio de 67afcca), con el OK del usuario. La primera
 > revisión (00001, de 3d8ea41) falló al escribir en Firestore: **Firestore no admite un array dentro

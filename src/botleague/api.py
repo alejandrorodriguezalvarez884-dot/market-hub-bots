@@ -156,7 +156,7 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
     def member(request: Request) -> dict:
         user = gate.user(request)
         if not user:
-            raise HTTPException(401, detail={"detail": "Sign in with your Market Hub account.", "signin": gate.signin_url(request)})
+            raise HTTPException(401, detail={"detail": "Sign in with your account on The Market Hub.", "signin": gate.signin_url(request)})
         return user
 
     def refused(exc: engine.Refused) -> JSONResponse:
@@ -201,7 +201,7 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
         page = league.bot(slug, user) if SLUG.fullmatch(slug) else None
         if not page:
             if not league.visible(user):
-                raise HTTPException(401, detail={"detail": "Members' bots are seen by members: sign in with your Market Hub account.",
+                raise HTTPException(401, detail={"detail": "Members' bots are seen by members: sign in with your account on The Market Hub.",
                                                  "signin": gate.signin_url(request)})
             raise HTTPException(404, "There is no such bot.")
         return page

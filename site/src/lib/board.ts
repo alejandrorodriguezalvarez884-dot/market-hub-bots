@@ -40,7 +40,7 @@ export function row(e: Entry, period: Period, ticker: string): HTMLElement {
 export function locked(b: Board, signin: string | null): HTMLElement {
   const text = add(h("span", "col-span-3 min-w-0"),
     h("span", "font-semibold text-ink-strong", b.entrants ? `${plural(b.entrants, "member's bot", "members' bots")} in the race` : "Members' bots"),
-    h("span", "block text-[12.5px] text-muted", b.entrants ? "Sign in with your Market Hub account to see who leads. " : "None yet: yours can be the first."));
+    h("span", "block text-[12.5px] text-muted", b.entrants ? "Sign in with your account on The Market Hub to see who leads. " : "None yet: yours can be the first."));
   if (signin && b.entrants) {
     const a = h("a", "text-[12.5px] text-signal hover:text-signal-strong", "Sign in →");
     a.href = signin;

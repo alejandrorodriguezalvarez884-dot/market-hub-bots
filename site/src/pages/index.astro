@@ -46,11 +46,11 @@ const rules = [
 ];
 const faq = [
 	["Is any money involved?", "No. Bot League runs every bot on paper, with the closing prices of each session. There is no broker and no order, and there is nothing to deposit or win."],
-	["Do I need to know how to code?", "No. A bot is a short file of rules, and your agent writes it with you. You need an AI coding agent on your computer (Claude Code, Codex, Gemini CLI or another) and a Market Hub account."],
+	["Do I need to know how to code?", "No. A bot is a short file of rules, and your agent writes it with you. You need an AI coding agent on your computer (Claude Code, Codex, Gemini CLI or another) and an account on The Market Hub."],
 	["Which figures can a bot use?", "Seven, all worked out from daily closes: momentum, trend, a moving-average cross, volatility, RSI, distance from the high and beta to the S&P 500. It can filter on them, score on them, cap its weights and step aside when the index falls."],
 	["Can others copy my bot?", "Its rules are yours alone. The board is public: anyone sees the name you show under, the bot's name and idea, its returns and what it holds."],
 	["How is it ranked?", "By return over the day, the week, the month, the year and since it started, each among the bots that have run that long. The S&P 500 and the house bots sit on the board for reference."],
-	["What does it cost?", "Nothing. Bot League is part of Market Hub, and it is free."],
+	["What does it cost?", "Nothing. Bot League is part of The Market Hub, and it is free."],
 ];
 ---
 
@@ -59,7 +59,7 @@ const faq = [
 	<section class="hero">
 		<div class="wrap grid items-center gap-12 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
 			<div>
-				<p class="kicker">Market Hub's bot competition</p>
+				<p class="kicker">The Market Hub's bot competition</p>
 				<h1 class="display mt-4">Your AI agent builds the bot. <em>The market</em> keeps score.</h1>
 				<p class="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink">
 					Tell Claude Code or Codex how you would pick stocks. It writes the rules, backtests them and sends the bot in. Bot League
@@ -69,7 +69,7 @@ const faq = [
 					<a class="btn btn-signal btn-big" href={link("/me/")} data-cta>Get the kit, it's free</a>
 					<a class="btn btn-ghost btn-big" href={link("/board/")}>See the board</a>
 				</div>
-				<p class="mt-4 text-[12.5px] text-muted">With your Market Hub account · paper only · no code needed</p>
+				<p class="mt-4 text-[12.5px] text-muted">With your account on The Market Hub · paper only · no code needed</p>
 			</div>
 			<div class="frame" id="hero-board">
 				<div class="frame-head">
@@ -87,7 +87,7 @@ const faq = [
 
 	<!-- Three steps, with the agent at work beside them. -->
 	<section id="how" class="wrap scroll-mt-20 pt-6">
-		<p class="kicker">How it works</p>
+		<p class="kicker chapter">How it works</p>
 		<h2 class="h2 mt-3 max-w-2xl">Three steps, and a conversation with your agent.</h2>
 		<div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.15fr]">
 			<ol class="space-y-8">
@@ -96,7 +96,7 @@ const faq = [
 					<div>
 						<h3 class="text-[17px] font-semibold text-ink-strong">Get the kit</h3>
 						<p class="mt-1 text-[14px] text-muted">
-							Sign in with your Market Hub account and download a folder: instructions for your agent, the format of a bot, six bots
+							Sign in with your account on The Market Hub and download a folder: instructions for your agent, the format of a bot, six bots
 							that work, a small tool, and your personal key inside it.
 						</p>
 					</div>
@@ -148,7 +148,7 @@ const faq = [
 	<section class="wrap pt-28">
 		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
 			<div>
-				<p class="kicker">What a bot is</p>
+				<p class="kicker chapter">What a bot is</p>
 				<h2 class="h2 mt-3">A few rules in a file. Not code, not a black box.</h2>
 				<p class="mt-5 max-w-md text-[15px] text-muted">
 					Which companies it looks at, what it filters and scores them on, how many it holds, how it weighs them, how often it looks
@@ -173,7 +173,7 @@ const faq = [
 
 	<!-- Who it is for. -->
 	<section class="wrap pt-28">
-		<p class="kicker">Who it is for</p>
+		<p class="kicker chapter">Who it is for</p>
 		<h2 class="h2 mt-3 max-w-2xl">Anyone with an idea about markets and an agent on their computer.</h2>
 		<div class="mt-10 grid gap-px overflow-hidden rounded-md border border-line bg-line md:grid-cols-3">
 			{audience.map((a) => (
@@ -193,7 +193,7 @@ const faq = [
 	<section class="wrap pt-28">
 		<div class="flex flex-wrap items-end justify-between gap-4">
 			<div>
-				<p class="kicker">The rules</p>
+				<p class="kicker chapter">The rules</p>
 				<h2 class="h2 mt-3">Same closes, same costs, same start.</h2>
 			</div>
 			<a class="link text-[14px] text-signal" href={link("/rules/")}>All of them →</a>
@@ -212,7 +212,7 @@ const faq = [
 	<section class="wrap pt-28">
 		<div class="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
 			<div>
-				<p class="kicker">Questions</p>
+				<p class="kicker chapter">Questions</p>
 				<h2 class="h2 mt-3">Before you start</h2>
 			</div>
 			<div class="divide-y divide-line border-y border-line">
@@ -231,7 +231,6 @@ const faq = [
 	<!-- The way in, again. -->
 	<section class="wrap pt-28">
 		<div class="frame relative overflow-hidden px-6 py-12 text-center sm:px-12">
-			<div class="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-2/3 rounded-full bg-signal/20 blur-3xl"></div>
 			<h2 class="h2 relative mx-auto max-w-xl">Your idea, on the board by the next close.</h2>
 			<p class="relative mx-auto mt-4 max-w-md text-[15px] text-muted">Get the kit, open it with your agent and say “Let's build my bot”.</p>
 			<a class="btn btn-signal btn-big relative mt-8" href={link("/me/")} data-cta>Get the kit, it's free</a>

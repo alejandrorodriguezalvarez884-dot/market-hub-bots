@@ -34,11 +34,10 @@ import Layout from "../../layouts/Layout.astro";
 
 	function signedOut(signin: string | null) {
 		root.replaceChildren(add(h("div", "frame relative mx-auto mt-6 max-w-xl overflow-hidden px-6 py-12 text-center sm:px-10"),
-			h("div", "pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-2/3 rounded-full bg-signal/20 blur-3xl"),
 			h("p", "kicker relative", "Your bot"),
-			h("h1", "h2 relative mt-3", "Sign in with your Market Hub account"),
-			h("p", "relative mx-auto mt-4 max-w-md text-[15px] text-muted", "The same account as Market Hub, with Google or your email. Then download the kit, with your key in it, and build your bot with your agent."),
-			signin ? anchor("btn btn-signal btn-big relative mt-8", "Sign in to Market Hub", signin) : h("p", "relative mt-6 text-[13px] text-muted", "Sign-in is not set up on this copy of the site.")));
+			h("h1", "h2 relative mt-3", "Sign in with your account on The Market Hub"),
+			h("p", "relative mx-auto mt-4 max-w-md text-[15px] text-muted", "The same account as on The Market Hub, with Google or your email. Then download the kit, with your key in it, and build your bot with your agent."),
+			signin ? anchor("btn btn-signal btn-big relative mt-8", "Sign in to The Market Hub", signin) : h("p", "relative mt-6 text-[13px] text-muted", "Sign-in is not set up on this copy of the site.")));
 	}
 
 	// --- The member's bot ---
@@ -152,7 +151,7 @@ import Layout from "../../layouts/Layout.astro";
 		}) : null;
 		add(box, h("p", "label pb-1", "Your key"),
 			h("p", "text-[12.5px] text-muted", k
-				? `Made ${timeAgo(k.created_utc)}, ${k.used_utc ? `last used ${timeAgo(k.used_utc)}` : "not used yet"}. It lets your agent check, backtest and send in your bot, nothing else. It works on Market Hub too. Keep it to yourself.`
+				? `Made ${timeAgo(k.created_utc)}, ${k.used_utc ? `last used ${timeAgo(k.used_utc)}` : "not used yet"}. It lets your agent check, backtest and send in your bot, nothing else. It works on The Market Hub too. Keep it to yourself.`
 				: "No key: your agent needs one. Downloading the kit makes one, or make it here for a kit you already have."));
 		if (shownKey && k) {
 			const code = h("code", "num block min-w-0 flex-1 truncate rounded-[3px] border border-line bg-page px-2 py-1.5 text-[12.5px] text-ink-strong", shownKey);

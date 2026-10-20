@@ -429,121 +429,103 @@
 
 /* ------------------------------------------------------------------------------------------------
    Bot League's own, after the portal's sheet above (copied from market-hub-landing, unchanged).
-   The same dark sheet and the same rule for colour (green and red are moves, nothing else), with
-   one colour of its own: signal violet, for the league's mark, what is yours and the way in. The
-   house bots and the index are drawn in the ink, muted. */
+   The same sheet as The Market Hub: one colour, warm white on near-black, hairline rules, no brand
+   colour. "signal" is only a name kept by the pages for what is yours and the way in, drawn in the
+   ink itself, as the portal draws what is selected. Green and red are moves, nothing else. The
+   headlines, chapters and bands take the measures of the portal's home page. */
 @theme {
-  --color-signal: #a993ff;
-  --color-signal-strong: #c7bbff;
-  --color-signal-soft: rgb(169 147 255 / 0.12);
-  --color-signal-line: rgb(169 147 255 / 0.35);
+  --color-signal: #f2f0ea;
+  --color-signal-strong: #ffffff;
+  --color-signal-soft: rgb(242 240 234 / 0.06);
+  --color-signal-line: #3a3e42;
 }
 
 @layer components {
   .wrap {
     width: 100%;
-    max-width: 1180px;
+    max-width: 1240px;
     margin-inline: auto;
-    padding-inline: 16px;
-  }
-  @media (min-width: 640px) {
-    .wrap {
-      padding-inline: 28px;
-    }
+    padding-inline: 20px;
   }
 
-  /* The top of every page: the mark, the pages, the way in. */
+  /* The portal's header line. */
   .topbar {
     position: sticky;
     top: 0;
-    z-index: 30;
+    z-index: 50;
     border-bottom: 1px solid var(--color-line);
-    background: rgb(11 12 13 / 0.82);
-    backdrop-filter: blur(10px);
+    background: rgb(11 12 13 / 0.95);
+    backdrop-filter: blur(8px);
   }
   .nav-link {
-    font-size: 13.5px;
+    border-bottom: 1px solid transparent;
+    padding-block: 4px;
+    font-size: 14px;
     color: var(--color-muted);
+    transition: color 0.15s;
   }
-  .nav-link:hover,
+  .nav-link:hover {
+    color: var(--color-ink-strong);
+  }
   .nav-link[aria-current="page"] {
+    border-bottom-color: var(--color-ink-strong);
     color: var(--color-ink-strong);
   }
 
-  /* The way in: the one button in the signal colour. */
+  /* The way in: the portal's primary button. */
   .btn-signal {
-    background: var(--color-signal);
-    color: #120d24;
-    font-weight: 600;
+    background: var(--color-ink-strong);
+    color: var(--color-page);
   }
   .btn-signal:hover {
-    background: var(--color-signal-strong);
+    background: var(--color-accent-strong);
   }
   .btn-big {
     padding: 11px 20px;
     font-size: 15px;
+    font-weight: 500;
   }
 
-  /* The landing's first screen: a faint grid, as of graph paper, lit from above. */
   .hero {
     position: relative;
-    overflow: hidden;
-    isolation: isolate;
   }
-  .hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-    background-size: 44px 44px;
-    mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, black 30%, transparent 75%);
-  }
-  .hero::after {
-    content: "";
-    position: absolute;
-    inset: -30% 10% auto;
-    height: 70%;
-    z-index: -1;
-    background: radial-gradient(closest-side, rgb(169 147 255 / 0.16), transparent);
-    filter: blur(20px);
-  }
+  /* The portal's home headline and chapter titles. */
   .display {
-    font-size: clamp(2.3rem, 1.2rem + 4.4vw, 4.6rem);
-    font-weight: 600;
-    line-height: 1.02;
-    letter-spacing: -0.035em;
+    max-width: 13em;
+    font-size: clamp(2.3rem, 1.2rem + 3.6vw, 3.9rem);
+    font-weight: 500;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
     color: var(--color-ink-strong);
     text-wrap: balance;
   }
   .display em {
     font-style: normal;
-    color: var(--color-signal);
   }
   .kicker {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-signal);
+    font-size: 12.5px;
+    color: var(--color-muted);
   }
   .h2 {
-    font-size: clamp(1.6rem, 1.1rem + 1.8vw, 2.4rem);
-    font-weight: 600;
-    line-height: 1.1;
-    letter-spacing: -0.025em;
+    max-width: 22em;
+    font-size: clamp(1.45rem, 1rem + 1.5vw, 2.05rem);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
     color: var(--color-ink-strong);
     text-wrap: balance;
   }
+  /* A part of the page opens under a rule, as the portal's chapters do. */
+  .chapter {
+    border-top: 1px solid var(--color-line-strong);
+    padding-top: 16px;
+  }
 
-  /* A board, a terminal, a file: the few things drawn in a frame. */
+  /* A board, a terminal, a file: drawn as the portal draws its tools and its My Hub band. */
   .frame {
     border: 1px solid var(--color-line-strong);
-    border-radius: 6px;
+    border-radius: 4px;
     background: var(--color-panel);
-    box-shadow: 0 30px 80px -40px rgb(0 0 0 / 0.9);
   }
   .frame-head {
     display: flex;
@@ -558,28 +540,19 @@
     gap: 6px;
   }
   .dots i {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     border-radius: 99px;
     background: var(--color-line-strong);
   }
 
-  /* The live dot: the board is on the last close. */
+  /* Which close the board is at. */
   .live {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: 12.5px;
     color: var(--color-muted);
-  }
-  .live::before {
-    content: "";
-    width: 7px;
-    height: 7px;
-    border-radius: 99px;
-    background: var(--color-up);
-    box-shadow: 0 0 0 3px var(--color-up-soft);
   }
 
   /* Lines of the board. */
@@ -597,42 +570,34 @@
   a.board-row:hover {
     background: var(--color-raised);
   }
-  .board-row.ref {
-    background: rgb(255 255 255 / 0.015);
-  }
   .board-row.you {
-    box-shadow: inset 2px 0 0 var(--color-signal);
-    background: var(--color-signal-soft);
+    background: var(--color-raised);
+    box-shadow: inset 2px 0 0 var(--color-ink-strong);
   }
   .tag {
     display: inline-flex;
     align-items: center;
     border-radius: 2px;
-    padding: 0 5px;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     border: 1px solid var(--color-line-strong);
+    padding: 0 5px;
+    font-size: 11px;
     color: var(--color-muted);
   }
   .tag-you {
-    border-color: var(--color-signal-line);
-    color: var(--color-signal);
+    border-color: var(--color-ink-strong);
+    color: var(--color-ink-strong);
   }
 
-  /* The agent at work, in a terminal. */
+  /* The agent at work, in a terminal: one colour, what the member says in full ink. */
   .term {
     font-family: var(--font-mono);
     font-size: 12.5px;
     line-height: 1.65;
     color: var(--color-ink);
   }
-  .term .me {
-    color: var(--color-signal-strong);
-  }
+  .term .me,
   .term .ok {
-    color: var(--color-up);
+    color: var(--color-ink-strong);
   }
   .term .dim {
     color: var(--color-faint);
@@ -647,36 +612,34 @@
     transform: none;
   }
 
-  /* A bot's file, coloured as code. */
+  /* A bot's file: keys in full ink, the rest in the ink. */
   .code {
     font-family: var(--font-mono);
     font-size: 12.5px;
     line-height: 1.6;
-    color: var(--color-ink);
+    color: var(--color-muted);
     white-space: pre;
     overflow-x: auto;
   }
   .code .k {
-    color: var(--color-signal-strong);
+    color: var(--color-ink-strong);
   }
-  .code .s {
-    color: #e7d7a5;
-  }
+  .code .s,
   .code .n {
-    color: #9fd3c7;
+    color: var(--color-ink);
   }
 
   .step-n {
     display: inline-flex;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     align-items: center;
     justify-content: center;
     border-radius: 99px;
-    border: 1px solid var(--color-signal-line);
+    border: 1px solid var(--color-line-strong);
     font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--color-signal);
+    font-size: 12.5px;
+    color: var(--color-ink-strong);
   }
 
   /* Lines drawn in on arrival. */

@@ -43,7 +43,8 @@ Reglas que no se negocian:
 Convenciones:
 - Hablar con el usuario en español. Código, comentarios y textos de la web en inglés.
 - Python 3.12 con `uv`. Tests con `make test`; web con `make check`; todo en local con `make demo`.
-- `site/src/styles/global.css` es el del portal con lo propio de Bot League al final; la marca es
-  la de Market Hub con un color propio (violeta "signal") para lo tuyo y la entrada.
+- **El aspecto es el de The Market Hub** (lo pidió el usuario): `site/src/styles/global.css` es el
+  del portal con lo propio de Bot League al final, sin color de marca (lo "signal" se dibuja en la
+  tinta), con la cabecera y el pie del portal y "by The Market Hub" enlazando a la web.
 - La web no explica cómo se calcula cada cifra; eso va aquí y en `docs/HANDOFF.md`.
 - Al terminar una tarea relevante, actualizar "Dónde estamos" en `docs/HANDOFF.md`.
