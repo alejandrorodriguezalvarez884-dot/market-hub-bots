@@ -14,11 +14,16 @@ The member's own, with Market Hub's session cookie (the same routes as the porta
     POST   /api/bots/key            a new key, shown once      DELETE /api/bots/key  take it back
     DELETE /api/bots/mine           withdraw the member's bot
     GET    /api/bots/mine           what is kept of the member's bot and key
+    POST   /api/bots/preview        {bot}: its rules in words and what they would hold at the last close
+    PUT    /api/bots/mine/rules     {bot}: new rules, from the next close, keeping the record (once a day)
+    POST   /api/bots/mine/switch    {action, ticker?}: pause, resume, exclude or include, from the next close
+    POST   /api/bots/mine/chat      {message, history?}: a change of rules proposed by Claude, to confirm
 The routes of the member's agent, with the bot key (Authorization: Bearer mhb_...), never the cookie:
     GET    /api/bot/spec            what a bot can be (no key needed)
     POST   /api/bot/check           {bot}: whether it is a bot, and its rules in words
     POST   /api/bot/backtest        {bot, years}: what it would have done, for its owner
     PUT    /api/bot                 {bot, handle?}: send it in, in place of the one there was
+    PATCH  /api/bot                 {bot}: change its rules from the next close, keeping its record
     GET    /api/bot                 the member's bot: returns, rank, holdings, rules
 
 Everything else is the static site, when BOTLEAGUE_STATIC_DIR points at its build.
@@ -43,7 +48,9 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import engine
-from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, PER_IP_PER_HOUR, PUBLIC_BOARD, SAMPLE)
+from .chat import Chat, ChatOff, FileLedger, FirestoreLedger
+from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, PER_IP_PER_HOUR, PUBLIC_BOARD, SAMPLE,
+                     SWITCHES_PER_USER_PER_DAY)
 from .engine import BotStore, Bots
 from .hubauth import Hub
 from .hubauth import settings as hub_settings
@@ -91,7 +98,7 @@ def _firestore() -> bool:
 def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None = None, members: Members | None = None,
                closes: Callable[[set[str]], dict] | None = None, largest: Callable[[int], list[str]] | None = None,
                hub: tuple[str, str] | None | bool = True, public: bool | None = None, sample: bool | None = None,
-               clock: Callable[[], datetime] | None = None, static_dir: str | None = None) -> FastAPI:
+               clock: Callable[[], datetime] | None = None, static_dir: str | None = None, chat: Chat | None = None) -> FastAPI:
     """App factory. Tests pass their own pieces, so they need no network and no Google.
 
     ``hub`` is (hub URL, hub session secret); by default it comes from HUB_URL and
@@ -119,6 +126,8 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
     limiter = RateLimiter(PER_IP_PER_HOUR)
     backtesting = RateLimiter(BOT_BACKTESTS_PER_USER_PER_HOUR)
     sending = RateLimiter(BOT_SUBMISSIONS_PER_USER_PER_DAY, window=86400.0)
+    changing = RateLimiter(SWITCHES_PER_USER_PER_DAY, window=86400.0)
+    chat = chat or Chat(FirestoreLedger() if _firestore() else FileLedger(), now=clock)
     origins = [o.strip() for o in os.environ.get("BOTLEAGUE_ALLOWED_ORIGINS", "").split(",") if o.strip()]
 
     def agent_route(request: Request) -> bool:
@@ -146,7 +155,7 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
         return response
 
     if origins:
-        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PUT", "DELETE"],
+        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
                            allow_headers=["*"], allow_credentials=True)
 
     def allow(request: Request) -> None:
@@ -251,6 +260,74 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
     def kept(request: Request) -> dict:
         return bots.kept(member(request)["id"])
 
+    def changes_allowed(user_id: str) -> None:
+        if not changing.allow(user_id):
+            raise HTTPException(429, f"That is {SWITCHES_PER_USER_PER_DAY} changes today. Try again tomorrow.")
+
+    @app.post("/api/bots/preview")
+    def preview(request: Request, bot: dict = Body(embed=True)):
+        user_id = member(request)["id"]
+        allow(request)
+        if not backtesting.allow(user_id):
+            raise HTTPException(429, f"That is {BOT_BACKTESTS_PER_USER_PER_HOUR} previews in an hour. Try again later.")
+        try:
+            return bots.preview(bot)
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+
+    @app.put("/api/bots/mine/rules")
+    def new_rules(request: Request, bot: dict = Body(embed=True)):
+        user_id = member(request)["id"]
+        allow(request)
+        changes_allowed(user_id)
+        try:
+            mine = bots.edit(user_id, bot)
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+        log.info("bot rules changed")
+        return mine
+
+    @app.post("/api/bots/mine/switch")
+    def switch(request: Request, action: str = Body(embed=True, max_length=10), ticker: str | None = Body(None, embed=True, max_length=12)):
+        user_id = member(request)["id"]
+        allow(request)
+        changes_allowed(user_id)
+        try:
+            mine = bots.switch(user_id, action, ticker)
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+        log.info("bot switch: %s", action if action in ("pause", "resume", "exclude", "include") else "?")
+        return mine
+
+    @app.get("/api/bots/chat")
+    def chat_status(request: Request) -> dict:
+        member(request)
+        return chat.status()
+
+    @app.post("/api/bots/mine/chat")
+    def chat_message(request: Request, message: str = Body(embed=True, max_length=2000), history: list = Body([], embed=True)):
+        user_id = member(request)["id"]
+        allow(request)
+        doc = bots.store.get(user_id)
+        if not doc:
+            raise HTTPException(400, "There is no bot to change: send one in first.")
+        current = {**doc, **(doc.get("pending") or {})}["spec"]
+        try:
+            got = chat.ask(user_id, current, message, history)
+        except engine.Refused as exc:
+            return refused(exc)
+        except ChatOff as exc:
+            raise HTTPException(503, str(exc)) from None
+        if got.get("proposal"):
+            got["rules"] = engine.describe(got["proposal"])
+        return got
+
     # --- The member's agent ---
 
     def agent(request: Request) -> str:
@@ -302,12 +379,25 @@ def create_app(bot_store: BotStore | None = None, house_store: HouseStore | None
         log.info("bot sent in")
         return mine
 
+    @app.patch("/api/bot")
+    def change_bot(request: Request, bot: dict = Body(embed=True)):
+        user_id = agent(request)
+        changes_allowed(user_id)
+        try:
+            mine = bots.edit(user_id, bot)
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+        log.info("bot rules changed by the agent")
+        return mine
+
     @app.get("/api/bot")
     def my_bot(request: Request) -> dict:
         user_id = agent(request)
         return {"bot": bots.mine(user_id), "name": bots.overview(user_id)["name"]}
 
-    app.state.bots, app.state.league = bots, league
+    app.state.bots, app.state.league, app.state.chat = bots, league, chat
     static_dir = static_dir or os.environ.get("BOTLEAGUE_STATIC_DIR", "")
     if static_dir and Path(static_dir).is_dir():
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="site")

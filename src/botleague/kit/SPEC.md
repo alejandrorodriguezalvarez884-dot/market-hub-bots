@@ -66,6 +66,11 @@ A session is a trading day: 5 a week, about 21 a month, 63 a quarter, 126 half a
 - **The record starts at the next close.** A bot sent in at 11:00 New York time starts at that
   day's close; one sent in after 16:00, at the next session's. Nothing before counts.
 - **Sending in another bot replaces the one you had and starts its record again.** One bot per member.
+- **Changing the bot you have keeps its record** (`update`, or the editor and the chat on your page):
+  the new rules apply from the next close, never backwards, once a day, and the bot's page says
+  publicly that its rules changed on that date (not what they became). On your page there are also
+  switches, not counted as a change: pause (cash from the next close), resume, and leave a company
+  out or let it back in. There are no orders: a bot only follows its rules.
 - **The universe is fixed when you send it in.** `{"largest": 300}` takes the 300 largest of that day.
 - **The board** ranks the bots over the last day, week (5 sessions), month (21), year (252) and
   since each one started. A bot appears in a period once it has run that long.
@@ -90,6 +95,7 @@ too much to it and the bot learns the past, not the market. It says nothing abou
 | `POST /api/bot/check` | `{"bot": {...}}` | `{"ok": true, "rules": [...]}` or `{"detail": ..., "problems": [...]}` with status 400 |
 | `POST /api/bot/backtest` | `{"bot": {...}, "years": 1}` | the backtest: returns, volatility, drawdown, months, holdings, against SPY |
 | `PUT /api/bot` | `{"bot": {...}, "handle": "your name"}` | your bot as sent in. `handle` is only needed the first time you show anywhere in the community |
+| `PATCH /api/bot` | `{"bot": {...}}` | your bot with the change waiting for the next close (`pending`); its record goes on |
 | `GET /api/bot` | | your bot: returns, rank, holdings, rules |
 
 With curl:

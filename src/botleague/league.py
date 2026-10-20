@@ -31,7 +31,7 @@ from typing import Callable, Protocol
 
 from . import engine
 from .config import BOT_UNIVERSE_MAX, BOTS_CACHE_SECONDS, BOTS_REFRESH_SECONDS, DATA_DIR, FIRESTORE_DATABASE
-from .engine import BELL, KIT, NEW_YORK, PERIODS, SETTLED, YEAR, Bots, Prices, check, describe, last_settled, resolve, returns
+from .engine import BELL, KIT, NEW_YORK, PERIODS, SETTLED, YEAR, Bots, Prices, activity, check, describe, last_settled, resolve, returns
 from .market import BENCHMARK, MarketUnavailable
 from .names import handle_key
 
@@ -39,6 +39,7 @@ HOUSE = "house-"  # the id of a house bot: this, then the name of its example's 
 HOUSE_NAME = "Bot League"  # what a house bot shows under
 INDEX_SESSIONS = 3 * YEAR + 1
 SPARK_POINTS = 64
+LOG_SHOWN = 120  # rebalances on a bot's page
 
 
 def _iso(at: datetime) -> str:
@@ -57,6 +58,26 @@ def expected_close(now: datetime) -> str:
     while day.weekday() >= 5:
         day -= timedelta(days=1)
     return day.isoformat()
+
+
+def start_day(submitted_utc: str) -> str:
+    """The session whose close a bot sent in at this moment starts at (weekdays; holidays are not known)."""
+    local = engine._when(submitted_utc).astimezone(NEW_YORK)
+    day = local.date() if local.time() < BELL else local.date() + timedelta(days=1)
+    while day.weekday() >= 5:
+        day += timedelta(days=1)
+    return day.isoformat()
+
+
+def doings(doc: dict) -> dict:
+    """What a bot has done, for everyone: its rebalances (what it bought, sold, raised and cut), when
+    its rules changed (never what they became), whether it is paused, and, before its first close,
+    when it starts and what its rules would hold at the last close."""
+    started = bool(doc.get("curve"))
+    return {"log": activity(doc.get("log") or [], LOG_SHOWN), "paused": bool(doc.get("paused")),
+            "versions": [{"from": v.get("from"), "what": v.get("what")} for v in doc.get("versions") or []],
+            "starts": None if started or not doc.get("submitted_utc") else start_day(doc["submitted_utc"]),
+            "preview": None if started else doc.get("preview")}
 
 
 def spark(curve: list, points: int = SPARK_POINTS) -> list[float]:
@@ -327,7 +348,7 @@ class League:
             doc = (self._read_house() or {})["bots"][slug]
             return {**line, "holdings": [{"ticker": t, "weight": w} for t, w in sorted(doc["weights"].items(), key=lambda x: -x[1])],
                     "curve": self._against_index(doc.get("curve") or [], index), "rules": describe(doc["spec"], doc["universe"]),
-                    "bot": doc["spec"], "universe": len(doc["universe"]), "entrants": len(self.bots._state()["rows"])}
+                    "bot": doc["spec"], "universe": len(doc["universe"]), "entrants": len(self.bots._state()["rows"]), **doings(doc)}
         if not self.visible(user):
             return None
         user_id = user["id"] if user else ""
@@ -340,7 +361,7 @@ class League:
         held = sorted((doc.get("weights") or {}).items(), key=lambda x: -x[1])
         out = {**Bots._line(row, user_id), "slug": slug, "house": False, "spark": spark(doc.get("curve") or []),
                "holdings": [{"ticker": t, "weight": w} for t, w in held], "curve": self._against_index(doc.get("curve") or [], index),
-               "entrants": len(state["rows"])}
+               "entrants": len(state["rows"]), **doings(doc)}
         if mine:
             out.update(rules=describe(doc["spec"], doc["universe"]), bot=doc["spec"], universe=len(doc["universe"]))
         return out

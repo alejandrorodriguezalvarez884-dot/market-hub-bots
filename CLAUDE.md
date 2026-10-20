@@ -38,7 +38,11 @@ Reglas que no se negocian:
 - **Claves solo en `.env` o en el entorno.** Nunca en el repo, en logs ni en commits.
 - **Nada programado y nada en GitHub Actions.** Todo se lanza a mano desde el `Makefile`. Los bots
   se avanzan cuando una visita los encuentra atrasados.
-- **No gasta en ninguna API.** Cierres de Yahoo Finance y lista de empresas de la SEC, sin clave.
+- **No gasta en ninguna API, salvo el chat.** Cierres de Yahoo Finance y lista de empresas de la SEC,
+  sin clave. El chat del dueño (`chat.py`) gasta con la clave de Anthropic del usuario: apagado hasta
+  que él dé el OK al modelo y a los topes, y sus topes no se suben sin preguntarle.
+- **Cambiar un bot conserva su historial**: desde el próximo cierre, una vez al día, y su página dice
+  en público cuándo cambió (no qué). Interruptores sí (pausar, excluir), órdenes no.
 
 Convenciones:
 - Hablar con el usuario en español. Código, comentarios y textos de la web en inglés.

@@ -15,7 +15,9 @@ import Layout from "../../layouts/Layout.astro";
 	import { add, h } from "../../lib/dom";
 	import { day, ordinal, pct, plural, signedPct, timeAgo, tone } from "../../lib/format";
 	import { API, ApiError, api, botUrl, hubQuoteUrl, localVisitor } from "../../lib/site";
-	import { PERIODS, digits, type Key, type Me, type Overview } from "../../lib/types";
+	import { PERIODS, digits, type Bot, type ChatAnswer, type Key, type Me, type MyBot, type Overview, type Spec } from "../../lib/types";
+	import { moves, said, versions } from "../../lib/doings";
+	import { asBot, editor } from "../../lib/editor";
 
 	localVisitor();
 	const root = document.getElementById("me")!;
@@ -84,7 +86,7 @@ import Layout from "../../layouts/Layout.astro";
 					await api("/api/bots/mine", { method: "DELETE" });
 					await load();
 				})),
-			h("p", "mt-3 text-[12.5px] text-muted", "To change it, ask your agent: a new bot replaces this one and starts its record again."));
+			h("p", "mt-3 text-[12.5px] text-muted", "Change it below, or ask your agent to update it: its record goes on. A new bot sent in starts again."));
 		if (you.curve.length > 1) {
 			requestAnimationFrame(() => lineChart(chart, you.curve.map((p) => p.date), [{ name: you.name, values: you.curve.map((p) => p.value), color: "var(--color-signal)" }], 220));
 		}
@@ -161,12 +163,160 @@ import Layout from "../../layouts/Layout.astro";
 		return add(box, add(h("p", "mt-3 flex flex-wrap gap-2"), make, drop));
 	}
 
+	// --- Changing it: editor, chat and switches -------------------------------------------------
+
+	let spec: Spec | null = null;
+	let chatOn = false;
+	let tab: "editor" | "chat" | "switches" = "editor";
+	const history: { role: "user" | "assistant"; text: string }[] = []; // this visit only: nothing of the chat is kept
+	let startBot: Bot | null = null;
+	let changeBox: HTMLElement | null = null;
+	let lastMe: Me | null = null;
+
+	function waiting(you: MyBot): HTMLElement | null {
+		const p = you.pending;
+		if (!p) return null;
+		return add(h("div", "frame mt-4 p-4"), h("p", "label", "Waiting for the next close"),
+			h("p", "mt-1 text-[14px] text-ink-strong", said(p.what) || "No change"),
+			h("p", "mt-1 text-[12.5px] text-muted", `Asked ${timeAgo(p.changed_utc)}. It applies at the next close and the bot rebalances on it there; its record goes on.`));
+	}
+
+	function switches(you: MyBot): HTMLElement {
+		const state = you.pending ?? { paused: you.paused, exclude: you.exclude };
+		const note = h("p", "mt-2 text-[12.5px] text-warn");
+		const press = async (action: string, ticker?: string) => {
+			try {
+				await api("/api/bots/mine/switch", { method: "POST", body: { action, ticker } });
+				await reload();
+			} catch (e) {
+				note.textContent = e instanceof Error ? e.message : "That did not work.";
+			}
+		};
+		const ticker = h("input", "field num w-32 uppercase");
+		ticker.placeholder = "NVDA";
+		const leave = button("btn btn-ghost py-1.5 text-[13px]", "Leave it out", () => {
+			if (ticker.value.trim()) press("exclude", ticker.value.trim());
+		});
+		return add(h("div", "space-y-6"),
+			add(h("div"), h("p", "text-[14px] font-semibold text-ink-strong", state.paused ? "Paused" : "Running"),
+				h("p", "mt-1 text-[13px] text-muted", state.paused
+					? "From the next close it holds cash until you resume it. Its record goes on."
+					: "Pausing it sells everything at the next close and holds cash until you resume it."),
+				add(h("p", "mt-2"), button(`btn ${state.paused ? "btn-primary" : "btn-ghost"} py-1.5 text-[13px]`, state.paused ? "Resume" : "Pause", () => press(state.paused ? "resume" : "pause")))),
+			add(h("div"), h("p", "text-[14px] font-semibold text-ink-strong", "Companies left out"),
+				h("p", "mt-1 text-[13px] text-muted", "A company left out is sold at the next close and never chosen again, until you let it back in."),
+				add(h("div", "mt-2 flex flex-wrap gap-2"), ticker, leave),
+				state.exclude.length ? add(h("div", "mt-3 flex flex-wrap gap-1.5"), ...state.exclude.map((t) =>
+					add(h("span", "chip"), t, button("ml-1 text-muted hover:text-ink-strong", "×", () => press("include", t))))) : null,
+				note),
+			h("p", "text-[12.5px] text-muted", "Switches are not a change of rules: they do not count as the day's change. There are no orders: the bot only follows its rules."));
+	}
+
+	function chat(you: MyBot): HTMLElement {
+		if (!chatOn) return h("p", "text-[13.5px] text-muted", "The chat is not switched on yet. The editor does the same, by hand.");
+		const log = h("div", "space-y-3");
+		const input = h("textarea", "field min-h-[64px]");
+		input.placeholder = "Drop the tech stocks · make it more defensive · hold fewer stocks";
+		input.maxLength = 600;
+		const status = h("p", "text-[12.5px] text-muted");
+		const bubble = (role: "user" | "assistant", text: string) =>
+			h("p", `max-w-[46rem] rounded-[4px] px-3 py-2 text-[13.5px] ${role === "user" ? "ml-auto bg-raised text-ink-strong" : "border border-line text-ink"}`, text);
+		for (const t of history) log.append(bubble(t.role, t.text));
+		const proposalCard = (proposal: Bot, rules: string[]) => add(h("div", "frame p-4"), h("p", "label pb-2", "Proposed: the bot, in words"),
+			add(h("ul", "space-y-1.5 text-[13.5px] text-ink"), ...rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", r)))),
+			add(h("div", "mt-3 flex flex-wrap gap-2"),
+				button("btn btn-primary py-1.5 text-[13px]", "Apply from the next close", async (b) => {
+					if (!confirm("Apply these rules from the next close? The bot keeps its record, and its page will say that its rules changed. Once a day.")) return;
+					b.disabled = true;
+					try {
+						await api("/api/bots/mine/rules", { method: "PUT", body: { bot: proposal } });
+						await reload();
+					} catch (e) {
+						status.textContent = e instanceof Error ? e.message : "That did not work.";
+						b.disabled = false;
+					}
+				}),
+				button("btn btn-ghost py-1.5 text-[13px]", "Open in the editor", () => {
+					startBot = asBot(proposal);
+					tab = "editor";
+					drawChange(you);
+				})));
+		const send = button("btn btn-primary", "Send", async (el) => {
+			const message = input.value.trim();
+			if (!message) return;
+			el.disabled = true;
+			status.textContent = "Thinking…";
+			log.append(bubble("user", message));
+			try {
+				const got = await api<ChatAnswer>("/api/bots/mine/chat", { method: "POST", body: { message, history } });
+				history.push({ role: "user", text: message }, { role: "assistant", text: got.reply });
+				log.append(bubble("assistant", got.reply));
+				if (got.problems?.length) log.append(h("p", "text-[12.5px] text-warn", `The proposal did not pass the checks: ${got.problems.join(" ")}`));
+				if (got.proposal) log.append(proposalCard(got.proposal, got.rules ?? []));
+				input.value = "";
+				status.textContent = "";
+			} catch (e) {
+				status.textContent = e instanceof Error ? e.message : "The chat could not answer.";
+			}
+			el.disabled = false;
+		});
+		return add(h("div", "space-y-3"), h("p", "text-[13px] text-muted", "Say what to change in your words. Claude proposes the new rules; nothing changes until you apply them."),
+			log, input, add(h("div", "flex items-center gap-3"), send, status));
+	}
+
+	function drawChange(you: MyBot) {
+		if (!changeBox || !spec) return;
+		const tabs = h("div", "tabs");
+		for (const [k, label] of [["editor", "Editor"], ["chat", "Chat"], ["switches", "Switches"]] as const) {
+			const t = h("button", "tab-btn", label);
+			t.type = "button";
+			t.setAttribute("aria-selected", String(tab === k));
+			t.addEventListener("click", () => {
+				tab = k;
+				drawChange(you);
+			});
+			tabs.append(t);
+		}
+		const body = tab === "editor" ? editor(spec, startBot ?? you.pending?.bot ?? you.bot, () => reload()) : tab === "chat" ? chat(you) : switches(you);
+		changeBox.replaceChildren();
+		add(changeBox,
+			add(h("div", "sec-head"), h("h2", "sec-title", "Change it, live"), h("span", "sec-note",
+				you.rules_changed_utc ? `Rules last changed ${timeAgo(you.rules_changed_utc)}. Once a day, from the next close.` : "Once a day, from the next close. The record goes on.")),
+			waiting(you), add(h("div", "mt-4"), tabs), add(h("div", "mt-5"), body));
+	}
+
+	function change(you: MyBot | null): HTMLElement | null {
+		if (!you) return null;
+		changeBox = h("section", "sec mt-10");
+		drawChange(you);
+		return changeBox;
+	}
+
+	function did(you: MyBot | null): HTMLElement | null {
+		if (!you) return null;
+		const before = you.preview ? ` At the close of ${day(you.preview.as_of)} its rules would hold ${Object.keys(you.preview.weights).length} stocks (a preview).` : "";
+		const list = you.log.length ? moves(you.log, 10) : h("p", "text-[13px] text-muted", you.since ? "No rebalance yet." : `Its record starts at the next close.${before}`);
+		return add(h("section", "sec mt-10"), add(h("div", "sec-head"), h("h2", "sec-title", "What it did"),
+			anchor("link text-[13px] text-muted", "Its page, as everyone sees it", botUrl(you.handle.replace(/[\s_-]+/g, "").toLowerCase()))),
+			list, you.versions.length ? add(h("div", "mt-4"), h("p", "label pb-1", "Changes"), versions(you.versions)) : null);
+	}
+
+	async function reload() {
+		data = await api<Overview>("/api/bots");
+		startBot = null;
+		if (lastMe) draw(lastMe);
+	}
+
 	function draw(me: Me) {
-		root.replaceChildren(
+		lastMe = me;
+		root.replaceChildren();
+		add(root,
 			h("p", "kicker", "Your bot"),
 			h("h1", "h2 mt-3", me.user?.name ? `Hello, ${me.user.name.split(" ")[0]}` : "Your bot"),
-			h("p", "mt-2 max-w-2xl text-[14px] text-muted", "One bot per member. It runs on paper and is ranked from the close after you send it in."),
-			add(h("div", "mt-8 grid gap-4 lg:grid-cols-2"), mine(data), build(data)));
+			h("p", "mt-2 max-w-2xl text-[14px] text-muted", "One bot per member. It runs on paper and is ranked from the close after you send it in. You can change it here, live: from the next close, keeping its record."),
+			add(h("div", "mt-8 grid gap-4 lg:grid-cols-2"), mine(data), build(data)),
+			did(data.you),
+			change(data.you));
 	}
 
 	async function load() {
@@ -178,6 +328,7 @@ import Layout from "../../layouts/Layout.astro";
 			if (e instanceof ApiError && e.status === 401) return signedOut(e.signin ?? me.signin);
 			throw e;
 		}
+		[spec, chatOn] = await Promise.all([api<Spec>("/api/bot/spec"), api<{ on: boolean }>("/api/bots/chat").then((c) => c.on).catch(() => false)]);
 		draw(me);
 		if (data.stale) {
 			await api("/api/bots/refresh", { method: "POST" }).catch(() => null);

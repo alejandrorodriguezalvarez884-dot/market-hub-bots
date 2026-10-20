@@ -5,6 +5,7 @@ description = "Bot League: bots of rules built with an AI agent, run on paper an
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "anthropic>=1.11.0",
     "fastapi>=0.142.2",
     "google-cloud-firestore>=2.34.0",
     "httpx>=0.28.1",

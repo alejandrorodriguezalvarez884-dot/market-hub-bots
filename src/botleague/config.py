@@ -42,6 +42,21 @@ PER_IP_PER_HOUR = int(os.environ.get("BOTLEAGUE_PER_IP_PER_HOUR", "600"))
 # the board to everyone (2026-10-20), and Market Hub's privacy page says so. 0 shows them to
 # signed-in members only; visitors always see the house bots and the index.
 PUBLIC_BOARD = os.environ.get("BOTLEAGUE_PUBLIC_BOARD", "1").strip() != "0"
+# Rules changes and switches a member can make from the page or their agent in a day.
+SWITCHES_PER_USER_PER_DAY = 30
+
+# --- The chat on a member's page (chat.py) -------------------------------------------------------
+# It spends on the owner's Anthropic key: off unless BOTLEAGUE_CHAT=1 and the key is set, and
+# capped. The model and the caps are the owner's choice; nothing is spent until they say so.
+CHAT_ENABLED = os.environ.get("BOTLEAGUE_CHAT", "0").strip() == "1" and bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
+CHAT_MODEL = os.environ.get("BOTLEAGUE_CHAT_MODEL", "claude-opus-5-5").strip()
+CHAT_PER_MEMBER_PER_DAY = int(os.environ.get("BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY", "15"))
+CHAT_DAILY_MAX_USD = float(os.environ.get("BOTLEAGUE_CHAT_DAILY_MAX_USD", "2.00"))
+# The most one message can cost, reserved before it is sent: 8,000 tokens out at the dearest price.
+CHAT_REQUEST_MAX_USD = float(os.environ.get("BOTLEAGUE_CHAT_REQUEST_MAX_USD", "0.20"))
+# Dollars per million tokens, in and out.
+CHAT_PRICES = {"claude-opus-5-5": (4.00, 20.00), "claude-sonnet-5-5": (2.00, 10.00), "claude-haiku-5-5": (0.10, 0.50)}
+
 # Sample closes and a sample list of companies, for a machine with no network (make demo).
 SAMPLE = os.environ.get("BOTLEAGUE_SAMPLE", "0").strip() == "1"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"

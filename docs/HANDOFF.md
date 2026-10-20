@@ -18,6 +18,35 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **Ver lo que hace cada bot y cambiarlo en vivo desde la web.** El usuario echaba en falta
+> ver qué lleva y qué hace el bot de cada jugador, y poder darle instrucciones desde la web. Decisiones
+> suyas: un cambio **conserva el historial**, se aplica **desde el próximo cierre** (nunca hacia atrás),
+> **una vez al día**, y la página del bot dice en público "rules changed on <fecha>" (no las reglas
+> nuevas); editor con controles **y** un chat con Claude que propone y el miembro confirma; **nada de
+> órdenes**, solo reglas e interruptores (pausar a liquidez, reanudar, excluir o readmitir una empresa).
+> - **Motor** (`engine.py` = `bots.py` del portal, mismo parche): `run()` registra cada rebalanceo que
+>   negocia (`log`: antes y después, rotación y coste; se guardan los 260 últimos) y acepta `force`
+>   (rebalancear en el cierre en que cambia) y `paused` (liquidez). `edit()` y `switch()` dejan el cambio
+>   en `pending`; `_advance` lo aplica en su primer cierre, guarda la versión (`versions`: desde qué
+>   cierre, qué cambió, las reglas, que solo ve su dueño) y fuerza el rebalanceo allí. Un bot que aún no
+>   empezó cambia sin más. Las exclusiones del interruptor sobreviven a un cambio de reglas (salen con
+>   "include"). Al enviar o cambiar un bot sin empezar, `preview` guarda lo que tendría al último cierre.
+>   El refresh no guarda su trabajo si el dueño tocó el bot mientras corría (`_edits`).
+> - **Página de cada bot** (pública): lo que tiene, cada rebalanceo (+ compró, − vendió, ↑ subió, ↓
+>   bajó), lo que tuvo a lo largo del tiempo, los cambios con su fecha y, antes de empezar, cuándo
+>   empieza y lo que tendría (marcado como vista previa).
+> - **Página del dueño**: lo que hizo, lo que espera al próximo cierre, y "Change it, live" con el
+>   editor (controles, reglas en palabras y vista previa con `POST /api/bots/preview`), el chat y los
+>   interruptores. Rutas: `PUT /api/bots/mine/rules`, `POST /api/bots/mine/switch`,
+>   `POST /api/bots/mine/chat`, y para el agente `PATCH /api/bot` (`mh.py update`).
+> - **Chat** (`chat.py`): salida estructurada (`output_config.format`), la propuesta pasa por `check()`
+>   y el miembro la aplica. No se guarda nada del chat. **Apagado** (`BOTLEAGUE_CHAT=0`): gasta con la
+>   clave de Anthropic del usuario y está pendiente de su OK al modelo y a los topes (propuesta:
+>   `claude-opus-5-5` con esfuerzo bajo, unos 0,03–0,06 $ por mensaje; 15 mensajes por miembro y día;
+>   2 $ al día en total, libro en `bot_meta/chat`). Con Opus/Sonnet 5.5 manda `fallbacks: "default"`.
+> - La privacidad y la cuenta del portal ya dicen lo nuevo que se guarda y lo que va al modelo.
+> Tests: 54 aquí, y los del portal. Sin desplegar.
+
 > 2026-10-20: **El logo de Bot League.** El usuario pidió un logo serio. La marca es una B que sale
 > de la de The Market Hub: su eje, el trazo que la cruza (aquí la cintura de la B) y el punto, con
 > las panzas cortadas a 45 grados como pistas de circuito. En tinta, sin color: el verde del portal

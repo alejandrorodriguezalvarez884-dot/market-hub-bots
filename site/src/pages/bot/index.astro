@@ -14,9 +14,10 @@ import Layout from "../../layouts/Layout.astro";
 <script>
 	import { lineChart } from "../../lib/chart";
 	import { add, h } from "../../lib/dom";
-	import { day, ordinal, pct, plural, signedPct, tone } from "../../lib/format";
-	import { ApiError, api, hubQuoteUrl, link, localVisitor } from "../../lib/site";
+	import { day, ordinal, plural, signedPct, tone } from "../../lib/format";
+	import { ApiError, api, link, localVisitor } from "../../lib/site";
 	import { PERIODS, digits, type BotPage } from "../../lib/types";
+	import { bars, moves, strip, versions } from "../../lib/doings";
 
 	localVisitor();
 	const root = document.getElementById("bot")!;
@@ -33,21 +34,31 @@ import Layout from "../../layouts/Layout.astro";
 			}));
 	}
 
+	const section = (title: string, note: string | null, ...body: (Node | null)[]) =>
+		add(h("section", "sec mt-12"), add(h("div", "sec-head"), h("h2", "sec-title", title), note ? h("span", "sec-note", note) : null), ...body);
+
 	function holdings(b: BotPage): HTMLElement | null {
-		if (!b.holdings.length && !b.cash) return null;
-		const top = Math.max(...b.holdings.map((x) => x.weight), b.cash ?? 0, 0.01);
-		const bar = (label: HTMLElement | string, w: number, muted = false) => add(h("div", "grid grid-cols-[4.5rem_minmax(0,1fr)_3.6rem] items-center gap-3 py-1"),
-			typeof label === "string" ? h("span", "num text-[13px] text-muted", label) : label,
-			add(h("span", "h-2 rounded-sm bg-line"), Object.assign(h("span", `block h-2 rounded-sm ${muted ? "bg-faint" : "bg-ink"}`), { style: `width:${(w / top) * 100}%` })),
-			h("span", "num text-right text-[13px] text-ink", pct(w, w < 0.1 ? 1 : 0)));
-		const rows = b.holdings.map((x) => {
-			const a = h("a", "num text-[13px] font-medium text-ink-strong hover:text-signal", x.ticker);
-			a.href = hubQuoteUrl(x.ticker);
-			return bar(a, x.weight);
-		});
-		if (b.cash && b.cash > 0.005) rows.push(bar("cash", b.cash, true));
-		return add(h("section", "sec mt-12"), add(h("div", "sec-head"), h("h2", "sec-title", "What it holds now"), h("span", "sec-note", `${plural(b.holding, "stock")} · after the close of ${day(b.as_of)}`)),
-			add(h("div", "max-w-2xl"), ...rows));
+		if (!b.since) return null;
+		const weights = Object.fromEntries(b.holdings.map((x) => [x.ticker, x.weight]));
+		return section("What it holds now", b.paused ? `Paused: in cash · after the close of ${day(b.as_of)}` : `${plural(b.holding, "stock")} · after the close of ${day(b.as_of)}`,
+			bars(weights, b.cash));
+	}
+
+	// Before its first close: when it starts, and what its rules would hold at the last close.
+	function preview(b: BotPage): HTMLElement | null {
+		if (b.since || !b.preview) return null;
+		return section("What its rules would hold", `A preview, at the close of ${day(b.preview.as_of)}: its record starts at the close of ${day(b.starts)}`,
+			bars(b.preview.weights));
+	}
+
+	function doings(b: BotPage): HTMLElement[] {
+		if (!b.since) return [];
+		const over = strip(b.log);
+		return [
+			section("What it did", "Each rebalance, the latest first: bought (+), sold (−), raised (↑) and cut (↓)", moves(b.log)),
+			over ? section("What it held over time", "After each rebalance; darker is more", over) : null,
+			b.house ? null : section("Changes", "When its owner changed its rules or pressed a switch. The rules themselves stay theirs.", versions(b.versions)),
+		].filter((x): x is HTMLElement => !!x);
 	}
 
 	function rules(b: BotPage): HTMLElement | null {
@@ -67,8 +78,8 @@ import Layout from "../../layouts/Layout.astro";
 		document.title = `${b.name} · Bot League`;
 		const chart = h("div", "mt-4");
 		const started = b.since
-			? `Running since the close of ${day(b.since)} · ${plural(b.sessions, "session")}`
-			: "Its record starts at the next close.";
+			? `Running since the close of ${day(b.since)} · ${plural(b.sessions, "session")}${b.paused ? " · paused, in cash" : ""}`
+			: `Sent in: its record starts at the close of ${day(b.starts)}, the first close after it was sent in. Nothing before counts.`;
 		root.replaceChildren();
 		add(root,
 			add(h("a", "text-[13px] text-muted hover:text-ink-strong"), "← The board"),
@@ -84,6 +95,8 @@ import Layout from "../../layouts/Layout.astro";
 					add(h("span", "flex items-center gap-1.5"), h("i", "inline-block h-[3px] w-4 rounded bg-muted"), "S&P 500"))),
 				chart) : null,
 			holdings(b),
+			preview(b),
+			...doings(b),
 			rules(b),
 		);
 		(root.firstElementChild as HTMLAnchorElement).href = link("/board/");

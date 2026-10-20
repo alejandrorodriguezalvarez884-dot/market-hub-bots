@@ -422,7 +422,7 @@
   "2025-08-14",
   "2025-08-15"
  ],
- "key": "mhb_vEjl_FSKZ6EzXWAaU95hk3NCvipMHJBprACziYD2Uhs",
+ "key": "mhb_WDhSw0aUCe7_CFepH1J4pY-vcECmzbjDbmVC6r_Kutg",
  "bots": {
   "portal-user-1": {
    "user_id": "portal-user-1",
@@ -512,12 +512,46 @@
     "T17": 0.2,
     "T19": 0.2
    },
-   "as_of": "2025-06-30"
+   "as_of": "2025-06-30",
+   "log": [
+    {
+     "date": "2025-06-23",
+     "turnover": 1.0,
+     "cost": 0.001,
+     "before": {},
+     "after": {
+      "T06": 0.2,
+      "T08": 0.2,
+      "T09": 0.2,
+      "T15": 0.2,
+      "T18": 0.2
+     }
+    },
+    {
+     "date": "2025-06-30",
+     "turnover": 0.810886,
+     "cost": 0.000811,
+     "before": {
+      "T06": 0.1992,
+      "T08": 0.1946,
+      "T09": 0.2035,
+      "T15": 0.1992,
+      "T18": 0.2035
+     },
+     "after": {
+      "T08": 0.2,
+      "T09": 0.2,
+      "T17": 0.2,
+      "T18": 0.2,
+      "T19": 0.2
+     }
+    }
+   ]
   }
  },
  "keys": {
-  "0d6de5697b5124aafe634c81697fd7e1eb9b692b23b8bc31ad335a39abf044ff": {
-   "hash": "0d6de5697b5124aafe634c81697fd7e1eb9b692b23b8bc31ad335a39abf044ff",
+  "9ced9996b84ec2efcafd59eda85cd2e0e5f7b8bc1c6dfdca3b377b31b161621f": {
+   "hash": "9ced9996b84ec2efcafd59eda85cd2e0e5f7b8bc1c6dfdca3b377b31b161621f",
    "user_id": "portal-user-1",
    "created_utc": "2025-06-23T15:00:00+00:00",
    "used_utc": null
@@ -1646,7 +1680,92 @@
     "date": "2025-06-30",
     "value": 1.042477
    }
-  ]
+  ],
+  "paused": false,
+  "exclude": [],
+  "preview": null,
+  "rules_changed_utc": null,
+  "log": [
+   {
+    "date": "2025-06-30",
+    "turnover": 0.810886,
+    "cost": 0.000811,
+    "bought": [
+     {
+      "ticker": "T17",
+      "weight": 0.2
+     },
+     {
+      "ticker": "T19",
+      "weight": 0.2
+     }
+    ],
+    "sold": [
+     {
+      "ticker": "T06",
+      "weight": 0.1992
+     },
+     {
+      "ticker": "T15",
+      "weight": 0.1992
+     }
+    ],
+    "raised": [
+     {
+      "ticker": "T08",
+      "before": 0.1946,
+      "after": 0.2
+     }
+    ],
+    "cut": [],
+    "after": {
+     "T08": 0.2,
+     "T09": 0.2,
+     "T17": 0.2,
+     "T18": 0.2,
+     "T19": 0.2
+    }
+   },
+   {
+    "date": "2025-06-23",
+    "turnover": 1.0,
+    "cost": 0.001,
+    "bought": [
+     {
+      "ticker": "T06",
+      "weight": 0.2
+     },
+     {
+      "ticker": "T08",
+      "weight": 0.2
+     },
+     {
+      "ticker": "T09",
+      "weight": 0.2
+     },
+     {
+      "ticker": "T15",
+      "weight": 0.2
+     },
+     {
+      "ticker": "T18",
+      "weight": 0.2
+     }
+    ],
+    "sold": [],
+    "raised": [],
+    "cut": [],
+    "after": {
+     "T06": 0.2,
+     "T08": 0.2,
+     "T09": 0.2,
+     "T15": 0.2,
+     "T18": 0.2
+    }
+   }
+  ],
+  "versions": [],
+  "pending": null
  },
  "overview_rows": [
   {
@@ -1688,6 +1807,8 @@
    ],
    "holding": 5,
    "cash": 0.0,
+   "paused": false,
+   "changed": null,
    "ranks": {
     "1d": 1,
     "1w": 1,

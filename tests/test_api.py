@@ -2,6 +2,7 @@
 the member's own routes with Market Hub's cookie, and the agent's with its key."""
 
 import io
+import json
 import zipfile
 from datetime import date
 
@@ -9,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from botleague.api import create_app
+from botleague.chat import Chat, MemoryLedger
 from botleague.engine import FORMAT, MemoryBots
 from botleague.league import HOUSE, MemoryHouse, house_examples
 from botleague.market import SAMPLE_TICKERS
@@ -32,11 +34,12 @@ class Names:
         return next((k for k, v in self.shown.items() if v == user_id), "")
 
 
-def make(public=False, hub=(HUB, SECRET)):
+def make(public=False, hub=(HUB, SECRET), chat=None):
     clock = Clock(at(DAYS[-1], 18))
     store, house = MemoryBots(), MemoryHouse()
     app = create_app(bot_store=store, house_store=house, members=Names(), closes=lambda ts: {t: walk(t, DAYS) for t in ts},
-                     largest=lambda n: list(SAMPLE_TICKERS[:n]), hub=hub, public=public, clock=clock)
+                     largest=lambda n: list(SAMPLE_TICKERS[:n]), hub=hub, public=public, clock=clock,
+                     chat=chat or Chat(MemoryLedger(), enabled=False, now=clock))
     app.state.clock, app.state.store, app.state.house = clock, store, house
     return app
 
@@ -199,3 +202,82 @@ def test_a_local_run_is_one_local_member_unless_it_asks_to_be_a_visitor():
     assert client(app).get("/api/me").json()["user"]["name"] == "Local member"
     assert client(app).get("/api/me?visitor=1").json()["user"] is None
     assert client(app).get("/api/bots").status_code == 200
+
+
+# --- What a bot does, and changing it from the page -------------------------------------------------
+
+
+def test_a_bot_that_has_not_started_says_when_it_starts_and_what_it_would_hold(app):
+    send(app, "u1")
+    page = client(app, "u2").get("/api/board/bot/anabots").json()
+    assert page["starts"] == "2026-07-13" and page["log"] == [] and page["versions"] == [] and not page["paused"]  # sent in after the close of a Friday
+    assert page["preview"]["as_of"] == DAYS[-1] and len(page["preview"]["weights"]) == 8
+
+
+def test_a_bots_page_shows_what_it_did_and_when_its_rules_changed(app):
+    clock = app.state.clock
+    clock.when = at(DAYS[-30], 12)
+    key = send(app, "u1")
+    clock.when = at(DAYS[-20], 18)
+    client(app).post("/api/board/refresh")
+    owner = client(app, "u1")
+    clock.when = at(DAYS[-19], 10)
+    got = owner.put("/api/bots/mine/rules", json={"bot": {**BOT, "hold": 4}}).json()
+    assert got["pending"]["what"] == ["rules"] and got["pending"]["bot"]["hold"] == 4
+    assert owner.put("/api/bots/mine/rules", json={"bot": {**BOT, "hold": 5}}).status_code == 400  # once a day
+    assert owner.post("/api/bots/mine/switch", json={"action": "pause"}).json()["pending"]["paused"]
+    assert owner.post("/api/bots/mine/switch", json={"action": "jump"}).status_code == 400
+    clock.when = at(DAYS[-1], 18)
+    app.state.bots.refresh(force=True)
+    page = client(app, "u2").get("/api/board/bot/anabots").json()
+    assert page["paused"] and page["versions"] == [{"from": DAYS[-19], "what": ["rules", "paused"]}]
+    assert page["log"][0]["sold"] and page["log"][-1]["bought"] and "after" in page["log"][0]
+    assert "rules" not in page and "bot" not in page and page["starts"] is None and page["preview"] is None
+    # The agent changes it too, keeping the record (a new day).
+    clock.when = at(DAYS[-1], 19)
+    agent = TestClient(app)
+    assert agent.patch("/api/bot", json={"bot": {**BOT, "hold": 6}}, headers={"authorization": f"Bearer {key}"}).json()["pending"]["bot"]["hold"] == 6
+
+
+def test_a_preview_of_rules_before_applying_them(app):
+    owner = client(app, "u1")
+    got = owner.post("/api/bots/preview", json={"bot": {**BOT, "hold": 3}}).json()
+    assert got["rules"][0] == "Looks at the 30 largest US companies." and len(got["holds"]["weights"]) == 3
+    assert owner.post("/api/bots/preview", json={"bot": {**BOT, "hold": 0}}).status_code == 400
+    assert client(app).post("/api/bots/preview", json={"bot": BOT}).status_code == 401
+
+
+class Claude:
+    """Anthropic's API, as the chat calls it: it answers with what the test set."""
+
+    def __init__(self, answer: dict):
+        self.answer, self.calls = answer, []
+        self.messages = self.beta = self
+        self.beta.messages = self
+
+    def create(self, **params):
+        from types import SimpleNamespace as NS
+        self.calls.append(params)
+        return NS(stop_reason="end_turn", usage=NS(input_tokens=3000, output_tokens=800),
+                  content=[NS(type="text", text=json.dumps(self.answer))])
+
+
+def test_the_chat_is_off_until_switched_on(app):
+    send(app, "u1")
+    got = client(app, "u1").post("/api/bots/mine/chat", json={"message": "make it more defensive"})
+    assert got.status_code == 503 and "not switched on" in got.json()["detail"]
+
+
+def test_the_chat_proposes_rules_the_code_checks_and_counts_what_it_spends():
+    claude = Claude({"reply": "Fewer stocks, and cash when the index falls.", "bot": json.dumps({**BOT, "hold": 5})})
+    ledger = MemoryLedger()
+    app = make(chat=Chat(ledger, client=lambda: claude, enabled=True, model="claude-haiku-5-5", per_member=2, daily_max=1.0, request_max=0.01))
+    send(app, "u1")
+    owner = client(app, "u1")
+    got = owner.post("/api/bots/mine/chat", json={"message": "hold fewer", "history": [{"role": "assistant", "text": "hi"}, {"role": "user", "text": "x"}]}).json()
+    assert got["proposal"]["hold"] == 5 and got["rules"][2].startswith("Holds the best 5") and got["reply"].startswith("Fewer")
+    assert claude.calls[0]["messages"][0] == {"role": "user", "content": "x"} and '"hold": 8' in claude.calls[0]["messages"][-1]["content"]
+    assert ledger.get()["calls"] == 1 and ledger.get()["total_usd"] == pytest.approx((3000 * 0.10 + 800 * 0.50) / 1e6)
+    claude.answer = {"reply": "Here.", "bot": json.dumps({**BOT, "hold": 999})}
+    assert owner.post("/api/bots/mine/chat", json={"message": "hold all"}).json()["problems"]
+    assert owner.post("/api/bots/mine/chat", json={"message": "again"}).status_code == 503  # two a day for this member

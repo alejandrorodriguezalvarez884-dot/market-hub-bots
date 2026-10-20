@@ -22,8 +22,9 @@ Talk to the member in their language. Keep it light: they may not know what mome
      paste it in `.env` as `MARKETHUB_BOT_KEY=...` (they can also download the kit again from
      that page: it comes with its key). Never ask them to paste the key in the chat, and never
      print it, log it or write it anywhere but `.env`.
-   - If they already have a bot running, say so: sending in another one replaces it and starts
-     its record again.
+   - If they already have a bot running, say so, and ask whether they want to change it or start
+     again: `update` changes its rules from the next close and keeps its record (once a day);
+     `submit` sends in a new bot and its record starts again.
 3. **Find the idea.** Ask how they would like to pick stocks. If they have no idea, offer three or
    four in plain words, for example:
    - *Momentum*: hold what has risen the most over the last months.
