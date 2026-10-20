@@ -50,7 +50,8 @@ export type MyBot = {
   pending: { changed_utc: string; what: string[]; paused: boolean; rules: string[]; bot: Bot; exclude: string[] } | null;
 };
 export type Checked = { ok: boolean; bot: Bot; universe: number; rules: string[]; holds: Preview };
-export type ChatAnswer = { reply: string; proposal: Bot | null; rules?: string[]; problems?: string[] };
+export type ChatAnswer = { reply: string; proposal: Bot | null; rules?: string[]; problems?: string[]; left?: number };
+export type ChatStatus = { on: boolean; per_member_per_day: number; left?: number };
 export type Key = { created_utc: string; used_utc: string | null };
 export type Overview = { you: MyBot | null; key: Key | null; name: string; stale: boolean };
 

@@ -135,8 +135,21 @@ class Chat:
                 self._client = anthropic.Anthropic()
         return self._client
 
-    def status(self) -> dict:
-        return {"on": self.enabled, "per_member_per_day": self.per_member}
+    def status(self, user_id: str | None = None) -> dict:
+        out = {"on": self.enabled, "per_member_per_day": self.per_member}
+        return {**out, "left": self.left(user_id)} if user_id else out
+
+    def _recent(self, user_id: str) -> deque[float]:
+        """The member's messages of the last 24 hours (call with the lock held)."""
+        t, asked = time.monotonic(), self._asked[user_id]
+        while asked and t - asked[0] > 86400:
+            asked.popleft()
+        return asked
+
+    def left(self, user_id: str) -> int:
+        """How many messages the member has left in the last 24 hours."""
+        with self._lock:
+            return max(0, self.per_member - len(self._recent(user_id)))
 
     def _day(self) -> str:
         return self.now().strftime("%Y-%m-%d")
@@ -145,16 +158,14 @@ class Chat:
         if not self.enabled:
             raise ChatOff("The chat is not switched on yet. Use the editor.")
         with self._lock:
-            t, asked = time.monotonic(), self._asked[user_id]
-            while asked and t - asked[0] > 86400:
-                asked.popleft()
+            asked = self._recent(user_id)
             if len(asked) >= self.per_member:
                 raise ChatOff(f"That is {self.per_member} messages today. The editor still works; the chat is back tomorrow.")
             if self.daily_max is not None:
                 spent = (self.ledger.get() or {}).get("days", {}).get(self._day(), 0.0)
                 if spent + self.request_max > self.daily_max:
                     raise ChatOff("The chat has reached today's limit for everyone. The editor still works; the chat is back tomorrow.")
-            asked.append(t)
+            asked.append(time.monotonic())
 
     def _book(self, usd: float) -> None:
         with self._lock:
@@ -209,3 +220,48 @@ class Chat:
             problems = exc.problems if isinstance(exc, engine.Refused) else ["The proposal was not valid JSON."]
             return {"reply": reply, "proposal": None, "problems": problems}
         return {"reply": reply, "proposal": proposed}
+
+
+class Scripted:
+    """Anthropic's API as `make demo` answers it: a few instructions done by rule, nothing spent, no
+    network. It sees what the real one sees (the bot and the instruction) and answers in the same
+    shape. Only for BOTLEAGUE_SAMPLE=1 with the real chat off."""
+
+    def __init__(self):
+        self.messages = self
+
+    def create(self, **params):
+        from types import SimpleNamespace as NS
+
+        last = params["messages"][-1]["content"]
+        head, _, said = last.partition("\n\nMy instruction: ")
+        bot = json.loads(head.removeprefix("My bot now:\n"))
+        reply, changed = self.answer(bot, said.lower())
+        text = json.dumps({"reply": reply, "bot": json.dumps(changed) if changed else ""})
+        return NS(stop_reason="end_turn", usage=NS(input_tokens=0, output_tokens=0), content=[NS(type="text", text=text)])
+
+    @staticmethod
+    def answer(bot: dict, said: str) -> tuple[str, dict | None]:
+        new = json.loads(json.dumps(bot))
+        if any(w in said for w in ("defensive", "safer", "calm", "risk")):
+            if not any(s["factor"] == "volatility" for s in new["score"]):
+                new["score"].append({"factor": "volatility", "days": 63, "weight": -1})
+            new.setdefault("market", {"factor": "trend", "days": 200, "min": 0, "cash": 1})
+            new["weighting"] = "inverse_volatility"
+            return ("More defensive: it also prefers the calmer stocks, gives the calmer ones more, and holds cash "
+                    "while the S&P 500 is under its 200-session average."), new
+        if "fewer" in said or "less stocks" in said:
+            new["hold"] = max(1, round(new["hold"] * 0.6))
+            new["max_weight"] = max(new["max_weight"], round(1 / new["hold"] + 0.05, 2)) if new["max_weight"] < 1 else 1
+            return f"Fewer stocks: it holds the best {new['hold']} instead of {bot['hold']}.", new
+        if "more stocks" in said or "spread" in said:
+            new["hold"] = min(engine.BOT_HOLD_MAX, new["hold"] + 5)
+            return f"More stocks: it holds the best {new['hold']} instead of {bot['hold']}.", new
+        for word in ("monthly", "weekly", "daily"):
+            if word in said:
+                new["rebalance"] = word
+                return f"It looks again {'at every close' if word == 'daily' else 'once a ' + word[:-2]} from now on.", new
+        if any(w in said for w in ("sector", "tech", "bank", "energy", "health")):
+            return ("The rules have no sectors: the bot chooses by figures worked out from prices. You can leave single "
+                    "companies out with the switch below, or choose from a list of tickers in the advanced editor."), None
+        return "What would you like to change: how many stocks it holds, how calm they are, or how often it looks again?", None

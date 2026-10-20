@@ -880,3 +880,581 @@
     color: var(--color-ink-strong);
   }
 }
+
+/* "Change it" on the owner's page (lib/change.ts, lib/editor.ts, lib/controls.ts): the easy way
+   first (a box to say it, chips to tap), the change as before and after, switches as toggles and
+   chips, every rule by hand as sliders and choices. In the ink; no colour but the market's. */
+@layer components {
+  .change {
+    padding: 18px 16px 20px;
+  }
+  @media (min-width: 640px) {
+    .change {
+      padding: 22px 24px 24px;
+    }
+  }
+  .change-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .change-title {
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--color-ink-strong);
+  }
+  .change-close {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: 99px;
+    border: 1px solid var(--color-line-strong);
+    font-size: 18px;
+    line-height: 1;
+    color: var(--color-muted);
+  }
+  .change-close:hover {
+    color: var(--color-ink-strong);
+    border-color: var(--color-muted);
+  }
+
+  .flash {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 16px;
+    border-radius: 4px;
+    background: var(--color-accent-soft);
+    padding: 9px 12px;
+    font-size: 13.5px;
+    color: var(--color-ink-strong);
+  }
+  .flash-tick {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 99px;
+    background: var(--color-ink-strong);
+    color: var(--color-page);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .flash-undo {
+    font-size: 13px;
+    color: var(--color-ink);
+    text-decoration: underline var(--color-line-strong) 1px;
+    text-underline-offset: 4px;
+  }
+  .flash-undo:hover {
+    color: var(--color-ink-strong);
+    text-decoration-color: currentColor;
+  }
+  .pending {
+    margin-top: 16px;
+    border: 1px dashed var(--color-line-strong);
+    border-radius: 4px;
+    padding: 12px 14px;
+  }
+
+  /* Say it: a box with its send button inside, and chips to tap. */
+  .ask {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 10px;
+    background: var(--color-page);
+    padding: 8px 8px 8px 14px;
+    transition: border-color 0.15s;
+  }
+  .ask:focus-within {
+    border-color: var(--color-ink-strong);
+  }
+  .ask.is-off {
+    background: transparent;
+    border-style: dashed;
+  }
+  .ask-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 34px;
+    resize: none;
+    background: transparent;
+    padding: 6px 0;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--color-ink-strong);
+  }
+  .ask-input:focus {
+    outline: none;
+  }
+  .ask-input::placeholder {
+    color: var(--color-faint);
+  }
+  .ask-send {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: 8px;
+    background: var(--color-ink-strong);
+    color: var(--color-page);
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .ask-send:hover {
+    background: var(--color-accent-strong);
+  }
+  .ask-send:disabled {
+    opacity: 0.25;
+  }
+  .suggests {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .suggest {
+    border: 1px solid var(--color-line-strong);
+    border-radius: 99px;
+    padding: 5px 12px;
+    font-size: 13px;
+    color: var(--color-ink);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .suggest:hover:not(:disabled) {
+    border-color: var(--color-muted);
+    color: var(--color-ink-strong);
+    background: var(--color-raised);
+  }
+  .suggest:disabled {
+    opacity: 0.4;
+  }
+  .suggest.is-switch {
+    border-style: dashed;
+  }
+
+  /* The conversation and its proposal. */
+  .talk {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    border-top: 1px solid var(--color-line);
+    padding-top: 16px;
+  }
+  .bubble {
+    max-width: 40rem;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .bubble.is-me {
+    align-self: flex-end;
+    border-bottom-right-radius: 3px;
+    background: var(--color-raised);
+    color: var(--color-ink-strong);
+  }
+  .bubble.is-them {
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border: 1px solid var(--color-line);
+    border-bottom-left-radius: 3px;
+    color: var(--color-ink);
+  }
+  .bubble.is-error {
+    border-color: var(--color-warn-soft);
+    color: var(--color-warn);
+  }
+  .bubble-who {
+    font-size: 11.5px;
+    color: var(--color-faint);
+  }
+  .dots-typing {
+    display: inline-flex;
+    gap: 4px;
+    padding: 6px 0 4px;
+  }
+  .dots-typing i {
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--color-muted);
+    animation: typing 1.2s infinite ease-in-out;
+  }
+  .dots-typing i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .dots-typing i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  @keyframes typing {
+    0%,
+    60%,
+    100% {
+      opacity: 0.3;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dots-typing i {
+      animation: none;
+      opacity: 0.7;
+    }
+  }
+  .proposal {
+    border: 1px solid var(--color-line-strong);
+    border-radius: 6px;
+    background: var(--color-page);
+    padding: 14px;
+  }
+
+  /* Before and after, line by line. */
+  .diff {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .diff-line {
+    display: flex;
+    gap: 8px;
+    border-left: 2px solid transparent;
+    border-radius: 2px;
+    padding: 4px 8px;
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  .diff-sign {
+    flex: none;
+    width: 0.8em;
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  .diff-line.is-gone {
+    border-left-color: var(--color-line-strong);
+    color: var(--color-faint);
+  }
+  .diff-line.is-gone > :last-child {
+    text-decoration: line-through var(--color-faint) 1px;
+  }
+  .diff-line.is-new {
+    border-left-color: var(--color-ink-strong);
+    background: var(--color-accent-soft);
+    color: var(--color-ink-strong);
+  }
+  .diff-line.is-same {
+    color: var(--color-muted);
+  }
+  .diff-more {
+    padding: 2px 10px;
+    font-size: 12.5px;
+    color: var(--color-faint);
+  }
+  .diff-more:hover {
+    color: var(--color-ink-strong);
+  }
+
+  /* Switches: a toggle and chips. */
+  .switch-card {
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: var(--color-page);
+    padding: 12px 14px;
+  }
+  .toggle {
+    position: relative;
+    flex: none;
+    width: 42px;
+    height: 24px;
+    border-radius: 99px;
+    background: var(--color-line-strong);
+    transition: background 0.18s;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 99px;
+    background: var(--color-muted);
+    transition: transform 0.18s, background 0.18s;
+  }
+  .toggle[aria-checked="true"] {
+    background: var(--color-ink-strong);
+  }
+  .toggle[aria-checked="true"]::after {
+    transform: translateX(18px);
+    background: var(--color-page);
+  }
+  .chip-x,
+  .chip-pick,
+  .chip-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: 99px;
+    padding: 3px 10px;
+    font-size: 12.5px;
+  }
+  .chip-x {
+    background: var(--color-raised);
+    padding-right: 4px;
+    color: var(--color-ink-strong);
+  }
+  .chip-x-btn {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 99px;
+    color: var(--color-muted);
+  }
+  .chip-x-btn:hover {
+    background: var(--color-line-strong);
+    color: var(--color-ink-strong);
+  }
+  .chip-pick {
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-ink);
+  }
+  .chip-pick:hover {
+    border-color: var(--color-ink-strong);
+    color: var(--color-ink-strong);
+  }
+  .chip-add {
+    border: 1px dashed var(--color-line-strong);
+    color: var(--color-muted);
+  }
+  .chip-add:hover {
+    border-color: var(--color-muted);
+    color: var(--color-ink-strong);
+  }
+
+  /* Every rule by hand: groups of sliders and choices, and what changes beside them. */
+  .back-btn {
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .back-btn:hover {
+    color: var(--color-ink-strong);
+  }
+  .adv-side {
+    align-self: start;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: var(--color-page);
+    padding: 14px;
+  }
+  @media (min-width: 1024px) {
+    .adv-side {
+      position: sticky;
+      top: 76px;
+    }
+  }
+  .group {
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: var(--color-page);
+    padding: 14px;
+  }
+  .group-head {
+    margin-bottom: 10px;
+  }
+  .group-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink-strong);
+  }
+  .group-hint {
+    font-size: 12.5px;
+    color: var(--color-muted);
+  }
+  .ctl {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 6px 0;
+  }
+  @media (min-width: 640px) {
+    .ctl {
+      grid-template-columns: 9.5rem minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+    }
+    .ctl > :only-child {
+      grid-column: 2;
+    }
+  }
+  .ctl-label {
+    font-size: 12.5px;
+    color: var(--color-muted);
+  }
+  .factor {
+    margin-top: 8px;
+    border-top: 1px solid var(--color-line);
+    padding-top: 10px;
+  }
+  .factor-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .factor-pick {
+    width: auto;
+    max-width: 100%;
+    background: var(--color-panel);
+    padding: 5px 8px;
+    font-size: 13.5px;
+  }
+  .factor-x {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-left: auto;
+    border-radius: 99px;
+    font-size: 17px;
+    color: var(--color-muted);
+  }
+  .factor-x:hover {
+    background: var(--color-raised);
+    color: var(--color-ink-strong);
+  }
+  .add-btn {
+    margin-top: 10px;
+    border: 1px dashed var(--color-line-strong);
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .add-btn:hover {
+    border-color: var(--color-muted);
+    color: var(--color-ink-strong);
+  }
+
+  /* A row of choices. */
+  .seg {
+    display: inline-flex;
+    justify-self: start;
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 2px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .seg-btn {
+    border-radius: 4px;
+    padding: 4px 11px;
+    font-size: 13px;
+    color: var(--color-muted);
+    transition: background 0.15s, color 0.15s;
+  }
+  .seg-btn:hover {
+    color: var(--color-ink-strong);
+  }
+  .seg-btn[aria-checked="true"] {
+    background: var(--color-ink-strong);
+    color: var(--color-page);
+  }
+
+  /* A slider that says its value. */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .slider {
+    --p: 50%;
+    flex: 1;
+    min-width: 0;
+    height: 22px;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--color-ink-strong) var(--p), var(--color-line-strong) var(--p));
+  }
+  .slider::-moz-range-track {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--color-ink-strong) var(--p), var(--color-line-strong) var(--p));
+  }
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6.5px;
+    border-radius: 99px;
+    border: 2px solid var(--color-page);
+    background: var(--color-ink-strong);
+    box-shadow: 0 0 0 1px var(--color-ink-strong);
+  }
+  .slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 99px;
+    border: 2px solid var(--color-page);
+    background: var(--color-ink-strong);
+  }
+  .slider:focus-visible {
+    outline: none;
+  }
+  .slider:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px var(--color-accent-soft), 0 0 0 1px var(--color-ink-strong);
+  }
+  .slider-value {
+    min-width: 5.5rem;
+    text-align: right;
+    font-size: 13px;
+    color: var(--color-ink-strong);
+    white-space: nowrap;
+  }
+  @media (min-width: 640px) {
+    .slider-value {
+      min-width: 7.5rem;
+    }
+  }
+  .adv-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px -16px -20px;
+    border-top: 1px solid var(--color-line-strong);
+    background: var(--color-panel);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 640px) {
+    .adv-bar {
+      margin: 16px -24px -24px;
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+  }
+  .treemap.is-small {
+    height: 180px;
+  }
+}

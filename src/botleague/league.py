@@ -51,6 +51,25 @@ def doings(doc: dict) -> dict:
             "preview": None if started else doc.get("preview")}
 
 
+def cancel_pending(bots: Bots, user_id: str) -> dict:
+    """Drop everything a member's bot is waiting to do at its next close: new rules, a pause or a
+    resume, companies left out or let back in. The bot goes on as it is. New rules that never
+    reached the bot do not count as the day's change, so that change is free again."""
+    doc = bots.store.get(user_id)
+    if not doc:
+        raise engine.Refused("There is no bot to change: send one in first.")
+    pending = doc.get("pending")
+    if not pending:
+        raise engine.Refused("There is no change waiting for the next close.")
+    if "rules" in engine.changes(doc, pending):
+        applied = [v for v in doc.get("versions") or [] if "rules" in (v.get("what") or [])]
+        doc["rules_changed_utc"] = applied[-1].get("changed_utc") if applied else None
+    doc.pop("pending")
+    bots.store.put(doc)
+    bots._cached = None
+    return bots.mine(user_id)
+
+
 def spark(curve: list, points: int = SPARK_POINTS) -> list[float]:
     """A curve thinned to a few points, from 1 (the session before its first close)."""
     values = [1.0] + [float(v) for _, v in curve]

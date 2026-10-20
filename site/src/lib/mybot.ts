@@ -43,12 +43,12 @@ function squarify(tiles: Tile[], x: number, y: number, W: number, H: number): Pl
 }
 
 // Each company a tile as big as its weight, the largest the brightest, the cash hatched.
-export function treemap(weights: Record<string, number>, cash: number | null | undefined, opts: { preview?: boolean } = {}): HTMLElement {
+export function treemap(weights: Record<string, number>, cash: number | null | undefined, opts: { preview?: boolean; small?: boolean } = {}): HTMLElement {
   const held = Object.entries(weights).filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
   const left = cash ?? Math.max(0, 1 - held.reduce((s, [, w]) => s + w, 0));
   const tiles: Tile[] = held.map(([key, w]) => ({ key, w }));
   if (left > 0.005) tiles.push({ key: "Cash", w: left, cash: true });
-  const box = h("div", `treemap ${opts.preview ? "is-preview" : ""}`);
+  const box = h("div", `treemap ${opts.preview ? "is-preview" : ""} ${opts.small ? "is-small" : ""}`);
   if (!tiles.length) return add(box, h("p", "absolute inset-0 grid place-items-center text-[13px] text-muted", "Nothing held"));
   const place = () => {
     const pxW = box.clientWidth || 600, pxH = box.clientHeight || 280;

@@ -235,6 +235,40 @@ def test_a_bots_page_shows_what_it_did_and_when_its_rules_changed(app):
     assert agent.patch("/api/bot", json={"bot": {**BOT, "hold": 6}}, headers={"authorization": f"Bearer {key}"}).json()["pending"]["bot"]["hold"] == 6
 
 
+def test_a_change_waiting_for_the_next_close_can_be_cancelled_and_frees_the_day(app):
+    clock = app.state.clock
+    clock.when = at(DAYS[-30], 12)
+    send(app, "u1")
+    clock.when = at(DAYS[-20], 18)
+    client(app).post("/api/board/refresh")
+    owner = client(app, "u1")
+    clock.when = at(DAYS[-19], 10)
+    assert owner.delete("/api/bots/mine/pending").status_code == 400  # nothing waiting
+    owner.put("/api/bots/mine/rules", json={"bot": {**BOT, "hold": 4}})
+    owner.post("/api/bots/mine/switch", json={"action": "pause"})
+    got = owner.delete("/api/bots/mine/pending").json()
+    assert got["pending"] is None and not got["paused"] and got["bot"]["hold"] == 8 and got["rules_changed_utc"] is None
+    # The rules that never reached the bot did not use the day's change.
+    assert owner.put("/api/bots/mine/rules", json={"bot": {**BOT, "hold": 5}}).json()["pending"]["bot"]["hold"] == 5
+    assert client(app, "u2").delete("/api/bots/mine/pending").status_code == 400
+
+
+def test_the_demo_chat_answers_by_rule_and_counts_the_messages_left():
+    from botleague.chat import Scripted
+    app = make(chat=Chat(MemoryLedger(), client=Scripted, enabled=True, per_member=3, daily_max=None))
+    send(app, "u1")
+    owner = client(app, "u1")
+    assert owner.get("/api/bots/chat").json() == {"on": True, "per_member_per_day": 3, "left": 3}
+    got = owner.post("/api/bots/mine/chat", json={"message": "Make it more defensive"}).json()
+    assert got["proposal"]["market"]["factor"] == "trend" and any(s["factor"] == "volatility" for s in got["proposal"]["score"])
+    assert got["left"] == 2 and got["rules"][-1].startswith("When, for the S&P 500")
+    got = owner.post("/api/bots/mine/chat", json={"message": "Fewer stocks"}).json()
+    assert got["proposal"]["hold"] == 5 and got["left"] == 1
+    got = owner.post("/api/bots/mine/chat", json={"message": "Drop the tech sector"}).json()
+    assert got["proposal"] is None and "sectors" in got["reply"] and got["left"] == 0
+    assert owner.get("/api/bots/chat").json()["left"] == 0
+
+
 def test_a_preview_of_rules_before_applying_them(app):
     owner = client(app, "u1")
     got = owner.post("/api/bots/preview", json={"bot": {**BOT, "hold": 3}}).json()

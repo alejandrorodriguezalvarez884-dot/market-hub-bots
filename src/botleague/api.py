@@ -18,6 +18,8 @@ The member's own, with Market Hub's session cookie (the same routes as the porta
     PUT    /api/bots/mine/rules     {bot}: new rules, from the next close, keeping the record (once a day)
     PUT    /api/bots/mine/name      {name, about?}: rename the bot, at once, keeping the record
     POST   /api/bots/mine/switch    {action, ticker?}: pause, resume, exclude or include, from the next close
+    DELETE /api/bots/mine/pending   drop everything waiting for the next close
+    GET    /api/bots/chat           whether the chat is on, and the member's messages left today
     POST   /api/bots/mine/chat      {message, history?}: a change of rules proposed by Claude, to confirm
 The routes of the member's agent, with the bot key (Authorization: Bearer mhb_...), never the cookie:
     GET    /api/bot/spec            what a bot can be (no key needed)
@@ -49,13 +51,13 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import engine
-from .chat import Chat, ChatOff, FileLedger, FirestoreLedger
-from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, PER_IP_PER_HOUR, PUBLIC_BOARD, SAMPLE,
-                     SWITCHES_PER_USER_PER_DAY)
+from .chat import Chat, ChatOff, FileLedger, FirestoreLedger, MemoryLedger, Scripted
+from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, CHAT_ENABLED, PER_IP_PER_HOUR, PUBLIC_BOARD,
+                     SAMPLE, SWITCHES_PER_USER_PER_DAY)
 from .engine import BotStore, Bots
 from .hubauth import Hub
 from .hubauth import settings as hub_settings
-from .league import League, Remembering
+from .league import League, Remembering, cancel_pending
 from .market import Directory, MarketUnavailable, Sample, Yahoo
 
 log = logging.getLogger("botleague.api")
@@ -126,6 +128,9 @@ def create_app(bot_store: BotStore | None = None,
     backtesting = RateLimiter(BOT_BACKTESTS_PER_USER_PER_HOUR)
     sending = RateLimiter(BOT_SUBMISSIONS_PER_USER_PER_DAY, window=86400.0)
     changing = RateLimiter(SWITCHES_PER_USER_PER_DAY, window=86400.0)
+    if chat is None and sample and not CHAT_ENABLED:
+        # `make demo`: a scripted Claude that answers a few instructions by rule and spends nothing.
+        chat = Chat(MemoryLedger(), client=Scripted, enabled=True, now=clock)
     chat = chat or Chat(FirestoreLedger() if _firestore() else FileLedger(), now=clock)
     origins = [o.strip() for o in os.environ.get("BOTLEAGUE_ALLOWED_ORIGINS", "").split(",") if o.strip()]
 
@@ -318,10 +323,23 @@ def create_app(bot_store: BotStore | None = None,
         log.info("bot switch: %s", action if action in ("pause", "resume", "exclude", "include") else "?")
         return mine
 
+    @app.delete("/api/bots/mine/pending")
+    def cancel(request: Request):
+        user_id = member(request)["id"]
+        allow(request)
+        changes_allowed(user_id)
+        try:
+            mine = cancel_pending(bots, user_id)
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+        log.info("bot change cancelled")
+        return mine
+
     @app.get("/api/bots/chat")
     def chat_status(request: Request) -> dict:
-        member(request)
-        return chat.status()
+        return chat.status(member(request)["id"])
 
     @app.post("/api/bots/mine/chat")
     def chat_message(request: Request, message: str = Body(embed=True, max_length=2000), history: list = Body([], embed=True)):
@@ -339,7 +357,7 @@ def create_app(bot_store: BotStore | None = None,
             raise HTTPException(503, str(exc)) from None
         if got.get("proposal"):
             got["rules"] = engine.describe(got["proposal"])
-        return got
+        return {**got, "left": chat.left(user_id)}
 
     # --- The member's agent ---
 

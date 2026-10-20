@@ -18,6 +18,35 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **"Change it", mucho más simple y bonito** (rama `change-it`, sin fusionar ni desplegar). El
+> usuario lo pidió: "simplificar mucho más y hacer más bonita la parte de modificar el bot".
+> - **Lo fácil primero** (`site/src/lib/change.ts`): una caja para decirlo con su botón dentro y chips de un
+>   toque (More defensive, Fewer stocks, More stocks, Look again monthly/weekly, Drop a sector, Pause o
+>   Resume). La propuesta de Claude sale como **antes → después de las reglas en palabras** (cada regla que se
+>   va tachada junto a la que entra; las que se quedan, plegadas), con el mapa de lo que tendría (vista previa)
+>   y un botón: **Apply at the next close** (sin `confirm()`: se puede cancelar), "Fine-tune by hand" o "Not this".
+> - **Los interruptores** a la derecha: un toggle Running/Paused y "Left out" en fichas (× para readmitir;
+>   "+ Leave one out" ofrece en fichas lo que tiene, o un ticker). Cada interruptor deja un aviso con **Undo**
+>   (el interruptor contrario).
+> - **Estados**: arriba, lo que espera al próximo cierre (fecha, qué cambia en fichas, el antes → después si son
+>   reglas) con **Cancel it**; el aviso de lo que acaba de pasar; el cambio del día ya usado (la caja lo dice y no
+>   deja escribir); los mensajes que quedan ("13 of 15 messages left today") o que no quedan; el chat apagado; y
+>   los errores en su sitio.
+> - **Cada regla a mano** (`editor.ts`, reescrito; "Every rule, by hand ›"): grupos (dónde mira, qué guarda, cómo
+>   ordena, cómo reparte, cuando cae el mercado, nombre e idea) con deslizadores que dicen su valor y selectores
+>   segmentados (`controls.ts`); a la derecha, fijo, el antes → después en palabras **en vivo** (`words.ts` escribe
+>   las reglas como `describe()` de `engine.py`: si cambia una frase allí, se cambia aquí) y el mapa, que se
+>   pide a `/api/bots/preview` 1,2 s después de dejar de mover (si se llega al tope de 30 por hora, el mapa se
+>   para y las palabras siguen). En el móvil, una barra fija abajo con cuántas reglas cambian y "Apply".
+> - **API, solo añadidos** (el motor no cambia, ni el portal ni la app): `DELETE /api/bots/mine/pending` (en
+>   `league.cancel_pending`) quita todo lo que espera al cierre; **unas reglas canceladas no cuentan como el cambio
+>   del día** (nunca llegaron al bot), así que se puede pedir otro (decisión mía, se revierte en una línea).
+>   `GET /api/bots/chat` y cada respuesta del chat dicen `left`. Con `make demo` (`BOTLEAGUE_SAMPLE=1` y el chat de
+>   verdad apagado) el chat es **`chat.Scripted`**: contesta a unas pocas instrucciones por regla, sin red y sin gastar.
+> - Probado: `make check` (tests nuevos de cancelar y del chat de la demo) y en local, de escritorio y a 375 px sin
+>   scroll lateral, en sus estados (recién abierto, el chat proponiendo, cambio pendiente con el día usado, sin
+>   mensajes, interruptores, cada regla a mano).
+
 > 2026-10-20: Con el OK del usuario, **borrado `bot_meta/house`** de Firestore (los bots de la casa y su índice).
 > En `bot_meta` queda solo `board` (y `chat` cuando el chat gaste algo).
 
