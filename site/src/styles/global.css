@@ -666,3 +666,94 @@
     transform: none;
   }
 }
+
+/* A bot's face (lib/robot.ts): drawn in the ink, on its own small panel. */
+@layer components {
+  .robot {
+    display: inline-flex;
+    flex-shrink: 0;
+    line-height: 0;
+  }
+  .robot svg {
+    display: block;
+    border-radius: 22%;
+    box-shadow: inset 0 0 0 1px var(--color-line);
+  }
+}
+
+/* The charts (lib/chart.ts): the range buttons, the reading under the pointer, the start waiting. */
+@layer components {
+  .chart {
+    touch-action: pan-y;
+  }
+  .chart-ranges {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+  .chart-ranges button {
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-muted);
+  }
+  .chart-ranges button:hover {
+    color: var(--color-ink-strong);
+  }
+  .chart-ranges button[aria-pressed="true"] {
+    background: var(--color-raised);
+    color: var(--color-ink-strong);
+  }
+  .chart-tip {
+    pointer-events: none;
+    position: absolute;
+    top: 8px;
+    min-width: 11rem;
+    max-width: 16rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 3px;
+    background: rgb(7 8 8 / 0.95);
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .chart-pulse {
+    animation: chart-pulse 1.8s ease-in-out infinite;
+  }
+}
+@keyframes chart-pulse {
+  50% {
+    stroke-opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chart-pulse {
+    animation: none;
+  }
+}
+
+/* A bot's face at the head of its page. */
+@layer components {
+  .robot-big svg {
+    width: 76px;
+    height: 76px;
+  }
+  @media (min-width: 640px) {
+    .robot-big svg {
+      width: 104px;
+      height: 104px;
+    }
+  }
+}
+
+/* On a phone the landing's board keeps the face, the name and the return; the line goes. */
+@media (max-width: 479px) {
+  .board-row {
+    grid-template-columns: 1.1rem minmax(0, 1fr) 4.6rem;
+  }
+  .board-row > :nth-child(3) {
+    display: none;
+  }
+}

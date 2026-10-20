@@ -2,6 +2,7 @@
 // with the house bots and the index between them as lines of reference, never ranked.
 import { add, h } from "./dom";
 import { sparkline } from "./chart";
+import { indexFace, robot } from "./robot";
 import { plural, signedPct, tone } from "./format";
 import { botUrl } from "./site";
 import { digits, type Board, type Line, type Period } from "./types";
@@ -19,7 +20,7 @@ export function ordered(b: Board, period: Period): Entry[] {
 export function row(e: Entry, period: Period, ticker: string): HTMLElement {
   if (e.kind === "index") {
     return add(h("div", "board-row ref"), h("span", "num text-[12px] text-faint", "—"),
-      add(h("span", "min-w-0 truncate"), h("span", "text-muted", "S&P 500"), h("span", "tag ml-2", ticker)),
+      add(h("span", "flex min-w-0 items-center gap-2.5"), indexFace(28), add(h("span", "min-w-0 truncate"), h("span", "text-muted", "S&P 500"), h("span", "tag ml-2", ticker))),
       h("span", ""), h("span", `num text-right font-semibold opacity-80 ${tone(e.value)}`, signedPct(e.value, digits(period))));
   }
   const r = e.line;
@@ -27,10 +28,10 @@ export function row(e: Entry, period: Period, ticker: string): HTMLElement {
   const el = h("a", `board-row ${r.house ? "ref" : ""} ${r.you ? "you" : ""}`);
   el.href = botUrl(r.slug);
   add(el, h("span", "num text-[12px] text-muted", rank ? String(rank) : r.house ? "·" : ""),
-    add(h("span", "min-w-0"),
+    add(h("span", "flex min-w-0 items-center gap-2.5"), robot(r.slug, 28), add(h("span", "min-w-0"),
       add(h("span", "flex min-w-0 items-center gap-2"), h("span", `truncate font-semibold ${r.house ? "text-ink" : "text-ink-strong"}`, r.name),
         r.house ? h("span", "tag shrink-0", "house") : null, r.you ? h("span", "tag tag-you shrink-0", "you") : null),
-      h("span", "block truncate text-[12px] text-muted", r.house ? "Bot League · from the kit" : `by ${r.handle}`)),
+      h("span", "block truncate text-[12px] text-muted", r.house ? "Bot League · from the kit" : `by ${r.handle}`))),
     add(h("span", "flex justify-end"), sparkline(r.spark)),
     h("span", `num text-right font-semibold ${tone(e.value)}`, e.value == null ? (r.since ? "—" : "next close") : signedPct(e.value, digits(period))));
   return el;

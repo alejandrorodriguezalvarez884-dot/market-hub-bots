@@ -11,9 +11,10 @@ import Layout from "../../layouts/Layout.astro";
 </Layout>
 
 <script>
-	import { lineChart } from "../../lib/chart";
+	import { chartWaiting, lineChart } from "../../lib/chart";
 	import { add, h } from "../../lib/dom";
 	import { day, ordinal, pct, plural, signedPct, timeAgo, tone } from "../../lib/format";
+	import { robot } from "../../lib/robot";
 	import { API, ApiError, api, botUrl, hubQuoteUrl, localVisitor } from "../../lib/site";
 	import { PERIODS, digits, type Bot, type ChatAnswer, type Key, type Me, type MyBot, type Overview, type Spec } from "../../lib/types";
 	import { moves, said, versions } from "../../lib/doings";
@@ -69,12 +70,13 @@ import Layout from "../../layouts/Layout.astro";
 			add(h("ul", "space-y-1.5 px-3 pb-3 text-[13px] text-ink"), ...you.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-signal", "›"), h("span", "", r)))));
 		const page = anchor("link text-[13px] text-signal", "Its page on the board →", botUrl(you.handle.replace(/[\s_-]+/g, "").toLowerCase()));
 		add(panel,
-			h("h2", "mt-1 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", you.name),
+			add(h("div", "mt-2 flex items-center gap-4"), robot(you.handle.replace(/[\s_-]+/g, "").toLowerCase(), 64),
+				h("h2", "min-w-0 text-[1.6rem] font-semibold leading-tight tracking-tight text-ink-strong", you.name)),
 			h("p", "mt-0.5 text-[12.5px] text-muted", `Shown as ${you.handle} · ${you.universe} companies to choose from`),
 			you.about ? h("p", "mt-3 max-w-prose text-[14px] text-ink", you.about) : null,
 			h("p", "mt-3 text-[12.5px] text-muted", started),
 			live ? add(h("div", "mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[3px] border border-line bg-line xl:grid-cols-5"), ...PERIODS.map(stat)) : null,
-			you.curve.length > 1 ? chart : null,
+			chart,
 			you.holdings.length ? add(h("div", "mt-4"), h("p", "label pb-1.5", "Holds now"), add(h("div", "flex flex-wrap gap-1.5"),
 				...you.holdings.map((x) => anchor("chip hover:text-ink-strong", `${x.ticker} ${pct(x.weight, x.weight < 0.1 ? 1 : 0)}`, hubQuoteUrl(x.ticker))),
 				you.cash && you.cash > 0.005 ? h("span", "chip text-muted", `cash ${pct(you.cash, 0)}`) : null)) : null,
@@ -89,7 +91,7 @@ import Layout from "../../layouts/Layout.astro";
 			h("p", "mt-3 text-[12.5px] text-muted", "Change it below, or ask your agent to update it: its record goes on. A new bot sent in starts again."));
 		if (you.curve.length > 1) {
 			requestAnimationFrame(() => lineChart(chart, you.curve.map((p) => p.date), [{ name: you.name, values: you.curve.map((p) => p.value), color: "var(--color-signal)" }], 220));
-		}
+		} else requestAnimationFrame(() => chartWaiting(chart, you.since ? "Its line shows from its second close." : "Its line starts at the next close.", 150));
 		return panel;
 	}
 
