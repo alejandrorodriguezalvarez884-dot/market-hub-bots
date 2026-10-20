@@ -2,6 +2,7 @@
 // Every page: the head, the top bar with the mark and the way in, the content and the foot.
 import "../styles/global.css";
 import { HUB_URL, SITE_NAME, link } from "../lib/site";
+import Mark from "../components/Mark.astro";
 
 interface Props {
 	title: string;
@@ -11,6 +12,8 @@ interface Props {
 }
 const { title, description, page = "home", noindex = false } = Astro.props;
 const canonical = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site) : null;
+// The picture a shared link shows (brand/share.mjs draws it): an absolute address, when the site has one.
+const picture = Astro.site ? new URL(link("/share.png"), Astro.site).href : null;
 const nav = [
 	{ key: "board", href: link("/board/"), label: "Board" },
 	{ key: "how", href: `${link("/")}#how`, label: "How it works" },
@@ -23,6 +26,8 @@ const nav = [
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href={link("/favicon.svg")} />
+		<link rel="icon" href={link("/favicon.ico")} sizes="48x48" />
+		<link rel="apple-touch-icon" href={link("/apple-touch-icon.png")} />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="dark" />
 		<meta name="theme-color" content="#0b0c0d" />
@@ -33,7 +38,11 @@ const nav = [
 		<meta property="og:site_name" content={`${SITE_NAME}, by The Market Hub`} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
-		<meta name="twitter:card" content="summary" />
+		{picture && <meta property="og:image" content={picture} />}
+		{picture && <meta property="og:image:width" content="1200" />}
+		{picture && <meta property="og:image:height" content="630" />}
+		{picture && <meta property="og:image:alt" content="Bot League, by The Market Hub" />}
+		<meta name="twitter:card" content={picture ? "summary_large_image" : "summary"} />
 		<title>{title}</title>
 		<script is:inline>
 			// Visits are counted by Cloudflare Web Analytics, which sets no cookie, as on the rest of
@@ -58,10 +67,7 @@ const nav = [
 			<div class="wrap flex h-14 items-center gap-4 lg:gap-8">
 				<div class="flex flex-none items-baseline gap-2.5 whitespace-nowrap">
 					<a href={link("/")} class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-ink-strong" aria-label="Bot League, home">
-						<!-- The Market Hub's mark: a zero line and a move to its right. -->
-						<svg class="h-5 w-5 self-center" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-							<path d="M4 2v16M4 10h8"></path><circle cx="14.5" cy="10" r="2.75" fill="currentColor" stroke="none"></circle>
-						</svg>
+						<Mark class="h-5 w-5 self-center" />
 						<span>Bot League</span>
 					</a>
 					<a href={HUB_URL} class="hidden text-[12.5px] text-muted hover:text-ink-strong sm:inline">by The Market Hub</a>

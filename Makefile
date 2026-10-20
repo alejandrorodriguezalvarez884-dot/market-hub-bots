@@ -9,7 +9,7 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help install test check site api dev serve demo seed deploy
+.PHONY: help install test check site api dev serve demo seed icons share deploy
 
 help: ## List the targets
 	@grep -E '^[a-z]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-9s %s\n", $$1, $$2}'
@@ -41,6 +41,12 @@ seed: ## Put a few made-up members' bots in the local store (data/bots), on made
 
 demo: site seed ## The whole site on made-up figures, with the bots of `make seed`, at http://localhost:8080
 	HUB_URL= BOTLEAGUE_SAMPLE=1 BOTLEAGUE_STATIC_DIR=site/dist uv run uvicorn botleague.api:create_app --factory --port 8080
+
+icons: ## Draw favicon.ico, the PNG icons and logo.png from site/public/favicon.svg (uses this machine's Chrome)
+	cd brand && npm ci && node icons.mjs
+
+share: ## Draw the picture a shared link shows (site/public/share.png, uses this machine's Chrome)
+	cd brand && npm ci && node share.mjs
 
 deploy: ## Build and deploy the service to Cloud Run (see scripts/deploy-cloudrun.sh)
 	./scripts/deploy-cloudrun.sh

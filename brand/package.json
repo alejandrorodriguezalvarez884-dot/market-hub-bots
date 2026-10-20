@@ -1,0 +1,9 @@
+{
+  "name": "botleague-brand",
+  "private": true,
+  "type": "module",
+  "description": "Bot League's icons and the picture a shared link shows, drawn from the mark by this machine's Chrome.",
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}

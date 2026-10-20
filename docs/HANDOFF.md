@@ -18,6 +18,15 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **El logo de Bot League.** El usuario pidió un logo serio. La marca es una B que sale
+> de la de The Market Hub: su eje, el trazo que la cruza (aquí la cintura de la B) y el punto, con
+> las panzas cortadas a 45 grados como pistas de circuito. En tinta, sin color: el verde del portal
+> significa "sube" en los datos. Está en `site/src/components/Mark.astro` (cabecera),
+> `site/public/favicon.svg` y `brand/share.mjs`; si cambia, se cambian los tres. `make icons` dibuja
+> `favicon.ico`, `favicon-192.png`, `apple-touch-icon.png` y `logo.png` desde el SVG, y `make share`
+> la imagen de un enlace compartido (`share.png`, 1200×630), las dos con el Chrome del equipo, como en
+> el portal. El `<head>` enlaza los iconos y pone `og:image` con tarjeta grande.
+
 > 2026-10-20: **El aspecto, el de The Market Hub.** Al usuario no le gustó que la web cambiara tanto
 > el look & feel frente al portal, y pidió "by The Market Hub" con enlace a la web. Fuera el violeta,
 > la rejilla con brillo, las sombras y el titular grueso: la capa propia de `global.css` toma las

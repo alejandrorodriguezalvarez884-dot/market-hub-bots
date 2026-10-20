@@ -1,0 +1,13 @@
+---
+// Bot League's mark: a B grown out of The Market Hub's own (its zero line, the stroke across and
+// the dot of a move), its bowls cut at 45 degrees like the traces of a circuit. The same drawing
+// is in public/favicon.svg and brand/share.mjs: change the three together.
+interface Props {
+	class?: string;
+}
+const { class: cls = "h-5 w-5" } = Astro.props;
+---
+
+<svg class={cls} viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	<path d="M3.5 2v16M3.5 2h4l3 3v1.5L7 10M7.5 10l4 4v.5L8 18H3.5M3.5 10h10"></path><circle cx="16.25" cy="10" r="2.5" fill="currentColor" stroke="none"></circle>
+</svg>
