@@ -18,6 +18,32 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-10-20: **Gráficas y una cara para cada bot** (rama `visuals`, sin desplegar). El usuario
+> pidió trabajar la visual de las gráficas y "un monigote de un robot gracioso" por bot.
+> - **Robots** (`site/src/lib/robot.ts`): cada bot tiene un robot dibujado en SVG a partir de su
+>   slug (FNV-1a + mulberry32): cabeza (8 formas), tono de la carcasa (5 grises, uno claro con la
+>   cara en negro), ojos (10), boca (8), antena (8), orejas (4), pecho (5), cero a dos extras
+>   (pajarita, monóculo, bigote, cascos, chistera, cejas, mofletes, tornillo, parche) y a veces la
+>   cabeza ladeada. Solo tinta, sin color. Sale en las filas del tablero y de la portada, grande en
+>   la página del bot y en "Your bot" (con el slug que la página ya usa para el enlace,
+>   `handle_key`). El S&P 500 lleva un panel con una línea (`indexFace`). `/robots/` (noindex, sin
+>   enlace) enseña los de la casa, 72 inventados y los tamaños, y cuenta cuántas caras distintas
+>   salen entre 1.000 bots. Cambiar una lista o el orden de los `r()` en `traits()` cambia la
+>   cara de todos los bots.
+> - **Gráficas** (`site/src/lib/chart.ts`, mismas firmas): en la del bot, el hueco entre el bot y
+>   el S&P sombreado en verde (por delante) o rojo (por detrás), cifras al final de cada línea,
+>   porcentajes a la izquierda, meses en el eje, una banda debajo con la caída desde su máximo
+>   (al menos 4 % de fondo, para que una caída pequeña se vea pequeña), botones 1M/3M/1Y/All
+>   (rebasados al cierre anterior) cuando la curva es más larga, puntos con pocas sesiones y una
+>   lectura al pasar el ratón o el dedo (fecha, cada línea, "Ahead/Behind by", desde el máximo).
+>   Sin curva aún, `chartWaiting` dibuja la línea de salida con "Its line starts at the next
+>   close". Las sparklines llevan el área desde el inicio en el color del final y un punto al
+>   final; sin empezar, una línea de puntos. En "Your bot", la misma gráfica con una sola línea.
+>   En el móvil (<480 px) la portada quita la sparkline de sus filas para dejar sitio al nombre.
+> - Cambios en las páginas, pequeños: `board.ts`, `board/`, `bot/` y `me/` solo añaden la cara y
+>   llaman a `chartWaiting`; el resto va en los dos módulos y al final de `global.css`.
+> - Probado con `make check` y en local (`make demo`) de escritorio y a 375 px sin scroll lateral.
+
 > 2026-10-20: **Ver lo que hace cada bot y cambiarlo en vivo desde la web.** El usuario echaba en falta
 > ver qué lleva y qué hace el bot de cada jugador, y poder darle instrucciones desde la web. Decisiones
 > suyas: un cambio **conserva el historial**, se aplica **desde el próximo cierre** (nunca hacia atrás),
