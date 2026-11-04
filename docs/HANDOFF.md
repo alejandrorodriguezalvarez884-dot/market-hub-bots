@@ -39,6 +39,11 @@ reglas privadas.
 > - **Al desplegar**: el pie y los avisos enlazan a `/es/privacy/` y `/es/terms/` del portal, así que conviene desplegar
 >   antes (o a la vez) el portal con su español.
 
+> 2026-11-04: **Desplegado** `bot-league-00010-lvf` desde un export limpio de 5b14998 (la respuesta ya no espera al mapa), con
+> el OK del usuario y sin cambios de configuración. Probado en producción en su Chrome: la respuesta llegó en ~22 s (todo
+> Claude, con Haiku 5.5 a esfuerzo alto y la conversación ya larga) con "mapping what it would hold…", y el mapa unos segundos
+> después. Si se quiere más rapidez, la palanca es el esfuerzo del chat (decisión del usuario).
+
 > 2026-11-04: **La respuesta de Claude ya no espera al mapa.** `POST /api/bots/draft/chat` devuelve la respuesta y las
 > reglas en palabras (`bots.check`), sin `holds`; la página pide después lo que tendría a `/api/bots/preview` (cuenta en el tope
 > de 30 por hora con los backtests). Mientras tanto, el paso dice "mapping what it would hold…" y el borrador enseña el hueco
