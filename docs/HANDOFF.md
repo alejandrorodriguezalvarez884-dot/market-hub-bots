@@ -1,6 +1,6 @@
 # Bot League · Handoff
 
-Última actualización: 2026-10-20.
+Última actualización: 2026-11-04.
 
 ## Qué se pidió
 
@@ -17,6 +17,45 @@ solo desde el envío (el backtest es privado). Por defecto (no las pidió él): 
 reglas privadas.
 
 ## Dónde estamos
+
+> 2026-11-04: **Crear el bot desde la web, hablando con Claude** (sin desplegar). El usuario lo pidió:
+> "que el bot league se pudiese crear/modificar directamente en la web… con lenguaje natural, de manera
+> similar a como se hace con Claude". Decisiones suyas (2026-11-04): **30 mensajes al día por jugador,
+> crear y cambiar juntos** (antes 15), Claude Haiku 5.5 con esfuerzo alto, sin tope del servicio, la
+> "mezcla" de abajo y el contador por instancia, para más adelante (sigue el pendiente de abajo).
+> - **"Your bot" sin bot** (`site/src/lib/build.ts`): a la izquierda la conversación (Claude saluda, seis ideas
+>   con su dibujito: momentum, tendencia, valores tranquilos, comprar caídas, cerca de máximos, unos pocos
+>   gigantes; caja para escribir y chips de un toque). Entre las respuestas, **los pasos del código como los
+>   de un agente**: "Draft 2 · nombre — checked: 4 rules · would hold 12 stocks today", "Backtest of draft 2,
+>   1 year — bot +x% · S&P 500 +y% · worst fall · a simulation of the past". A la derecha **el borrador**: su
+>   robot (se va rellenando), las reglas en palabras (desde el segundo, antes → después), el treemap de lo que
+>   tendría, el backtest a petición (1 o 3 años: curva contra el S&P 500, total, al año, peor caída, las notas
+>   de siempre y la etiqueta "simulation of the past"), "Every rule, by hand" (el editor de siempre, que deja
+>   el resultado como borrador) y **Send it in** con un resumen antes (público, nombre de pila, reglas
+>   privadas, cuándo empieza, y si sustituye a otro). El kit sigue debajo, plegado ("Prefer your own agent?").
+>   El borrador y la conversación viven solo en el navegador (`localStorage`, `bl-build:<slug>`); en el
+>   servidor no se guarda nada hasta enviarlo. En el móvil, el borrador va debajo y cada paso lleva "See it ↓".
+> - **Con bot**: "Change it" sigue igual; en "Start again from scratch", "Build a new one with Claude" abre la
+>   misma conversación (con × para volver), y al enviarlo sustituye al bot (su historial acaba).
+> - **La mezcla** (herramientas en el servidor o en la página): cada propuesta pasa por `bots.check` (reglas y
+>   universo) y, si no pasa, **vuelve a Claude una vez en la misma petición** con los problemas (como un agente
+>   tras `mh.py check`; cuenta como un mensaje, se pagan dos llamadas); la vista previa la pone siempre el
+>   código; **el backtest lo pulsa el miembro** y sus cifras (solo números, `chat.figures`) viajan con el
+>   mensaje siguiente para que Claude las comente. Claude no lanza backtests: así no se afina al pasado y el
+>   coste y la espera son previsibles. El chat de cambios también gana la corrección automática.
+> - **API, solo añadidos** (el motor no cambia, el portal tampoco salvo un párrafo de su privacidad):
+>   `POST /api/bots/draft/chat` {message, history, draft?, backtest?}, `POST /api/bots/backtest` {bot, years}
+>   (con la cookie; comparte el tope de 30 por hora con la vista previa) y `PUT /api/bots/mine` {bot} (envía con
+>   `engine.submit`, el nombre de pila de la sesión, tope de 10 al día). Las tres pasan el control de `Origin`.
+>   `chat.create_prompt()` sigue los pasos del `AGENTS.md` del kit. `chat.Scripted` (la demo) también crea.
+> - Coste estimado con Haiku 5.5: ~0,002 $ por mensaje (unos 3.000 tokens de entrada y otros tantos de salida),
+>   ~0,06 $ por miembro y día como mucho.
+> - **Privacidad del portal** (`market-hub-landing`): su párrafo de Bot League dice ahora que, al construir un
+>   bot, van al modelo el borrador y las cifras del backtest. Hay que desplegar el portal para que se vea.
+> - Probado: `make check` (58 tests: crear de punta a punta, la corrección en la misma petición, sesión y
+>   `Origin`, cifras del backtest) y en local con la demo, de escritorio y a 375 px sin scroll lateral: ideas,
+>   borrador, recarga (sigue ahí), backtest, cambio con antes → después, enviar, y "Build a new one" con bot.
+>   Falta un mensaje real con Haiku (la demo usa `Scripted`).
 
 > **Pendiente, el tope del chat.** Los 15 mensajes al día por jugador se cuentan en memoria, en cada
 > instancia (`Chat._asked`). El servicio escala a cero y llega a 2 instancias, así que el contador se

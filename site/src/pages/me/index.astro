@@ -23,12 +23,14 @@ import Layout from "../../layouts/Layout.astro";
 	import { PERIODS, digits, type BotPage, type ChatStatus, type Key, type Me, type MyBot, type Overview, type Spec } from "../../lib/types";
 	import { said, strip } from "../../lib/doings";
 	import { changePanel } from "../../lib/change";
+	import { builder } from "../../lib/build";
 
 	localVisitor();
 	const root = document.getElementById("me")!;
 	let data: Overview;
 	let page: BotPage | null = null; // the bot's public page, read for its curve against the index and its start
 	let shownKey: string | null = null; // a key just made: shown once, until the page is left
+	let rebuilding = false; // building a new bot, in place of the one there is
 
 	const button = (cls: string, text: string, onClick: (b: HTMLButtonElement) => void) => {
 		const b = h("button", cls, text);
@@ -110,25 +112,47 @@ import Layout from "../../layouts/Layout.astro";
 
 	// --- No bot yet: create one ---
 
-	function create(me: Me) {
+	// The kit, for a member who would rather build it with their own agent: three steps and the key.
+	function kitWay(): HTMLElement {
 		const status = h("p", "mt-2 min-h-[1.2em] text-[12.5px] text-muted");
 		let keyBox = keys(data);
 		const step = (n: number, title: string, ...body: (Node | null)[]) => add(h("li", "frame flex flex-col p-5"),
 			h("span", "step-n", String(n)), h("h3", "mt-4 text-[16px] font-semibold text-ink-strong", title), ...body);
-		const blueprint = h("span", "robot opacity-40");
-		blueprint.innerHTML = robotSvg(slugOf(me.user?.name ?? "you"), 104);
-		root.replaceChildren(
-			add(h("div", "flex items-center gap-5"), blueprint, add(h("div", "min-w-0"),
-				h("p", "kicker", me.user?.name ? `Hello, ${me.user.name.split(" ")[0]}` : "Your bot"),
-				h("h1", "h2 mt-1", "Create your bot"),
-				h("p", "mt-2 max-w-xl text-[14px] text-muted", "A few rules, written with your AI agent. It runs on paper and is ranked from the next close."))),
-			add(h("ol", "mt-10 grid gap-4 md:grid-cols-3"),
-				step(1, "Get the kit", h("p", "text-[13.5px] text-muted", "Your key is inside."), add(h("div", "mt-auto pt-4"), kitButton("btn btn-signal", status, () => keyBox.replaceWith((keyBox = keys(data)))), status)),
+		return add(h("div"),
+			add(h("ol", "mt-4 grid gap-4 md:grid-cols-3"),
+				step(1, "Get the kit", h("p", "text-[13.5px] text-muted", "Your key is inside."), add(h("div", "mt-auto pt-4"), kitButton("btn btn-ghost", status, () => keyBox.replaceWith((keyBox = keys(data)))), status)),
 				step(2, "Open it with your agent", h("p", "text-[13.5px] text-muted", "Unzip it and start Claude Code, Codex or yours inside."),
 					h("p", "term mt-auto rounded-[3px] border border-line bg-page px-3 py-2 pt-2", "$ cd markethub-bot && claude")),
 				step(3, "Say “Let's build my bot”", h("p", "text-[13.5px] text-muted", "It writes the rules with you, backtests them and sends the bot in."),
 					h("p", "term mt-auto rounded-[3px] border border-line bg-page px-3 py-2 text-ink-strong", "› Let's build my bot"))),
-			add(h("details", "corner mt-8"), h("summary", "", "Already have the kit? Your key ›"), add(h("div", "mt-3 max-w-xl"), keyBox)));
+			add(h("details", "corner mt-5"), h("summary", "", "Already have the kit? Your key ›"), add(h("div", "mt-3 max-w-xl"), keyBox)));
+	}
+
+	// No bot yet (or building a new one): talk it through with Claude, right here; the kit folded below.
+	function create(me: Me) {
+		const first = data.you?.handle ?? me.user?.name?.split(" ")[0] ?? "there";
+		const replacing = rebuilding ? data.you : null;
+		const blueprint = h("span", "robot opacity-40");
+		blueprint.innerHTML = robotSvg(slugOf(me.user?.name ?? "you"), 88);
+		const build = spec ? builder({
+			name: first, seed: slugOf(me.user?.name ?? "you"), spec, chat, replacing,
+			sent: async () => {
+				rebuilding = false;
+				await reload();
+				window.scrollTo({ top: 0, behavior: "smooth" });
+			},
+			cancel: replacing ? () => ((rebuilding = false), draw(me)) : undefined,
+		}) : null;
+		root.replaceChildren(
+			add(h("div", "flex items-center gap-5"), blueprint, add(h("div", "min-w-0"),
+				h("p", "kicker", replacing ? "A new bot" : me.user?.name ? `Hello, ${first}` : "Your bot"),
+				h("h1", "h2 mt-1", replacing ? "Build a new bot" : "Create your bot"),
+				h("p", "mt-2 max-w-xl text-[14px] text-muted", replacing
+					? `Sending it in replaces “${replacing.name}”, whose record ends. Until then your bot goes on as it is.`
+					: "Tell Claude how you'd like it to pick stocks. It runs on paper and is ranked from the next close."))),
+			add(h("div", "mt-8"), build),
+			add(h("details", "corner mt-10 border-t border-line pt-4"), h("summary", "", "Prefer your own agent? Build it with the kit ›"), kitWay()));
+		if (!chat.on) root.querySelector<HTMLDetailsElement>("details.corner")!.open = true;
 	}
 
 	// --- A bot: drawn ---
@@ -259,7 +283,14 @@ import Layout from "../../layouts/Layout.astro";
 		let keyBox = keys(o);
 		return add(h("details", "corner mt-4 border-t border-line pt-4"), h("summary", "", "Start again from scratch · the kit and your key ›"),
 			add(h("div", "mt-4 grid max-w-3xl gap-5 sm:grid-cols-2"),
-				add(h("div"), h("p", "text-[12.5px] text-muted", "A new bot sent in with your agent replaces this one and its record starts again."),
+				add(h("div"), h("p", "text-[12.5px] text-muted", "A new bot replaces this one and its record starts again."),
+					add(h("div", "mt-2"), button("btn btn-ghost py-1.5 text-[13px]", "Build a new one with Claude", () => {
+						rebuilding = true;
+						changeOpen = false;
+						draw(lastMe!);
+						window.scrollTo({ top: 0, behavior: "smooth" });
+					})),
+					h("p", "mt-3 text-[12.5px] text-muted", "Or with your own agent and the kit:"),
 					add(h("div", "mt-2"), kitButton("btn btn-ghost py-1.5 text-[13px]", status, () => keyBox.replaceWith((keyBox = keys(data))))), status,
 					add(h("p", "mt-3"), button("btn btn-ghost py-1.5 text-[13px]", "Withdraw this bot", async (el) => {
 						if (!confirm("Withdraw your bot? Its record goes with it, and a new one starts from zero.")) return;
@@ -308,7 +339,7 @@ import Layout from "../../layouts/Layout.astro";
 	function draw(me: Me) {
 		lastMe = me;
 		const you = data.you;
-		if (!you) return create(me);
+		if (!you || rebuilding) return create(me);
 		root.replaceChildren();
 		const pair = you.since ? [curve(you), add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), held(you) ?? h("div"))]
 			: [add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), curve(you))]; // before it starts: what it would hold first

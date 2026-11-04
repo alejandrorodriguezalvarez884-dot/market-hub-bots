@@ -47,12 +47,13 @@ SWITCHES_PER_USER_PER_DAY = 30
 
 # --- The chat on a member's page (chat.py) -------------------------------------------------------
 # It spends on the owner's Anthropic key: off unless BOTLEAGUE_CHAT=1 and the key is set. The model
-# and the caps are the owner's choice (2026-10-20): Claude Haiku 5.5 at high effort, 15 messages a day
-# per member, and no cap a day for the whole service. A cap is not raised or removed without asking.
+# and the caps are the owner's choice: Claude Haiku 5.5 at high effort (2026-10-20), 30 messages a day per
+# member for creating and changing a bot together (2026-11-04, it was 15 before creating came to the
+# page), and no cap a day for the whole service. A cap is not raised or removed without asking.
 CHAT_ENABLED = os.environ.get("BOTLEAGUE_CHAT", "0").strip() == "1" and bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())
 CHAT_MODEL = os.environ.get("BOTLEAGUE_CHAT_MODEL", "claude-haiku-5-5").strip()
 CHAT_EFFORT = os.environ.get("BOTLEAGUE_CHAT_EFFORT", "high").strip()
-CHAT_PER_MEMBER_PER_DAY = int(os.environ.get("BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY", "15"))
+CHAT_PER_MEMBER_PER_DAY = int(os.environ.get("BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY", "30"))
 # Dollars a day for the whole service; empty is no cap (the owner's choice). The ledger counts either way.
 CHAT_DAILY_MAX_USD = float(os.environ["BOTLEAGUE_CHAT_DAILY_MAX_USD"]) if os.environ.get("BOTLEAGUE_CHAT_DAILY_MAX_USD", "").strip() else None
 # The most one message can cost, reserved before it is sent: 8,000 tokens out at the dearest price.

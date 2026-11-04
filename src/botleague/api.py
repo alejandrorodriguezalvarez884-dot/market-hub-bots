@@ -21,6 +21,9 @@ The member's own, with Market Hub's session cookie (the same routes as the porta
     DELETE /api/bots/mine/pending   drop everything waiting for the next close
     GET    /api/bots/chat           whether the chat is on, and the member's messages left today
     POST   /api/bots/mine/chat      {message, history?}: a change of rules proposed by Claude, to confirm
+    POST   /api/bots/draft/chat     {message, history?, draft?, backtest?}: building a bot with Claude, from scratch
+    POST   /api/bots/backtest       {bot, years}: what a draft would have done, for its owner
+    PUT    /api/bots/mine           {bot}: send in the bot made on the page, in place of the one there was
 The routes of the member's agent, with the bot key (Authorization: Bearer mhb_...), never the cookie:
     GET    /api/bot/spec            what a bot can be (no key needed)
     POST   /api/bot/check           {bot}: whether it is a bot, and its rules in words
@@ -337,9 +340,68 @@ def create_app(bot_store: BotStore | None = None,
         log.info("bot change cancelled")
         return mine
 
+    def checked(raw) -> dict:
+        """A bot Claude proposed, checked as one sent in is: its rules and its universe."""
+        return bots.check(raw)["bot"]
+
     @app.get("/api/bots/chat")
     def chat_status(request: Request) -> dict:
         return chat.status(member(request)["id"])
+
+    # Creating a bot on the page, by talking to Claude: as the kit does with the member's own agent.
+
+    @app.post("/api/bots/draft/chat")
+    def draft_chat(request: Request, message: str = Body(embed=True, max_length=2000), history: list = Body([], embed=True),
+                   draft: dict | None = Body(None, embed=True), backtest: dict | None = Body(None, embed=True)):
+        user_id = member(request)["id"]
+        allow(request)
+        try:
+            current = engine.check(draft) if draft else None
+            got = chat.ask(user_id, current, message, history, mode="create", backtest=backtest, checker=checked)
+        except engine.Refused as exc:
+            return refused(exc)
+        except ChatOff as exc:
+            raise HTTPException(503, str(exc)) from None
+        except MarketUnavailable as exc:
+            market_down(exc)
+        if got.get("proposal"):
+            try:
+                seen = bots.preview(got["proposal"])
+                got["rules"], got["holds"] = seen["rules"], seen["holds"]
+            except MarketUnavailable:
+                got["rules"] = engine.describe(got["proposal"])
+        return {**got, "left": chat.left(user_id)}
+
+    @app.post("/api/bots/backtest")
+    def page_backtest(request: Request, bot: dict = Body(embed=True), years: int = Body(1, embed=True)):
+        """The agent's backtest, for the member's own draft on the page: a simulation of the past."""
+        user_id = member(request)["id"]
+        allow(request)
+        if not backtesting.allow(user_id):
+            raise HTTPException(429, f"That is {BOT_BACKTESTS_PER_USER_PER_HOUR} backtests and previews in an hour. Try again later.")
+        try:
+            return bots.backtest(bot, years)
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+
+    @app.put("/api/bots/mine")
+    def send_in(request: Request, bot: dict = Body(embed=True)):
+        """Send in the bot made on the page, as the agent does with its key: it replaces any bot the
+        member had, and its record starts at the next close."""
+        user = member(request)
+        allow(request)
+        if not sending.allow(user["id"]):
+            raise HTTPException(429, f"That is {BOT_SUBMISSIONS_PER_USER_PER_DAY} bots sent in a day. Try again tomorrow.")
+        try:
+            mine = bots.submit(user["id"], bot, user.get("name"))
+        except engine.Refused as exc:
+            return refused(exc)
+        except MarketUnavailable as exc:
+            market_down(exc)
+        log.info("bot sent in from the page")
+        return mine
 
     @app.post("/api/bots/mine/chat")
     def chat_message(request: Request, message: str = Body(embed=True, max_length=2000), history: list = Body([], embed=True)):
@@ -350,11 +412,13 @@ def create_app(bot_store: BotStore | None = None,
             raise HTTPException(400, "There is no bot to change: send one in first.")
         current = {**doc, **(doc.get("pending") or {})}["spec"]
         try:
-            got = chat.ask(user_id, current, message, history)
+            got = chat.ask(user_id, current, message, history, checker=checked)
         except engine.Refused as exc:
             return refused(exc)
         except ChatOff as exc:
             raise HTTPException(503, str(exc)) from None
+        except MarketUnavailable as exc:
+            market_down(exc)
         if got.get("proposal"):
             got["rules"] = engine.describe(got["proposal"])
         return {**got, "left": chat.left(user_id)}

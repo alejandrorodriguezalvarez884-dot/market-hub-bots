@@ -52,6 +52,15 @@ export type MyBot = {
 export type Checked = { ok: boolean; bot: Bot; universe: number; rules: string[]; holds: Preview };
 export type ChatAnswer = { reply: string; proposal: Bot | null; rules?: string[]; problems?: string[]; left?: number };
 export type ChatStatus = { on: boolean; per_member_per_day: number; left?: number };
+// Building a bot on the page: Claude's answer with the proposal's rules in words and what it would hold.
+export type DraftAnswer = ChatAnswer & { holds?: Preview };
+// A backtest, for the owner of a draft: a simulation of the past (engine.Bots.backtest).
+export type Side = { total_return: number; annual_return: number | null; volatility: number | null; max_drawdown: number };
+export type Backtest = {
+  start: string; end: string; sessions: number; universe: number; rules: string[]; bot: Side; benchmark: Side & { ticker: string };
+  months: { month: string; return: number; benchmark: number }[]; turnover_per_year: number; costs_per_year: number;
+  holdings: Holding[]; cash: number; curve: { date: string; bot: number; benchmark: number }[]; notes: string[];
+};
 export type Key = { created_utc: string; used_utc: string | null };
 export type Overview = { you: MyBot | null; key: Key | null; name: string; stale: boolean };
 

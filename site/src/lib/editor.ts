@@ -30,6 +30,9 @@ export type EditorOptions = {
   blocked: string | null; // why new rules cannot be applied today, if they cannot
   apply: (bot: Bot) => Promise<void>;
   back: () => void;
+  applyLabel?: string; // "Apply at the next close" by default
+  note?: string; // under the button, when nothing blocks it
+  backLabel?: string;
 };
 
 function group(title: string, hint: string | null, ...body: (Node | null)[]): HTMLElement {
@@ -47,7 +50,7 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
   const map = h("div");
   const mapNote = h("p", "mt-2 text-[12px] text-faint");
   const problem = h("p", "mt-3 hidden text-[12.5px] text-warn");
-  const apply = h("button", "btn btn-primary w-full", "Apply at the next close");
+  const apply = h("button", "btn btn-primary w-full", o.applyLabel ?? "Apply at the next close");
   apply.type = "button";
   // On a phone what changes is under every group: a bar at the foot keeps the count and the button.
   const count = h("span", "min-w-0 flex-1 text-[13px] text-ink");
@@ -225,14 +228,14 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
     } catch (e) {
       problem.textContent = e instanceof Error ? e.message : "That did not work.";
       problem.classList.remove("hidden");
-      apply.textContent = "Apply at the next close";
+      apply.textContent = o.applyLabel ?? "Apply at the next close";
       apply.disabled = false;
     }
   });
 
   map.append(treemap(o.now, null, { small: true }));
-  mapNote.textContent = "What it holds now. Move a control to see what it would hold.";
-  const back = h("button", "back-btn", "← The simple way");
+  mapNote.textContent = o.applyLabel ? "What it would hold now. Move a control to see it change." : "What it holds now. Move a control to see what it would hold.";
+  const back = h("button", "back-btn", o.backLabel ?? "← The simple way");
   back.type = "button";
   back.addEventListener("click", o.back);
   draw();
@@ -244,6 +247,6 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
         h("p", "label pb-2", "What changes"), words,
         add(h("div", "mt-5"), h("p", "label pb-2", "What it would hold"), map, mapNote),
         add(h("div", "mt-5"), apply, problem,
-          h("p", "mt-2 text-[12px] text-faint", o.blocked ?? "From the next close, once a day. Its record goes on.")))),
+          h("p", "mt-2 text-[12px] text-faint", o.blocked ?? o.note ?? "From the next close, once a day. Its record goes on.")))),
     add(h("div", "adv-bar lg:hidden"), count, applyBar));
 }

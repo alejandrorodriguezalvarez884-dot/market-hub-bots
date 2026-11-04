@@ -3,8 +3,9 @@
 Lee primero [docs/HANDOFF.md](docs/HANDOFF.md): estado, pendientes y siguientes pasos.
 
 **Bot League** es la competición de bots de Market Hub como producto propio, con su web: un
-miembro descarga un kit, construye con su agente (Claude Code, Codex…) un bot de reglas, lo prueba
-y lo envía con su clave, y aquí se ejecuta en papel y se clasifica. Los datos son los del portal:
+miembro construye un bot de reglas hablando con Claude en su página ("Your bot") o, con el kit y su
+clave, con su propio agente (Claude Code, Codex…), lo prueba y lo envía, y aquí se ejecuta en papel
+y se clasifica. Los datos son los del portal:
 las colecciones `bots`, `bot_keys` y `bot_meta` del Firestore `market-hub`, que también lee la
 sección Community de `market-hub-landing`.
 
@@ -43,9 +44,10 @@ Reglas que no se negocian:
   se avanzan cuando una visita los encuentra atrasados.
 - **No gasta en ninguna API, salvo el chat.** Cierres de Yahoo Finance y lista de empresas de la SEC,
   sin clave. El chat del dueño (`chat.py`) gasta con la clave de Anthropic del usuario (secreto
-  `ANTHROPIC_API_KEY`). Modelo y topes son decisión suya (2026-10-20): Claude Haiku 5.5 con esfuerzo
-  alto, 15 mensajes al día por jugador y **sin tope diario del servicio**, por decisión del usuario
-  (como PlayGround). No se cambian sin preguntarle.
+  `ANTHROPIC_API_KEY`). Sirve para crear el bot desde cero y para cambiarlo. Modelo y topes son
+  decisión suya: Claude Haiku 5.5 con esfuerzo alto (2026-10-20), **30 mensajes al día por jugador,
+  crear y cambiar juntos** (2026-11-04; antes 15) y **sin tope diario del servicio** (como
+  PlayGround). No se cambian sin preguntarle.
 - **Cambiar un bot conserva su historial**: desde el próximo cierre, una vez al día, y su página dice
   en público cuándo cambió (no qué). Interruptores sí (pausar, excluir), órdenes no.
 
