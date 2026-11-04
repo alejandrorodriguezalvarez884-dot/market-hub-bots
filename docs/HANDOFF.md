@@ -18,6 +18,14 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **Probado en producción con Haiku de verdad**, con la sesión del usuario en su Chrome ("Build a new one with
+> Claude", sin enviar: "Bag holder" sigue igual). Dos mensajes en español: Claude contestó en español, propuso un bot entero
+> que pasó las comprobaciones a la primera (5 reglas, 10 valores) y, tras un backtest a 1 año, lo comentó como simulación del
+> pasado, avisó de la rotación y del coste de mirarlo cada semana, y aplicó el cambio (antes → después bien). **Pendiente:
+> la primera respuesta tardó ~50 s** con la instancia en frío: Claude contestó en ~15 s y el resto fue la vista previa
+> bajando de Yahoo los cierres del universo; el segundo mensaje, ~15 s. Arreglo posible: devolver la respuesta de Claude
+> enseguida y pedir el mapa aparte.
+
 > 2026-11-04: **Desplegado** `bot-league-00009-l94` desde un export limpio de 2a42479 (crear el bot hablando con Claude y la
 > revisión visual), con el OK del usuario. La configuración cambia solo en `BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY` (15 → 30);
 > recursos, secretos y demás variables, iguales. Comprobado: páginas y salud en 200, la portada nueva, el chat de creación
