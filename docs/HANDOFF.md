@@ -18,6 +18,11 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **Desplegado** `bot-league-00009-l94` desde un export limpio de 2a42479 (crear el bot hablando con Claude y la
+> revisión visual), con el OK del usuario. La configuración cambia solo en `BOTLEAGUE_CHAT_PER_MEMBER_PER_DAY` (15 → 30);
+> recursos, secretos y demás variables, iguales. Comprobado: páginas y salud en 200, la portada nueva, el chat de creación
+> pide sesión (401) y un envío desde otro origen se rechaza (403). Falta un mensaje real con la sesión del usuario.
+
 > 2026-11-04: **Revisión para que la web sea más intuitiva y visual** (sin desplegar). El usuario lo pidió tras lo de
 > crear desde la web. La entrada principal ya no es el kit sino hablar con Claude en la web:
 > - **Portada**: "Tell Claude your idea. The market keeps score."; botón "Build your bot, it's free" (a `/me/`); los tres
