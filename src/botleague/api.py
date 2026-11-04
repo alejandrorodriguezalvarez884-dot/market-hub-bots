@@ -53,7 +53,7 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import engine
+from . import engine, es
 from .chat import Chat, ChatOff, FileLedger, FirestoreLedger, MemoryLedger, Scripted
 from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, CHAT_ENABLED, PER_IP_PER_HOUR, PUBLIC_BOARD,
                      SAMPLE, SWITCHES_PER_USER_PER_DAY)
@@ -155,7 +155,7 @@ def create_app(bot_store: BotStore | None = None,
             origin = request.headers.get("origin")
             host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
             if origin not in {f"{request.url.scheme}://{request.url.netloc}", f"https://{host}", *origins}:
-                return JSONResponse({"detail": "Cross-site request refused."}, status_code=403)
+                return JSONResponse({"detail": es.say("Cross-site request refused.", es.lang_of(request))}, status_code=403)
         response = await call_next(request)
         if request.url.path.startswith("/api/") and "cache-control" not in response.headers:
             response.headers["Cache-Control"] = "no-store"
@@ -175,15 +175,18 @@ def create_app(bot_store: BotStore | None = None,
             raise HTTPException(401, detail={"detail": "Sign in with your account on The Market Hub.", "signin": gate.signin_url(request)})
         return user
 
-    def refused(exc: engine.Refused) -> JSONResponse:
-        return JSONResponse({"detail": str(exc), "problems": exc.problems}, status_code=400)
+    def refused(exc: engine.Refused, request: Request) -> JSONResponse:
+        """A bot or a request that cannot be taken: every reason, in the page's language."""
+        problems = es.problems(exc.problems, es.lang_of(request))
+        return JSONResponse({"detail": " ".join(problems), "problems": problems}, status_code=400)
 
     def market_down(exc: MarketUnavailable):
         raise HTTPException(503, str(exc)) from None
 
     @app.exception_handler(HTTPException)
     async def flat_detail(request: Request, exc: HTTPException):
-        body = exc.detail if isinstance(exc.detail, dict) else {"detail": exc.detail}
+        body = dict(exc.detail) if isinstance(exc.detail, dict) else {"detail": exc.detail}
+        body["detail"] = es.say(body.get("detail"), es.lang_of(request))
         return JSONResponse(body, status_code=exc.status_code, headers={"Cache-Control": "no-store"})
 
     # --- Open to everyone ---
@@ -201,7 +204,8 @@ def create_app(bot_store: BotStore | None = None,
     @app.get("/api/board")
     def board(request: Request) -> dict:
         allow(request)
-        return league.board(gate.user(request))
+        out = league.board(gate.user(request))
+        return {**out, "periods": es.periods(out["periods"], es.lang_of(request))}
 
     @app.post("/api/board/refresh")
     def refresh_board(request: Request) -> dict:
@@ -220,7 +224,7 @@ def create_app(bot_store: BotStore | None = None,
                 raise HTTPException(401, detail={"detail": "Members' bots are seen by members: sign in with your account on The Market Hub.",
                                                  "signin": gate.signin_url(request)})
             raise HTTPException(404, "There is no such bot.")
-        return page
+        return es.rules(page, es.lang_of(request))
 
     # --- The member's own ---
 
@@ -230,7 +234,9 @@ def create_app(bot_store: BotStore | None = None,
         allow(request)
         # The bot is shown under the first name of the account the member signed in with.
         bots.sync_player(user["id"], user.get("name"))
-        return bots.overview(user["id"])
+        lang = es.lang_of(request)
+        out = es.rules(bots.overview(user["id"]), lang)
+        return {**out, "periods": es.periods(out["periods"], lang)}
 
     @app.post("/api/bots/refresh")
     def refresh_bots(request: Request) -> dict:
@@ -280,9 +286,9 @@ def create_app(bot_store: BotStore | None = None,
         if not backtesting.allow(user_id):
             raise HTTPException(429, f"That is {BOT_BACKTESTS_PER_USER_PER_HOUR} previews in an hour. Try again later.")
         try:
-            return bots.preview(bot)
+            return es.rules(bots.preview(bot), es.lang_of(request))
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
 
@@ -294,11 +300,11 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = bots.edit(user_id, bot)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot rules changed")
-        return mine
+        return es.rules(mine, es.lang_of(request))
 
     @app.put("/api/bots/mine/name")
     def rename(request: Request, name: str = Body(embed=True, max_length=200), about: str | None = Body(None, embed=True, max_length=1000)):
@@ -308,9 +314,9 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = bots.rename(user_id, name, about)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         log.info("bot renamed")
-        return mine
+        return es.rules(mine, es.lang_of(request))
 
     @app.post("/api/bots/mine/switch")
     def switch(request: Request, action: str = Body(embed=True, max_length=10), ticker: str | None = Body(None, embed=True, max_length=12)):
@@ -320,11 +326,11 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = bots.switch(user_id, action, ticker)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot switch: %s", action if action in ("pause", "resume", "exclude", "include") else "?")
-        return mine
+        return es.rules(mine, es.lang_of(request))
 
     @app.delete("/api/bots/mine/pending")
     def cancel(request: Request):
@@ -334,15 +340,21 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = cancel_pending(bots, user_id)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot change cancelled")
-        return mine
+        return es.rules(mine, es.lang_of(request))
 
     def checked(raw) -> dict:
         """A bot Claude proposed, checked as one sent in is: its rules and its universe."""
         return bots.check(raw)["bot"]
+
+    def spoken(got: dict, lang: str, user_id: str) -> dict:
+        """The chat's answer for the page: the problems the code found, in the page's language."""
+        if got.get("problems"):
+            got["problems"] = es.problems(got["problems"], lang)
+        return {**got, "left": chat.left(user_id)}
 
     @app.get("/api/bots/chat")
     def chat_status(request: Request) -> dict:
@@ -355,11 +367,12 @@ def create_app(bot_store: BotStore | None = None,
                    draft: dict | None = Body(None, embed=True), backtest: dict | None = Body(None, embed=True)):
         user_id = member(request)["id"]
         allow(request)
+        lang = es.lang_of(request)
         try:
             current = engine.check(draft) if draft else None
-            got = chat.ask(user_id, current, message, history, mode="create", backtest=backtest, checker=checked)
+            got = chat.ask(user_id, current, message, history, mode="create", backtest=backtest, checker=checked, lang=lang)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except ChatOff as exc:
             raise HTTPException(503, str(exc)) from None
         except MarketUnavailable as exc:
@@ -370,7 +383,9 @@ def create_app(bot_store: BotStore | None = None,
                 got["rules"], got["holds"] = seen["rules"], seen["holds"]
             except MarketUnavailable:
                 got["rules"] = engine.describe(got["proposal"])
-        return {**got, "left": chat.left(user_id)}
+            if lang == "es":
+                got["rules"] = engine.describe(got["proposal"], lang=lang)
+        return spoken(got, lang, user_id)
 
     @app.post("/api/bots/backtest")
     def page_backtest(request: Request, bot: dict = Body(embed=True), years: int = Body(1, embed=True)):
@@ -380,11 +395,15 @@ def create_app(bot_store: BotStore | None = None,
         if not backtesting.allow(user_id):
             raise HTTPException(429, f"That is {BOT_BACKTESTS_PER_USER_PER_HOUR} backtests and previews in an hour. Try again later.")
         try:
-            return bots.backtest(bot, years)
+            out = bots.backtest(bot, years)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
+        lang = es.lang_of(request)
+        if lang == "es":
+            out.update(rules=engine.describe(engine.check(bot), lang=lang), notes=[es.say(n, lang) for n in out["notes"]])
+        return out
 
     @app.put("/api/bots/mine")
     def send_in(request: Request, bot: dict = Body(embed=True)):
@@ -397,11 +416,11 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = bots.submit(user["id"], bot, user.get("name"))
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot sent in from the page")
-        return mine
+        return es.rules(mine, es.lang_of(request))
 
     @app.post("/api/bots/mine/chat")
     def chat_message(request: Request, message: str = Body(embed=True, max_length=2000), history: list = Body([], embed=True)):
@@ -411,17 +430,18 @@ def create_app(bot_store: BotStore | None = None,
         if not doc:
             raise HTTPException(400, "There is no bot to change: send one in first.")
         current = {**doc, **(doc.get("pending") or {})}["spec"]
+        lang = es.lang_of(request)
         try:
-            got = chat.ask(user_id, current, message, history, checker=checked)
+            got = chat.ask(user_id, current, message, history, checker=checked, lang=lang)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except ChatOff as exc:
             raise HTTPException(503, str(exc)) from None
         except MarketUnavailable as exc:
             market_down(exc)
         if got.get("proposal"):
-            got["rules"] = engine.describe(got["proposal"])
-        return {**got, "left": chat.left(user_id)}
+            got["rules"] = engine.describe(got["proposal"], lang=lang)
+        return spoken(got, lang, user_id)
 
     # --- The member's agent ---
 
@@ -436,7 +456,8 @@ def create_app(bot_store: BotStore | None = None,
     @app.get("/api/bot/spec")
     def spec(request: Request) -> dict:
         allow(request)
-        return engine.spec()
+        # The kit's agent sends no language and gets the engine's own; the Rules page asks in its own.
+        return es.spec(es.lang_of(request))
 
     @app.post("/api/bot/check")
     def check(request: Request, bot: dict = Body(embed=True)):
@@ -444,7 +465,7 @@ def create_app(bot_store: BotStore | None = None,
         try:
             return bots.check(bot)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
 
@@ -456,7 +477,7 @@ def create_app(bot_store: BotStore | None = None,
         try:
             return bots.backtest(bot, years)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
 
@@ -468,7 +489,7 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = bots.submit(user_id, bot)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot sent in")
@@ -481,7 +502,7 @@ def create_app(bot_store: BotStore | None = None,
         try:
             mine = bots.edit(user_id, bot)
         except engine.Refused as exc:
-            return refused(exc)
+            return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot rules changed by the agent")

@@ -1,4 +1,7 @@
 // What the API answers (src/botleague/league.py and engine.py).
+import { lang } from "../i18n";
+import { common } from "../i18n/common";
+
 export type Period = "1d" | "1w" | "1m" | "1y" | "all";
 export type Returns = Record<Period, number | null>;
 export type Holding = { ticker: string; weight: number }; // weight as a fraction
@@ -70,11 +73,16 @@ export type Spec = {
   rebalance: string[]; weighting: string[]; backtest_years: { min: number; max: number };
 };
 
-export const PERIODS: { key: Period; label: string; long: string }[] = [
-  { key: "1d", label: "Day", long: "the last session" },
-  { key: "1w", label: "Week", long: "the last 5 sessions" },
-  { key: "1m", label: "Month", long: "the last 21 sessions" },
-  { key: "1y", label: "Year", long: "the last 252 sessions" },
-  { key: "all", label: "Since start", long: "since each bot started" },
-];
+// The periods of the board. Their words are read when used, so they follow the page's language
+// (i18n/common.ts); the shape stays { key, label, long }.
+const period = (key: Period) => ({
+  key,
+  get label(): string {
+    return common[lang()].periods[key].label;
+  },
+  get long(): string {
+    return common[lang()].periods[key].long;
+  },
+});
+export const PERIODS: { key: Period; readonly label: string; readonly long: string }[] = (["1d", "1w", "1m", "1y", "all"] as Period[]).map(period);
 export const digits = (p: Period) => (p === "1d" ? 2 : 1);

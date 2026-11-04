@@ -1,5 +1,8 @@
 // Tiny DOM helpers. Everything that comes from the API or the address bar goes in as text, never
 // as markup.
+import { lang } from "../i18n";
+import { common } from "../i18n/common";
+
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -46,7 +49,7 @@ export const toneOf = (v: number | null | undefined): "up" | "down" | "" =>
 // here and its latest results release in the Earnings Radar.
 export function companyTabs(links: { label: string; href: string; current?: boolean }[]): HTMLElement {
   const nav = h("nav", "tabs");
-  nav.setAttribute("aria-label", "This company in Market Hub");
+  nav.setAttribute("aria-label", common[lang()].companyTabs);
   for (const l of links) {
     const a = h("a", "tab-btn", l.label);
     a.href = l.href;

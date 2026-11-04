@@ -49,7 +49,16 @@ SCHEMA = {
 }
 
 
-def system_prompt() -> str:
+# The page's language steers the chat: in Spanish, Claude answers in Spanish of Spain whatever the
+# member writes in. The demo's Scripted reads the same line to answer in Spanish.
+SPANISH = '- The page is in Spanish: answer in Spanish of Spain, with "tú", short and plain. A new "name" and "about" may be in Spanish too.'
+
+
+def _in(lang: str) -> str:
+    return f"\n{SPANISH}" if lang == "es" else ""
+
+
+def system_prompt(lang: str = "en") -> str:
     return f"""You help a member of Bot League change the rules of their trading bot, which runs on paper (no money, no broker, no orders) in a competition. The bot is a JSON file in the format "markethub-bot/1". This is what the format allows, as JSON:
 
 {json.dumps(engine.spec(), indent=1)}
@@ -62,10 +71,10 @@ How to answer:
 - The format has no sectors or industries: it chooses among the largest US companies by figures worked out from prices. If asked for something it cannot express (a sector, fundamentals, news), say so and offer the closest rule, or leave "bot" empty.
 - Pausing the bot and leaving one company out or letting it back in are switches on the page, not rules: point the member to them instead of changing the rules for that.
 - Never tell the member to buy or sell anything with their own money, never promise returns, and never present a change as a forecast. You describe what a rule does; the member decides.
-- Answer in the member's language, briefly."""
+- Answer in the member's language, briefly.{_in(lang)}"""
 
 
-def create_prompt() -> str:
+def create_prompt(lang: str = "en") -> str:
     examples = "\n".join(json.dumps(b) for b in engine.examples())
     return f"""You help a member of Bot League build their trading bot from scratch, in a chat on its website, as their own AI agent would with Bot League's kit. The bot runs on paper (no money, no broker, no orders) in a public competition, ranked from the close after it is sent in, over the day, week, month, year and since it started. It is a JSON file in the format "markethub-bot/1". This is what the format allows, as JSON:
 
@@ -85,7 +94,28 @@ How to go about it:
 - The format has no sectors, fundamentals or news: it chooses among the largest US companies by figures worked out from prices. If asked for something it cannot express, say so and offer the closest rule.
 - The member sends the bot in with a button on the page, when they decide; you cannot send it. When they seem happy, tell them that the button is there, that the public board shows the bot with the first name of their account, that its rules stay theirs alone, and that it starts at the next close.
 - Never tell the member to buy or sell anything with their own money, never promise returns, and never present a bot or a backtest as a forecast or a recommendation. You describe what a rule does; the member decides.
-- Answer in the member's language, briefly: at most five short sentences in "reply"."""
+- Answer in the member's language, briefly: at most five short sentences in "reply".{_in(lang)}"""
+
+
+# What chat.py itself tells the member, in the page's language.
+WORDS = {
+    "en": {"off": "The chat is not switched on yet. Use the editor.",
+           "member_cap": "That is {n} messages today. The editor still works; the chat is back tomorrow.",
+           "service_cap": "The chat has reached today's limit for everyone. The editor still works; the chat is back tomorrow.",
+           "failed": "The chat could not answer just now. Try again in a minute.",
+           "unread": "I could not put that into rules. Try saying it another way.",
+           "refusal": "I can't help with that one. Try putting it as a rule for the bot."},
+    "es": {"off": "El chat aún no está activado. Usa el editor.",
+           "member_cap": "Ya llevas {n} mensajes hoy. El editor sigue funcionando; el chat vuelve mañana.",
+           "service_cap": "El chat ha llegado al límite de hoy para todos. El editor sigue funcionando; el chat vuelve mañana.",
+           "failed": "El chat no ha podido contestar ahora mismo. Vuelve a intentarlo en un minuto.",
+           "unread": "No he podido convertir eso en reglas. Prueba a decirlo de otra forma.",
+           "refusal": "Con eso no puedo ayudarte. Prueba a plantearlo como una regla para el bot."},
+}
+
+
+def _say(key: str, lang: str, **values) -> str:
+    return WORDS["es" if lang == "es" else "en"][key].format(**values)
 
 
 FIX = "The code refused that bot: {problems} Send the whole bot again, fixed, in \"bot\", and keep the reply."
@@ -205,17 +235,17 @@ class Chat:
     def _day(self) -> str:
         return self.now().strftime("%Y-%m-%d")
 
-    def _reserve(self, user_id: str) -> None:
+    def _reserve(self, user_id: str, lang: str = "en") -> None:
         if not self.enabled:
-            raise ChatOff("The chat is not switched on yet. Use the editor.")
+            raise ChatOff(_say("off", lang))
         with self._lock:
             asked = self._recent(user_id)
             if len(asked) >= self.per_member:
-                raise ChatOff(f"That is {self.per_member} messages today. The editor still works; the chat is back tomorrow.")
+                raise ChatOff(_say("member_cap", lang, n=self.per_member))
             if self.daily_max is not None:
                 spent = (self.ledger.get() or {}).get("days", {}).get(self._day(), 0.0)
                 if spent + self.request_max > self.daily_max:
-                    raise ChatOff("The chat has reached today's limit for everyone. The editor still works; the chat is back tomorrow.")
+                    raise ChatOff(_say("service_cap", lang))
             asked.append(time.monotonic())
 
     def _book(self, usd: float) -> None:
@@ -229,11 +259,12 @@ class Chat:
             self.ledger.put(doc)
 
     def ask(self, user_id: str, bot: dict | None, message: str, history: list | None = None, mode: str = "change",
-            backtest: dict | None = None, checker: Callable[[object], dict] = engine.check) -> dict:
+            backtest: dict | None = None, checker: Callable[[object], dict] = engine.check, lang: str = "en") -> dict:
         """Claude's reply to the member and, when it proposes one, the bot checked by the code (or the
         problems the code still found in it after Claude had one go at fixing them). ``bot`` is the
         member's bot when changing it, and the draft so far (or None) when creating one. ``checker``
-        returns the checked bot or raises Refused; the site's also checks the bot's universe."""
+        returns the checked bot or raises Refused; the site's also checks the bot's universe. ``lang`` is
+        the page's: "es" has Claude answer in Spanish, and what this module says is in Spanish too."""
         if mode not in MODES:
             raise engine.Refused("Unknown chat.")
         message = " ".join(str(message or "").split())
@@ -245,18 +276,18 @@ class Chat:
                 turns.append({"role": t["role"], "content": t["text"][:TURN_MAX]})
         while turns and turns[0]["role"] != "user":
             turns.pop(0)
-        self._reserve(user_id)
+        self._reserve(user_id, lang)
         if mode == "change":
-            content, system = f"My bot now:\n{json.dumps(bot, indent=1)}\n\nMy instruction: {message}", system_prompt()
+            content, system = f"My bot now:\n{json.dumps(bot, indent=1)}\n\nMy instruction: {message}", system_prompt(lang)
         else:
             draft = f"My draft so far:\n{json.dumps(bot, indent=1)}" if bot else "I have no draft yet."
             seen = figures(backtest) if bot else None
             content = draft + (f"\n\nThe backtest of this draft I see on the page: {seen}" if seen else "") + f"\n\nI say: {message}"
-            system = create_prompt()
+            system = create_prompt(lang)
         messages = [*turns, {"role": "user", "content": content}]
-        got = self._call(system, messages)
+        got = self._call(system, messages, lang)
         if got is None or isinstance(got, str):
-            return {"reply": got or "I could not put that into rules. Try saying it another way.", "proposal": None}
+            return {"reply": got or _say("unread", lang), "proposal": None}
         reply, raw = got
         if not raw:
             return {"reply": reply, "proposal": None}
@@ -264,7 +295,7 @@ class Chat:
         if problems:
             # One go at fixing it, as an agent does after `check`: the member sees a bot that passed, or the problems.
             again = self._call(system, [*messages, {"role": "assistant", "content": json.dumps({"reply": reply, "bot": raw})},
-                                        {"role": "user", "content": FIX.format(problems=" ".join(problems))}])
+                                        {"role": "user", "content": FIX.format(problems=" ".join(problems))}], lang)
             if isinstance(again, tuple) and again[1]:
                 fixed, still = self._checked(again[1], checker)
                 if not still:
@@ -279,7 +310,7 @@ class Chat:
         except ValueError as exc:  # not JSON, or Refused (a ValueError) with its problems
             return None, exc.problems if isinstance(exc, engine.Refused) else ["The proposal was not valid JSON."]
 
-    def _call(self, system: str, messages: list[dict]) -> tuple[str, str] | str | None:
+    def _call(self, system: str, messages: list[dict], lang: str = "en") -> tuple[str, str] | str | None:
         """One call to Claude, booked: (reply, bot as JSON or "") or, when it gives no such answer, a
         reply for the member (a refusal) or None (no answer that can be read)."""
         params = dict(model=self.model, max_tokens=8000, system=system, messages=messages,
@@ -292,11 +323,11 @@ class Chat:
                 response = self.client.messages.create(**params)
         except Exception as exc:  # the SDK's own errors; their text is not shown
             log.warning("chat call failed: %s", type(exc).__name__)
-            raise ChatOff("The chat could not answer just now. Try again in a minute.") from None
+            raise ChatOff(_say("failed", lang)) from None
         usage = getattr(response, "usage", None)
         self._book(cost_usd(self.model, getattr(usage, "input_tokens", 0) or 0, getattr(usage, "output_tokens", 0) or 0))
         if getattr(response, "stop_reason", None) == "refusal":
-            return "I can't help with that one. Try putting it as a rule for the bot."
+            return _say("refusal", lang)
         text = next((b.text for b in response.content if getattr(b, "type", "") == "text"), "")
         try:
             got = json.loads(text)
@@ -308,7 +339,8 @@ class Chat:
 class Scripted:
     """Anthropic's API as `make demo` answers it: a few instructions done by rule, nothing spent, no
     network. It sees what the real one sees (the bot and the instruction) and answers in the same
-    shape. Only for BOTLEAGUE_SAMPLE=1 with the real chat off."""
+    shape, in Spanish when the system prompt says the page is. It takes instructions in English and
+    in Spanish. Only for BOTLEAGUE_SAMPLE=1 with the real chat off."""
 
     def __init__(self):
         self.messages = self
@@ -316,65 +348,119 @@ class Scripted:
     def create(self, **params):
         from types import SimpleNamespace as NS
 
+        lang = "es" if SPANISH in params.get("system", "") else "en"
         last = params["messages"][-1]["content"]
         if "\n\nI say: " in last:  # creating a bot
             head, _, said = last.partition("\n\nI say: ")
             draft = head.partition("\n\nThe backtest")[0]
             bot = json.loads(draft.removeprefix("My draft so far:\n")) if draft.startswith("My draft") else None
-            reply, changed = self.build(bot, said.lower(), "\n\nThe backtest" in head)
+            reply, changed = self.build(bot, said.lower(), "\n\nThe backtest" in head, lang)
         else:
             head, _, said = last.partition("\n\nMy instruction: ")
             bot = json.loads(head.removeprefix("My bot now:\n"))
-            reply, changed = self.answer(bot, said.lower())
+            reply, changed = self.answer(bot, said.lower(), lang)
         text = json.dumps({"reply": reply, "bot": json.dumps(changed) if changed else ""})
         return NS(stop_reason="end_turn", usage=NS(input_tokens=0, output_tokens=0), content=[NS(type="text", text=text)])
 
-    IDEAS = (("momentum", "Twelve-month momentum"), ("rose the most", "Twelve-month momentum"), ("trend", "Trend follower"),
-             ("calm", "Calm compounders"), ("volatil", "Calm compounders"), ("quiet", "Calm compounders"),
-             ("pullback", "Pullbacks in uptrends"), ("dip", "Pullbacks in uptrends"), ("high", "Near the highs"),
-             ("megacap", "Megacap rotation"), ("biggest", "Megacap rotation"))
+    IDEAS = (("momentum", "Twelve-month momentum"), ("rose the most", "Twelve-month momentum"), ("más ha subido", "Twelve-month momentum"),
+             ("trend", "Trend follower"), ("tendencia", "Trend follower"),
+             ("calm", "Calm compounders"), ("volatil", "Calm compounders"), ("quiet", "Calm compounders"), ("tranquil", "Calm compounders"),
+             ("pullback", "Pullbacks in uptrends"), ("dip", "Pullbacks in uptrends"), ("retroceso", "Pullbacks in uptrends"),
+             ("high", "Near the highs"), ("máximo", "Near the highs"),
+             ("megacap", "Megacap rotation"), ("biggest", "Megacap rotation"), ("más grandes", "Megacap rotation"))
+    # The kit's examples, named and told in Spanish for a Spanish page.
+    EXAMPLES_ES = {
+        "Twelve-month momentum": ("Momentum de doce meses", "Mantiene las 20 grandes empresas que más han subido en el último año, sin contar el último mes. Revisa la cartera cada mes."),
+        "Trend follower": ("Seguidor de tendencia", "Grandes empresas por encima de su media de 200 sesiones, las más fuertes de los últimos seis meses. Pasa a liquidez cuando el S&P 500 está por debajo de su propia media de 200 sesiones."),
+        "Calm compounders": ("Tranquilas y constantes", "Las 25 menos volátiles de las 200 mayores empresas, con más peso para las más tranquilas."),
+        "Pullbacks in uptrends": ("Retrocesos en tendencia", "Acciones en una larga tendencia alcista que acaban de caer con fuerza: el RSI a corto plazo más bajo entre las que están por encima de su media de 200 sesiones."),
+        "Near the highs": ("Cerca de máximos", "Grandes empresas a menos de un 5 % de su máximo de un año, con la media corta por encima de la larga; primero las más cercanas al máximo."),
+        "Megacap rotation": ("Rotación de gigantes", "Entre una docena de las mayores empresas, mantiene las cuatro con mejor movimiento a tres meses, con más peso para las mejor puntuadas."),
+    }
+    WORDS = {
+        "en": {"ask_idea": ("Happy to build it with you. How would you like it to pick stocks: what has risen the most "
+                            "(momentum), only what is in an uptrend, the calmest ones, or the ones that just dipped in an uptrend?"),
+               "first_go": ("Here is a first go: {about} Look at what it would hold, run a backtest if you like, "
+                            "and tell me what to change: fewer or more stocks, how often it looks again, or calmer."),
+               "tested": ("That is a simulation of the past among today's largest companies, which flatters it. Compare its worst "
+                          "fall with the S&P 500's: if it is deeper than you would sit through, ask me to make it calmer."),
+               "ready": ("When you are ready, press Send it in. The board shows it with the first name of your account, its rules "
+                         "stay yours, and it starts at the next close."),
+               "defensive": ("More defensive: it also prefers the calmer stocks, gives the calmer ones more, and holds cash "
+                             "while the S&P 500 is under its 200-session average."),
+               "fewer": "Fewer stocks: it holds the best {new} instead of {old}.",
+               "more": "More stocks: it holds the best {new} instead of {old}.",
+               "daily": "It looks again at every close from now on.", "weekly": "It looks again once a week from now on.",
+               "monthly": "It looks again once a month from now on.",
+               "pause": ("Pausing is a switch on the page, not a rule: press Pause, and it holds cash from the next close "
+                         "until you let it run again."),
+               "sectors": ("The rules have no sectors: the bot chooses by figures worked out from prices. You can leave single "
+                           "companies out with the switch below, or choose from a list of tickers in the advanced editor."),
+               "what": "What would you like to change: how many stocks it holds, how calm they are, or how often it looks again?"},
+        "es": {"ask_idea": ("Encantado de construirlo contigo. ¿Cómo quieres que elija las acciones: lo que más ha subido "
+                            "(momentum), solo lo que está en tendencia alcista, las más tranquilas o las que acaban de caer dentro de una tendencia alcista?"),
+               "first_go": ("Aquí tienes una primera versión: {about} Mira lo que tendría, haz un backtest si quieres "
+                            "y dime qué cambiar: menos o más acciones, cada cuánto revisa la cartera o más tranquilo."),
+               "tested": ("Es una simulación del pasado entre las mayores empresas de hoy, lo que la favorece. Compara su peor "
+                          "caída con la del S&P 500: si es más profunda de lo que aguantarías, pídeme que lo haga más tranquilo."),
+               "ready": ("Cuando quieras, pulsa Enviarlo. La clasificación lo muestra con el nombre de pila de tu cuenta, sus reglas "
+                         "siguen siendo tuyas y empieza en el próximo cierre."),
+               "defensive": ("Más defensivo: ahora también prefiere las acciones más tranquilas, les da más peso y pasa a liquidez "
+                             "mientras el S&P 500 está por debajo de su media de 200 sesiones."),
+               "fewer": "Menos acciones: mantiene las {new} mejores en vez de {old}.",
+               "more": "Más acciones: mantiene las {new} mejores en vez de {old}.",
+               "daily": "A partir de ahora revisa la cartera en cada cierre.", "weekly": "A partir de ahora revisa la cartera una vez a la semana.",
+               "monthly": "A partir de ahora revisa la cartera una vez al mes.",
+               "pause": ("Pausar es un interruptor de la página, no una regla: pulsa Pausar y pasará a liquidez desde el próximo "
+                         "cierre hasta que lo reanudes."),
+               "sectors": ("Las reglas no tienen sectores: el bot elige por cifras sacadas de los precios. Puedes dejar fuera "
+                           "empresas concretas con el interruptor de abajo, o elegir de una lista de tickers en el editor avanzado."),
+               "what": "¿Qué quieres cambiar: cuántas acciones mantiene, lo tranquilas que son o cada cuánto revisa la cartera?"},
+    }
+    REBALANCE = {"monthly": ("monthly", "cada mes", "mensual"), "weekly": ("weekly", "cada semana", "semanal"),
+                 "daily": ("daily", "cada día", "cada cierre", "diari")}
 
     @classmethod
-    def build(cls, draft: dict | None, said: str, tested: bool) -> tuple[str, dict | None]:
+    def build(cls, draft: dict | None, said: str, tested: bool, lang: str = "en") -> tuple[str, dict | None]:
         """Creating a bot: an idea picks the closest example; then it changes as `answer` does."""
+        w = cls.WORDS[lang]
         if draft is None:
-            name = next((n for w, n in cls.IDEAS if w in said), None)
+            name = next((n for k, n in cls.IDEAS if k in said), None)
             if not name:
-                return ("Happy to build it with you. How would you like it to pick stocks: what has risen the most "
-                        "(momentum), only what is in an uptrend, the calmest ones, or the ones that just dipped in an uptrend?"), None
+                return w["ask_idea"], None
             bot = next(b for b in engine.examples() if b["name"] == name)
-            return (f"Here is a first go: {bot['about']} Look at what it would hold, run a backtest if you like, "
-                    "and tell me what to change: fewer or more stocks, how often it looks again, or calmer."), bot
-        if tested and any(w in said for w in ("backtest", "how did", "think", "result")):
-            return ("That is a simulation of the past among today's largest companies, which flatters it. Compare its worst "
-                    "fall with the S&P 500's: if it is deeper than you would sit through, ask me to make it calmer."), None
-        if any(w in said for w in ("send", "ready", "done", "happy", "good")):
-            return ("When you are ready, press Send it in. The board shows it with the first name of your account, its rules "
-                    "stay yours, and it starts at the next close."), None
-        return cls.answer(draft, said)
+            if lang == "es" and name in cls.EXAMPLES_ES:
+                bot = {**bot, "name": cls.EXAMPLES_ES[name][0], "about": cls.EXAMPLES_ES[name][1]}
+            return w["first_go"].format(about=bot["about"]), bot
+        if tested and any(k in said for k in ("backtest", "how did", "think", "result", "qué tal", "qué te parece")):
+            return w["tested"], None
+        if any(k in said for k in ("send", "ready", "done", "happy", "good", "enviar", "envía", "listo", "contento", "me gusta")):
+            return w["ready"], None
+        return cls.answer(draft, said, lang)
 
-    @staticmethod
-    def answer(bot: dict, said: str) -> tuple[str, dict | None]:
+    @classmethod
+    def answer(cls, bot: dict, said: str, lang: str = "en") -> tuple[str, dict | None]:
+        w = cls.WORDS[lang]
         new = json.loads(json.dumps(bot))
-        if any(w in said for w in ("defensive", "safer", "calm", "risk")):
+        if any(k in said for k in ("defensive", "safer", "calm", "risk", "defensiv", "segur", "tranquil", "riesgo")):
             if not any(s["factor"] == "volatility" for s in new["score"]):
                 new["score"].append({"factor": "volatility", "days": 63, "weight": -1})
             new.setdefault("market", {"factor": "trend", "days": 200, "min": 0, "cash": 1})
             new["weighting"] = "inverse_volatility"
-            return ("More defensive: it also prefers the calmer stocks, gives the calmer ones more, and holds cash "
-                    "while the S&P 500 is under its 200-session average."), new
-        if "fewer" in said or "less stocks" in said:
+            return w["defensive"], new
+        if any(k in said for k in ("fewer", "less stocks", "menos acciones", "menos valores", "menos empresas")):
             new["hold"] = max(1, round(new["hold"] * 0.6))
             new["max_weight"] = max(new["max_weight"], round(1 / new["hold"] + 0.05, 2)) if new["max_weight"] < 1 else 1
-            return f"Fewer stocks: it holds the best {new['hold']} instead of {bot['hold']}.", new
-        if "more stocks" in said or "spread" in said:
+            return w["fewer"].format(new=new["hold"], old=bot["hold"]), new
+        if any(k in said for k in ("more stocks", "spread", "más acciones", "más valores", "más empresas", "diversific")):
             new["hold"] = min(engine.BOT_HOLD_MAX, new["hold"] + 5)
-            return f"More stocks: it holds the best {new['hold']} instead of {bot['hold']}.", new
-        for word in ("monthly", "weekly", "daily"):
-            if word in said:
-                new["rebalance"] = word
-                return f"It looks again {'at every close' if word == 'daily' else 'once a ' + word[:-2]} from now on.", new
-        if any(w in said for w in ("sector", "tech", "bank", "energy", "health")):
-            return ("The rules have no sectors: the bot chooses by figures worked out from prices. You can leave single "
-                    "companies out with the switch below, or choose from a list of tickers in the advanced editor."), None
-        return "What would you like to change: how many stocks it holds, how calm they are, or how often it looks again?", None
+            return w["more"].format(new=new["hold"], old=bot["hold"]), new
+        for rule, keys in cls.REBALANCE.items():
+            if any(k in said for k in keys):
+                new["rebalance"] = rule
+                return w[rule], new
+        if any(k in said for k in ("pause", "pausa")):
+            return w["pause"], None
+        if any(k in said for k in ("sector", "tech", "bank", "energy", "health", "tecnol", "banc", "energ", "salud")):
+            return w["sectors"], None
+        return w["what"], None

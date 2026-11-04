@@ -1,0 +1,309 @@
+---
+// The landing: what Bot League is, the board live as its first screen, how a bot is built by talking
+// to Claude on the site in three steps (and with one's own agent and the kit), what a bot is, who it
+// is for, the rules and the questions people ask. Its words are in i18n/home.ts.
+import Layout from "../layouts/Layout.astro";
+import { link } from "../lib/site";
+import type { Lang } from "../i18n";
+import { home } from "../i18n/home";
+
+interface Props {
+	lang: Lang;
+}
+const { lang } = Astro.props;
+const t = home[lang];
+const L = (path: string) => link(path, lang);
+
+// A bot of the kit (examples/trend-with-market-filter.json) and its rules as the service words them.
+const example = `{
+  "format": "markethub-bot/1",
+  "name": "${t.exampleName}",
+  "about": "${t.exampleAbout}",
+  "universe": { "largest": 300 },
+  "rebalance": "weekly",
+  "filters": [{ "factor": "trend", "days": 200, "min": 0 }],
+  "score": [{ "factor": "momentum", "days": 126, "skip": 5, "weight": 1 }],
+  "hold": 15,
+  "weighting": "equal",
+  "market": { "factor": "trend", "days": 200, "min": 0, "cash": 1 }
+}`;
+const coloured = example
+	.replace(/&/g, "&amp;")
+	.replace(/</g, "&lt;")
+	.replace(/("[a-z_]+")(\s*:)/g, '<span class="k">$1</span>$2')
+	.replace(/(:\s*)("[^"]*")/g, '$1<span class="s">$2</span>')
+	.replace(/(:\s*|\[\s*)(-?\d+(?:\.\d+)?)/g, '$1<span class="n">$2</span>');
+// A sentence with a {slot} in it, as the text before and after the slot.
+const around = (text: string, slot: string) => text.split(`{${slot}}`) as [string, string];
+const [step1a, step1b] = around(t.step1Body, "yourBot");
+const [kitA, kitB] = around(t.kitBody, "say");
+const agents = t.agents.split(/\{(a|b|c|file)\}/);
+const agentNames: Record<string, string> = { a: "Claude Code", b: "Codex", c: "Gemini CLI" };
+---
+
+<Layout title={t.title} description={t.description} page="home" lang={lang}>
+	<!-- The first screen: the promise, and the board live beside it. -->
+	<section class="hero">
+		<div class="wrap grid items-center gap-12 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+			<div>
+				<p class="kicker">{t.kicker}</p>
+				<h1 class="display mt-4">{t.h1} <em>{t.h1Em}</em> {t.h1End}</h1>
+				<p class="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink">{t.lede}</p>
+				<div class="mt-8 flex flex-wrap items-center gap-3">
+					<a class="btn btn-signal btn-big" href={L("/me/")} data-cta>{t.cta}</a>
+					<a class="btn btn-ghost btn-big" href={L("/board/")}>{t.seeBoard}</a>
+				</div>
+				<p class="mt-4 text-[12.5px] text-muted">{t.small}</p>
+			</div>
+			<div class="frame" id="hero-board">
+				<div class="frame-head">
+					<span class="whitespace-nowrap text-[13px] font-semibold text-ink-strong">{t.theBoard}</span>
+					<span class="live whitespace-nowrap" id="hero-asof">{t.loading}</span>
+					<span class="ml-auto" id="hero-tabs"></span>
+				</div>
+				<div id="hero-rows">
+					<div class="space-y-px p-3"><div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div></div>
+				</div>
+				<a class="block border-t border-line px-4 py-2.5 text-[12.5px] text-muted hover:text-ink-strong" href={L("/board/")}>{t.wholeBoard}</a>
+			</div>
+		</div>
+	</section>
+
+	<!-- Three steps, with the conversation beside them. -->
+	<section id="how" class="wrap scroll-mt-20 pt-6">
+		<p class="kicker chapter">{t.howKicker}</p>
+		<h2 class="h2 mt-3 max-w-2xl">{t.howTitle}</h2>
+		<div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.15fr]">
+			<ol class="space-y-8">
+				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+					<span class="step-n">1</span>
+					<div>
+						<h3 class="text-[17px] font-semibold text-ink-strong">{t.step1}</h3>
+						<p class="mt-1 text-[14px] text-muted">{step1a}<span class="text-ink">{t.yourBot}</span>{step1b}</p>
+					</div>
+				</li>
+				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+					<span class="step-n">2</span>
+					<div>
+						<h3 class="text-[17px] font-semibold text-ink-strong">{t.step2}</h3>
+						<p class="mt-1 text-[14px] text-muted">{t.step2Body}</p>
+					</div>
+				</li>
+				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+					<span class="step-n">3</span>
+					<div>
+						<h3 class="text-[17px] font-semibold text-ink-strong">{t.step3}</h3>
+						<p class="mt-1 text-[14px] text-muted">{t.step3Body}</p>
+					</div>
+				</li>
+			</ol>
+			<div class="frame overflow-hidden" aria-label={t.mockLabel}>
+				<div class="frame-head">
+					<span class="build-mark build-mark-sm" aria-hidden="true">✳</span>
+					<span class="text-[12.5px] font-medium text-ink-strong">{t.mockHead}</span>
+					<span class="ml-auto text-[12px] text-faint">{t.yourBot}</span>
+				</div>
+				<div class="mock flex flex-col gap-2.5 p-4 sm:p-5" id="mock">
+					<p class="line bubble is-me">{t.mock.me1}</p>
+					<div class="line bubble is-them"><span class="bubble-who">{t.mock.claude}</span><span>{t.mock.them1}</span></div>
+					<div class="line step-line"><span class="step-dot"></span><div><p class="step-text">{t.mock.draft1}</p><p class="step-note">{t.mock.draft1Note}</p></div></div>
+					<p class="line bubble is-me">{t.mock.me2}</p>
+					<div class="line step-line"><span class="step-dot"></span><div><p class="step-text">{t.mock.draft2}</p><p class="step-note">{t.mock.draft2Note}</p></div></div>
+					<div class="line step-line is-test"><span class="step-dot"></span><div><p class="step-text">{t.mock.test}</p><p class="step-note">{t.mock.testNote}</p></div></div>
+					<div class="line flex flex-wrap items-center gap-2 pt-1"><span class="btn btn-signal pointer-events-none py-1.5 text-[13px]">{t.mock.send}</span><span class="text-[12px] text-faint">{t.mock.starts}</span></div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Or with one's own agent: the kit. -->
+	<section class="wrap pt-24">
+		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+			<div>
+				<p class="kicker chapter">{t.kitKicker}</p>
+				<h2 class="h2 mt-3">{t.kitTitle}</h2>
+				<p class="mt-5 max-w-md text-[15px] text-muted">{kitA}<span class="text-ink">{t.kitSay}</span>{kitB}</p>
+				<a class="link mt-5 inline-block text-[14px] text-signal" href={L("/me/")}>{t.getKit}</a>
+			</div>
+			<div class="frame overflow-hidden">
+				<div class="frame-head">
+					<span class="dots"><i></i><i></i><i></i></span>
+					<span class="num text-[12px] text-muted">~/markethub-bot · claude</span>
+				</div>
+				<div class="term space-y-1 p-5" id="term">
+					<p class="line"><span class="me">{t.term.me1}</span></p>
+					<p class="line">{t.term.them1}</p>
+					<p class="line"><span class="me">{t.term.me2}</span></p>
+					<p class="line"><span class="dim">$ python tools/mh.py check</span></p>
+					<p class="line"><span class="ok">✓</span> {t.term.checked}</p>
+					<p class="line"><span class="dim">$ python tools/mh.py backtest --years 3</span></p>
+					<p class="line"><span class="ok">✓</span> {t.term.tested}</p>
+					<p class="line"><span class="me">{t.term.me3}</span></p>
+					<p class="line"><span class="dim">$ python tools/mh.py submit</span></p>
+					<p class="line"><span class="ok">✓</span> {t.term.sent}</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- What a bot is: a file, and the same file in words. -->
+	<section class="wrap pt-28">
+		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+			<div>
+				<p class="kicker chapter">{t.botKicker}</p>
+				<h2 class="h2 mt-3">{t.botTitle}</h2>
+				<p class="mt-5 max-w-md text-[15px] text-muted">{t.botBody}</p>
+				<a class="link mt-5 inline-block text-[14px] text-signal" href={L("/rules/")}>{t.wholeFormat}</a>
+			</div>
+			<div class="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+				<div class="frame overflow-hidden">
+					<div class="frame-head"><span class="num text-[12px] text-muted">bot.json</span></div>
+					<pre class="code p-4 text-[11.5px] leading-[1.7]" set:html={coloured} />
+				</div>
+				<div class="frame">
+					<div class="frame-head"><span class="text-[12px] text-muted">{t.inWords}</span></div>
+					<ul class="space-y-2.5 p-4 text-[13px] text-ink">
+						{t.exampleWords.map((w) => <li class="flex gap-2"><span class="text-signal">›</span><span>{w}</span></li>)}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Who it is for. -->
+	<section class="wrap pt-28">
+		<p class="kicker chapter">{t.forKicker}</p>
+		<h2 class="h2 mt-3 max-w-2xl">{t.forTitle}</h2>
+		<div class="mt-10 grid gap-px overflow-hidden rounded-md border border-line bg-line md:grid-cols-3">
+			{t.audience.map((a) => (
+				<div class="bg-page p-6">
+					<h3 class="text-[16px] font-semibold text-ink-strong">{a.title}</h3>
+					<p class="mt-2 text-[14px] text-muted">{a.body}</p>
+				</div>
+			))}
+		</div>
+		<p class="mt-6 text-[13px] text-muted">
+			{agents.map((part, i) => (i % 2 === 0 ? part : part === "file" ? <span class="num text-ink">AGENTS.md</span> : <span class="text-ink">{agentNames[part]}</span>))}
+		</p>
+	</section>
+
+	<!-- The rules in six. -->
+	<section class="wrap pt-28">
+		<div class="flex flex-wrap items-end justify-between gap-4">
+			<div>
+				<p class="kicker chapter">{t.rulesKicker}</p>
+				<h2 class="h2 mt-3">{t.rulesTitle}</h2>
+			</div>
+			<a class="link text-[14px] text-signal" href={L("/rules/")}>{t.allRules}</a>
+		</div>
+		<div class="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+			{t.rules.map(([title, body]) => (
+				<div class="border-t border-line-strong pt-4">
+					<h3 class="text-[15px] font-semibold text-ink-strong">{title}</h3>
+					<p class="mt-1 text-[14px] text-muted">{body}</p>
+				</div>
+			))}
+		</div>
+	</section>
+
+	<!-- Questions. -->
+	<section class="wrap pt-28">
+		<div class="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+			<div>
+				<p class="kicker chapter">{t.faqKicker}</p>
+				<h2 class="h2 mt-3">{t.faqTitle}</h2>
+			</div>
+			<div class="divide-y divide-line border-y border-line">
+				{t.faq.map(([q, a]) => (
+					<details class="group py-4">
+						<summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-medium text-ink-strong">
+							{q}<span class="text-muted transition group-open:rotate-45">+</span>
+						</summary>
+						<p class="mt-2 max-w-prose text-[14px] text-muted">{a}</p>
+					</details>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<!-- The way in, again. -->
+	<section class="wrap pt-28">
+		<div class="frame relative overflow-hidden px-6 py-12 text-center sm:px-12">
+			<h2 class="h2 relative mx-auto max-w-xl">{t.endTitle}</h2>
+			<p class="relative mx-auto mt-4 max-w-md text-[15px] text-muted">{t.endBody}</p>
+			<a class="btn btn-signal btn-big relative mt-8" href={L("/me/")} data-cta>{t.cta}</a>
+		</div>
+	</section>
+</Layout>
+
+<script>
+	import { locked, ordered, periodTabs, row } from "../lib/board";
+	import { add, h } from "../lib/dom";
+	import { day } from "../lib/format";
+	import { api, localVisitor } from "../lib/site";
+	import type { Board, Me, Period } from "../lib/types";
+	import { lang } from "../i18n";
+	import { home } from "../i18n/home";
+
+	localVisitor();
+	const t = home[lang()];
+	const rows = document.getElementById("hero-rows")!;
+	const asOf = document.getElementById("hero-asof")!;
+	const tabs = document.getElementById("hero-tabs")!;
+	let board: Board | null = null;
+	let period: Period = "1m";
+	let signin: string | null = null;
+	const SHOWN = 7;
+
+	function draw() {
+		if (!board) return;
+		const b = board;
+		asOf.textContent = b.as_of ? t.closeOf(day(b.as_of)) : t.starting;
+		const shown: { key: Period; label: string }[] = [
+			{ key: "1d", label: t.tabs.day },
+			{ key: "1w", label: t.tabs.week },
+			{ key: "1m", label: t.tabs.month },
+			{ key: "all", label: t.tabs.all },
+		];
+		tabs.replaceChildren(periodTabs(period, shown, (p) => ((period = p), draw())));
+		const list = ordered(b, period).slice(0, SHOWN);
+		const body = h("div");
+		if (!b.visible) body.append(locked(b, signin));
+		for (const e of list) body.append(row(e, period, b.benchmark.ticker));
+		if (!list.length) body.append(h("p", "px-4 py-8 text-center text-[13px] text-muted", t.firstBots));
+		if (b.sample) body.append(h("p", "border-t border-line px-4 py-2 text-[11.5px] text-warn", t.sample));
+		rows.replaceChildren(body);
+	}
+
+	async function load() {
+		board = await api<Board>("/api/board");
+		draw();
+		if (board.stale) {
+			asOf.textContent = t.moving;
+			await api("/api/board/refresh", { method: "POST" }).catch(() => null);
+			board = await api<Board>("/api/board");
+			draw();
+		}
+	}
+	document.addEventListener("me", (e) => {
+		const me = (e as CustomEvent<Me>).detail;
+		signin = me.user ? null : me.signin;
+		draw();
+	});
+	load().catch(() => {
+		rows.replaceChildren(add(h("p", "px-4 py-8 text-center text-[13px] text-muted"), t.unread));
+	});
+
+	// The conversation and the terminal write themselves out once they are on screen.
+	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+	for (const id of ["mock", "term"]) {
+		const box = document.getElementById(id)!;
+		const lines = [...box.querySelectorAll<HTMLElement>(".line")];
+		const seen = new IntersectionObserver((entries) => {
+			if (!entries.some((x) => x.isIntersecting)) return;
+			seen.disconnect();
+			lines.forEach((l, i) => setTimeout(() => l.classList.add("on"), reduced ? 0 : i * (id === "mock" ? 650 : 420)));
+		}, { threshold: 0.3 });
+		seen.observe(box);
+	}
+</script>

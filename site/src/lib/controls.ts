@@ -1,6 +1,8 @@
 // The controls of "Change it": a slider that says its value, a row of choices, an on/off switch,
 // and the before → after of a bot's rules in words. In the ink, as the rest of the site.
 import { add, h } from "./dom";
+import { lang } from "../i18n";
+import { editor as ed } from "../i18n/editor";
 import type { Line } from "./words";
 
 // A slider with its value written beside it. ``show`` writes the value; ``onInput`` gets every move.
@@ -67,9 +69,9 @@ export function rulesDiff(lines: Line[], all = false): HTMLElement {
     if (l.kind === "same" && !all) continue;
     list.append(add(h("li", `diff-line is-${l.kind}`), h("span", "diff-sign", l.kind === "new" ? "+" : l.kind === "gone" ? "−" : ""), h("span", "", l.text)));
   }
-  if (!lines.some((l) => l.kind !== "same")) list.append(h("li", "diff-line is-same", "No change to its rules."));
+  if (!lines.some((l) => l.kind !== "same")) list.append(h("li", "diff-line is-same", ed[lang()].noRuleChange));
   if (same && !all) {
-    const more = h("button", "diff-more", `${same} ${same === 1 ? "rule stays" : "rules stay"} as they are ›`);
+    const more = h("button", "diff-more", ed[lang()].rulesStay(same));
     more.type = "button";
     more.addEventListener("click", () => list.replaceWith(rulesDiff(lines, true)));
     list.append(add(h("li"), more));

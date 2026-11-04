@@ -13,6 +13,8 @@ import { treemap } from "./mybot";
 import { ApiError, api } from "./site";
 import type { Bot, ChatAnswer, ChatStatus, Checked, MyBot, Spec } from "./types";
 import { diff } from "./words";
+import { lang } from "../i18n";
+import { change as words } from "../i18n/change";
 
 export type ChangeContext = {
   you: MyBot;
@@ -60,12 +62,13 @@ const message = (e: unknown, fallback: string) => (e instanceof Error ? e.messag
 
 export function changePanel(ctx: ChangeContext): HTMLElement {
   const { you, spec, chat } = ctx;
+  const w = words[lang()];
   const root = h("section", "change frame");
   const pendingRules = !!you.pending?.what.includes("rules");
   const rulesToday = !!you.rules_changed_utc && nyDay(new Date(you.rules_changed_utc)) === nyDay(new Date());
   const blocked = !rulesToday ? null : pendingRules
-    ? "Today's change of rules is waiting for the close. Cancel it to make another."
-    : "Its rules changed today. They can change again tomorrow; the switches still work.";
+    ? w.blockedPending
+    : w.blockedToday;
   const current: Bot = you.pending?.bot ?? you.bot; // as it will be at the next close
   const currentRules = you.pending?.rules ?? you.rules;
   const nextClose = day(closeOf(new Date().toISOString()));
@@ -81,7 +84,7 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
       flash = { text, undo };
       await redraw();
     } catch (e) {
-      note.textContent = message(e, "That did not work.");
+      note.textContent = message(e, w.failed);
       note.classList.remove("hidden");
     }
   }
@@ -98,7 +101,7 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
     await api("/api/bots/mine/rules", { method: "PUT", body: { bot } });
     for (const t of talk) if (t.role === "assistant" && t.proposal && !t.state) t.state = t === from ? "applied" : "dropped";
     advanced = tuning = null;
-    flash = { text: you.since ? `Done. The new rules apply at the close of ${nextClose}.` : "Done. Its new rules are in." };
+    flash = { text: you.since ? w.doneAt(nextClose) : w.doneIn };
     await redraw();
   }
 
@@ -111,14 +114,14 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
     const lines = p.what.includes("rules") ? rulesDiff(diff(you.rules, p.rules)) : null;
     return add(h("div", "pending"),
       add(h("div", "flex flex-wrap items-center gap-x-3 gap-y-2"),
-        h("span", "status is-waiting", `Waiting for the close of ${day(closeOf(p.changed_utc))}`),
+        h("span", "status is-waiting", w.waitingFor(day(closeOf(p.changed_utc)))),
         add(h("span", "flex flex-wrap gap-1.5"), ...p.what.map((w) => h("span", "chip", said([w])))),
-        button("btn btn-ghost ml-auto py-1 text-[13px]", "Cancel it", (b) => {
+        button("btn btn-ghost ml-auto py-1 text-[13px]", w.cancelIt, (b) => {
           b.disabled = true;
-          void act("Cancelled. Your bot goes on as it is.", cancelAll, note);
+          void act(w.cancelled, cancelAll, note);
         })),
       lines ? add(h("div", "mt-3"), lines) : null,
-      h("p", "mt-2 text-[12px] text-faint", `Asked ${timeAgo(p.changed_utc)}. Until that close the bot goes on as it is; its record goes on after.`),
+      h("p", "mt-2 text-[12px] text-faint", w.asked(timeAgo(p.changed_utc))),
       note);
   }
 
@@ -129,7 +132,7 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
     const box = add(h("div", "flash"), h("span", "flash-tick", "✓"), h("span", "flex-1", f.text));
     if (f.undo) {
       const note = h("p", "hidden text-[12.5px] text-warn");
-      box.append(button("flash-undo", "Undo", () => void act("Undone.", f.undo!, note)), note);
+      box.append(button("flash-undo", w.undo, () => void act(w.undone, f.undo!, note)), note);
     }
     return box;
   }
@@ -138,35 +141,35 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
 
   function proposalCard(a: Answer): HTMLElement {
     const card = h("div", "proposal");
-    card.append(h("p", "label", "Proposed change"));
-    if (a.state === "dropped") return add(card, h("p", "mt-1 text-[13px] text-faint", "Set aside."));
-    if (a.state === "applied") return add(card, h("p", "mt-1 text-[13px] text-ink-strong", you.pending ? "✓ Applied: it waits for the next close, above." : "✓ Applied."));
+    card.append(h("p", "label", w.proposed));
+    if (a.state === "dropped") return add(card, h("p", "mt-1 text-[13px] text-faint", w.setAside));
+    if (a.state === "applied") return add(card, h("p", "mt-1 text-[13px] text-ink-strong", you.pending ? w.appliedWaits : w.applied));
     card.append(add(h("div", "mt-2"), rulesDiff(diff(a.before ?? currentRules, a.rules ?? []))));
     if (a.holds) {
       card.append(add(h("div", "mt-4"), treemap(a.holds.weights, null, { preview: true, small: true }),
-        h("p", "mt-2 text-[12px] text-faint", `What it would hold at the close of ${day(a.holds.as_of)}.`)));
+        h("p", "mt-2 text-[12px] text-faint", w.wouldHoldAt(day(a.holds.as_of)))));
     }
     const note = h("p", "mt-2 hidden text-[12.5px] text-warn");
     add(card, add(h("div", "mt-4 flex flex-wrap items-center gap-2"),
-      button("btn btn-primary", you.since ? "Apply at the next close" : "Apply", async (b) => {
+      button("btn btn-primary", you.since ? w.applyNext : w.apply, async (b) => {
         b.disabled = true;
-        b.textContent = "Applying…";
+        b.textContent = w.applying;
         try {
           await applyRules(a.proposal!, a);
         } catch (e) {
-          note.textContent = message(e, "That did not work.");
+          note.textContent = message(e, w.failed);
           note.classList.remove("hidden");
           b.disabled = false;
-          b.textContent = you.since ? "Apply at the next close" : "Apply";
+          b.textContent = you.since ? w.applyNext : w.apply;
         }
       }),
-      button("btn btn-ghost", "Fine-tune by hand", () => {
+      button("btn btn-ghost", w.fineTune, () => {
         advanced = a.proposal!;
         tuning = a;
         draw();
         root.scrollIntoView({ behavior: "smooth", block: "start" });
       }),
-      button("ml-1 text-[13px] text-muted hover:text-ink-strong", "Not this", () => {
+      button("ml-1 text-[13px] text-muted hover:text-ink-strong", w.notThis, () => {
         a.state = "dropped";
         draw();
       })), note);
@@ -181,7 +184,7 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
       if (t.role === "user") list.append(h("p", "bubble is-me", t.text));
       else {
         list.append(add(h("div", `bubble is-them ${t.error ? "is-error" : ""}`), h("span", "bubble-who", "Claude"), h("span", "", t.text)));
-        if (t.problems?.length) list.append(h("p", "text-[12.5px] text-warn", `Its proposal did not pass the checks: ${t.problems.join(" ")}`));
+        if (t.problems?.length) list.append(h("p", "text-[12.5px] text-warn", w.problems(t.problems.join(" "))));
         if (t.proposal) list.append(proposalCard(t));
       }
     }
@@ -208,8 +211,8 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
           .catch(() => null);
       }
     } catch (e) {
-      if (e instanceof ApiError && e.status === 503 && /messages today/.test(e.message)) chat.left = 0;
-      talk.push({ role: "assistant", text: message(e, "The chat could not answer."), error: true });
+      if (e instanceof ApiError && e.status === 503 && /messages today|mensajes/.test(e.message)) chat.left = 0;
+      talk.push({ role: "assistant", text: message(e, w.chatFailed), error: true });
     }
     thinking = false;
     draw();
@@ -225,26 +228,26 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
       draw();
     });
     // When the chat cannot take a message, the box says why and the way by hand is the button.
-    const why = !chat.on ? "The chat is off on this copy of the site."
-      : left <= 0 ? `That is the ${chat.per_member_per_day} messages of today: the chat is back tomorrow.`
+    const why = !chat.on ? w.chatOff
+      : left <= 0 ? w.usedUp(chat.per_member_per_day)
       : blocked;
     if (why) {
       return add(box, add(h("div", "ask is-off"), add(h("div", "min-w-0 flex-1 py-1"), h("p", "text-[14px] text-ink", why),
-        blocked && why === blocked ? null : h("p", "mt-1 text-[12.5px] text-muted", "Every rule can still be changed by hand."))),
-        blocked && why === blocked ? null : add(h("div", "mt-3"), byHand("btn btn-ghost", "Change every rule by hand")),
+        blocked && why === blocked ? null : h("p", "mt-1 text-[12.5px] text-muted", w.stillByHand))),
+        blocked && why === blocked ? null : add(h("div", "mt-3"), byHand("btn btn-ghost", w.changeByHand)),
         conversation());
     }
     const form = h("form", "ask");
     const input = h("textarea", "ask-input");
     input.rows = 1;
     input.maxLength = 600;
-    input.placeholder = "Tell it what to change…";
-    input.setAttribute("aria-label", "What to change");
+    input.placeholder = w.ask;
+    input.setAttribute("aria-label", w.askLabel);
     input.disabled = thinking;
     const go = h("button", "ask-send");
     go.type = "submit";
     go.disabled = thinking;
-    go.setAttribute("aria-label", "Send");
+    go.setAttribute("aria-label", w.send);
     go.innerHTML = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 10h11M10.5 5.5 15 10l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const grow = () => ((input.style.height = "auto"), (input.style.height = `${Math.min(input.scrollHeight, 160)}px`));
     input.addEventListener("input", grow);
@@ -257,30 +260,31 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
     });
     add(form, input, go);
 
-    const tap = (label: string, say: string) => button("suggest", label, () => void send(say));
+    const tap = ([label, say]: [string, string]) => button("suggest", label, () => void send(say));
     const chips = add(h("div", "suggests"),
-      tap("More defensive", "Make it more defensive"),
-      tap("Fewer stocks", "Hold fewer stocks"),
-      tap("More stocks", "Hold more stocks"),
-      current.rebalance === "monthly" ? tap("Look again weekly", "Look again weekly") : tap("Look again monthly", "Look again monthly"),
-      button("suggest", "Drop a sector", () => {
-        input.value = "Leave out the tech stocks";
+      tap(w.chips.defensive),
+      tap(w.chips.fewer),
+      tap(w.chips.more),
+      current.rebalance === "monthly" ? tap(w.chips.weekly) : tap(w.chips.monthly),
+      button("suggest", w.dropSector, () => {
+        input.value = w.dropFill;
         grow();
         input.focus();
-        input.setSelectionRange(14, 18);
+        const at = w.dropFill.indexOf(w.dropWord);
+        input.setSelectionRange(at, at + w.dropWord.length);
       }));
     const switchNote = h("p", "mt-2 hidden text-[12.5px] text-warn");
     const paused = you.pending?.paused ?? you.paused;
-    chips.append(button("suggest is-switch", paused ? "Resume" : "Pause", (b) => {
+    chips.append(button("suggest is-switch", paused ? w.resume : w.pause, (b) => {
       b.disabled = true;
-      void act(paused ? "Running again from the next close." : `Paused: it holds cash from the close of ${nextClose}.`,
+      void act(paused ? w.runningAgain : w.pausedFrom(nextClose),
         flip(paused ? "resume" : "pause"), switchNote, flip(paused ? "pause" : "resume"));
     }));
     if (thinking) chips.querySelectorAll("button").forEach((b) => (b.disabled = true));
 
     const meta = add(h("div", "mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12.5px]"),
-      h("span", "num text-faint", `${left} of ${chat.per_member_per_day} messages left today`),
-      byHand("text-muted underline-offset-4 hover:text-ink-strong hover:underline", "Every rule, by hand ›"));
+      h("span", "num text-faint", w.left(left, chat.per_member_per_day)),
+      byHand("text-muted underline-offset-4 hover:text-ink-strong hover:underline", w.byHand));
     return add(box, form, chips, switchNote, meta, conversation());
   }
 
@@ -298,48 +302,48 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
 
     const run = add(h("div", "switch-card"),
       add(h("div", "flex items-center justify-between gap-3"),
-        add(h("div", "min-w-0"), h("p", "text-[14px] font-medium text-ink-strong", paused ? "Paused" : "Running"),
-          h("p", "text-[12.5px] text-muted", paused ? "In cash from the next close, until it runs again." : "Pause it to hold cash from the next close.")),
-        toggle(!paused, "Running", (on) => void press(on ? "Running again from the next close." : `Paused: it holds cash from the close of ${nextClose}.`, on ? "resume" : "pause"))));
+        add(h("div", "min-w-0"), h("p", "text-[14px] font-medium text-ink-strong", paused ? w.paused : w.running),
+          h("p", "text-[12.5px] text-muted", paused ? w.pausedHint : w.runningHint)),
+        toggle(!paused, w.running, (on) => void press(on ? w.runningAgain : w.pausedFrom(nextClose), on ? "resume" : "pause"))));
 
     const out = add(h("div", "switch-card"),
-      h("p", "text-[14px] font-medium text-ink-strong", "Left out"),
-      h("p", "text-[12.5px] text-muted", exclude.length ? "Never chosen until you let it back in." : "A company left out is sold at the next close and never chosen again."));
+      h("p", "text-[14px] font-medium text-ink-strong", w.leftOut),
+      h("p", "text-[12.5px] text-muted", exclude.length ? w.neverChosen : w.leftOutHint));
     const chips = h("div", "mt-3 flex flex-wrap gap-1.5");
     for (const t of exclude) {
-      chips.append(add(h("span", "chip-x num"), t, button("chip-x-btn", "×", () => void press(`${t} comes back from the next close.`, "include", t))));
-      (chips.lastElementChild!.querySelector("button") as HTMLButtonElement).setAttribute("aria-label", `Let ${t} back in`);
+      chips.append(add(h("span", "chip-x num"), t, button("chip-x-btn", "×", () => void press(w.comesBack(t), "include", t))));
+      (chips.lastElementChild!.querySelector("button") as HTMLButtonElement).setAttribute("aria-label", w.letBack(t));
     }
-    chips.append(button("chip-add", leaving ? "Done" : "+ Leave one out", () => ((leaving = !leaving), draw())));
+    chips.append(button("chip-add", leaving ? w.done : w.leaveOne, () => ((leaving = !leaving), draw())));
     out.append(chips);
     if (leaving) {
       const pick = h("div", "mt-3 flex flex-wrap gap-1.5");
       const choices = Object.keys(held).filter((t) => !exclude.includes(t)).slice(0, 12);
-      for (const t of choices) pick.append(button("chip-pick num", t, () => void press(`${t} is left out from the next close.`, "exclude", t)));
+      for (const t of choices) pick.append(button("chip-pick num", t, () => void press(w.isLeftOut(t), "exclude", t)));
       const other = h("input", "field num w-28 py-1 text-[13px] uppercase");
-      other.placeholder = "Ticker";
-      other.setAttribute("aria-label", "Another ticker");
+      other.placeholder = w.ticker;
+      other.setAttribute("aria-label", w.anotherTicker);
       other.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && other.value.trim()) void press(`${other.value.trim().toUpperCase()} is left out from the next close.`, "exclude", other.value.trim());
+        if (e.key === "Enter" && other.value.trim()) void press(w.isLeftOut(other.value.trim().toUpperCase()), "exclude", other.value.trim());
       });
-      add(out, choices.length ? h("p", "mt-3 text-[12px] text-faint", "Tap one it holds, or write another:") : null, pick,
-        add(h("div", "mt-2 flex items-center gap-2"), other, button("btn btn-ghost py-1 text-[13px]", "Leave out", () => {
-          if (other.value.trim()) void press(`${other.value.trim().toUpperCase()} is left out from the next close.`, "exclude", other.value.trim());
+      add(out, choices.length ? h("p", "mt-3 text-[12px] text-faint", w.tapOne) : null, pick,
+        add(h("div", "mt-2 flex items-center gap-2"), other, button("btn btn-ghost py-1 text-[13px]", w.leaveOut, () => {
+          if (other.value.trim()) void press(w.isLeftOut(other.value.trim().toUpperCase()), "exclude", other.value.trim());
         })));
     }
     out.append(note);
-    return add(h("div", "space-y-3"), h("p", "label", "Switches"), run, out,
-      h("p", "text-[12px] text-faint", "Switches apply at the next close and are not the day's change. There are no orders: the bot only follows its rules."));
+    return add(h("div", "space-y-3"), h("p", "label", w.switches), run, out,
+      h("p", "text-[12px] text-faint", w.switchesNote));
   }
 
   // --- The panel ---
 
   function draw() {
     const head = add(h("div", "change-head"),
-      add(h("div", "min-w-0"), h("h2", "change-title", "Change your bot"),
-        h("p", "mt-0.5 text-[12.5px] text-muted", you.since ? `From the next close (${nextClose}) · once a day · its record goes on` : "Before it starts, a change just becomes the bot")),
+      add(h("div", "min-w-0"), h("h2", "change-title", w.title),
+        h("p", "mt-0.5 text-[12.5px] text-muted", you.since ? w.fromNext(nextClose) : w.beforeStart)),
       button("change-close", "×", ctx.close));
-    head.querySelector(".change-close")!.setAttribute("aria-label", "Close");
+    head.querySelector(".change-close")!.setAttribute("aria-label", w.close);
     if (advanced) {
       root.replaceChildren(head, add(h("div", "mt-5"), editor(spec, advanced, {
         before: current, now: held, blocked, apply: applyRules,

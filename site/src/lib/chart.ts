@@ -2,7 +2,11 @@
 // Values are growth from 1 (1.12 is +12%). One colour, the ink; green and red only for a move: the
 // gap between the bot and the index, its fall from its peak, a line's end above or below its start.
 import { add, h, svg } from "./dom";
-import { day, signedPct } from "./format";
+import { day, num, pct, plural, signedPct } from "./format";
+import { lang, locale } from "../i18n";
+import { common } from "../i18n/common";
+
+const w = () => common[lang()];
 
 const UP = "var(--color-up)";
 const DOWN = "var(--color-down)";
@@ -49,11 +53,12 @@ export type ChartOptions = {
   ranges?: boolean;
 };
 
-const RANGES: { label: string; sessions: number }[] = [
-  { label: "1M", sessions: 21 },
-  { label: "3M", sessions: 63 },
-  { label: "1Y", sessions: 252 },
-  { label: "All", sessions: Infinity },
+// Labelled when drawn, in the page's language.
+const RANGES: { key: "1M" | "3M" | "1Y" | "All"; sessions: number }[] = [
+  { key: "1M", sessions: 21 },
+  { key: "3M", sessions: 63 },
+  { key: "1Y", sessions: 252 },
+  { key: "All", sessions: Infinity },
 ];
 
 // Lines over the same sessions, from 1 the session before the first. The last series is the main
@@ -78,9 +83,9 @@ export function lineChart(root: HTMLElement, dates: string[], series: Series[], 
   root.replaceChildren();
   if (ranges && offered.length > 1) {
     const nav = h("div", "chart-ranges");
-    nav.setAttribute("aria-label", "Range");
+    nav.setAttribute("aria-label", w().range);
     for (const r of offered) {
-      const b = h("button", "", r.label);
+      const b = h("button", "", w().ranges[r.key]);
       b.type = "button";
       b.setAttribute("aria-pressed", String(r === range));
       b.addEventListener("click", () => {
@@ -130,7 +135,8 @@ function plot(root: HTMLElement, dates: string[], series: Series[], tall: number
   const x = (i: number) => padL + ((i + 1) / n) * (W - padL - padR);
   const y = (v: number) => padT + (1 - (v - lo) / (hi - lo)) * (plotB - padT);
   const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart block w-full h-auto select-none", role: "img" });
-  s.setAttribute("aria-label", `${main.name}${ref ? ` against ${ref.name}` : ""}, ${dates.length} sessions`);
+  const t = w();
+  s.setAttribute("aria-label", t.chartLabel(main.name, ref ? ref.name : null, plural(dates.length, ...t.session)));
 
   // Grid: a few round percentages, written on the left.
   const span = hi - lo;
@@ -139,7 +145,7 @@ function plot(root: HTMLElement, dates: string[], series: Series[], tall: number
     const yy = y(1 + v);
     const zero = Math.abs(v) < 1e-9;
     s.append(svg("line", { x1: padL, x2: W - padR, y1: yy, y2: yy, stroke: zero ? "var(--color-line-strong)" : "var(--color-line)", "stroke-dasharray": zero ? "0" : "2 4" }));
-    s.append(text(padL - 8, yy + 4, zero ? "0%" : signedPct(v, step < 0.01 ? 1 : 0), { "text-anchor": "end", fill: zero ? "var(--color-muted)" : "var(--color-faint)" }));
+    s.append(text(padL - 8, yy + 4, zero ? pct(0, 0) : signedPct(v, step < 0.01 ? 1 : 0), { "text-anchor": "end", fill: zero ? "var(--color-muted)" : "var(--color-faint)" }));
   }
 
   // Dates along the bottom, never closer than a label's width: over a few months, where each month
@@ -147,7 +153,8 @@ function plot(root: HTMLElement, dates: string[], series: Series[], tall: number
   if (dates.length) {
     const room = compact ? 64 : 84;
     const when = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
-    const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => when(iso).toLocaleDateString("en-US", { ...o, timeZone: "UTC" });
+    // Short months without their full stop ("nov", not "nov.").
+    const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => when(iso).toLocaleDateString(locale(), { ...o, timeZone: "UTC" }).replace(".", "");
     let ticks: { i: number; label: string }[];
     if (dates.length > 60) {
       ticks = [];
@@ -235,14 +242,14 @@ function plot(root: HTMLElement, dates: string[], series: Series[], tall: number
   const depth = Math.max(-worst, 0.04) * 1.15;
   const yd = (v: number) => ddTop + (-v / depth) * ddH;
   if (showDd) {
-    s.append(text(padL, ddTop - 9, "From its peak", { fill: "var(--color-muted)", "font-family": "var(--font-sans)", "font-size": 11.5 }));
+    s.append(text(padL, ddTop - 9, t.fromPeak, { fill: "var(--color-muted)", "font-family": "var(--font-sans)", "font-size": 11.5 }));
     s.append(svg("line", { x1: padL, x2: W - padR, y1: ddTop, y2: ddTop, stroke: "var(--color-line-strong)" }));
     s.append(svg("line", { x1: padL, x2: W - padR, y1: ddTop + ddH, y2: ddTop + ddH, stroke: "var(--color-line)", "stroke-dasharray": "2 4" }));
     const line = [`${padL},${ddTop}`];
     dd.forEach((v, i) => v != null && line.push(`${fixed(x(i))},${fixed(yd(v))}`));
     s.append(svg("polygon", { points: [...line, `${fixed(x(dd.length - 1))},${ddTop}`].join(" "), fill: DOWN_SOFT }));
     s.append(svg("polyline", { points: line.join(" "), fill: "none", stroke: DOWN, "stroke-width": 1.2, "stroke-linejoin": "round", "stroke-opacity": 0.85 }));
-    s.append(text(padL - 8, ddTop + 4, "0%", { "text-anchor": "end" }));
+    s.append(text(padL - 8, ddTop + 4, pct(0, 0), { "text-anchor": "end" }));
     if (worst < 0) s.append(text(W - padR + 8, yd(worst) + 4, signedPct(worst, 1), { fill: DOWN }));
   }
 
@@ -284,12 +291,12 @@ function plot(root: HTMLElement, dates: string[], series: Series[], tall: number
     });
     const mv = main.values[i], rv = ref?.values[i];
     if (ref && mv != null && rv != null) {
-      lines.push(row(null, mv >= rv ? "Ahead by" : "Behind by", `${(Math.abs(mv - rv) * 100).toFixed(1)} pts`, mv >= rv ? "text-up" : "text-down"));
+      lines.push(row(null, mv >= rv ? t.aheadBy : t.behindBy, t.pts(num(Math.abs(mv - rv) * 100, 1)), mv >= rv ? "text-up" : "text-down"));
     }
     const d = dd[i];
     if (showDd && d != null) {
       at(ddDot, xx, yd(d));
-      lines.push(row(null, "From its peak", signedPct(d, 1), d < 0 ? "text-down" : "text-muted"));
+      lines.push(row(null, t.fromPeak, signedPct(d, 1), d < 0 ? "text-down" : "text-muted"));
     }
     tip.replaceChildren(h("div", "num pb-0.5 text-muted", day(dates[i])), ...lines);
     tip.classList.remove("hidden");
@@ -309,7 +316,7 @@ export function chartWaiting(root: HTMLElement, message: string, height = 180): 
   const s = svg("svg", { viewBox: `0 0 ${W} ${height}`, class: "block w-full h-auto", "aria-hidden": "true" });
   for (const dy of [-0.28, 0.28]) s.append(svg("line", { x1: padL, x2: W - padR, y1: mid + dy * height, y2: mid + dy * height, stroke: "var(--color-line)", "stroke-dasharray": "2 4" }));
   s.append(svg("line", { x1: padL, x2: W - padR, y1: mid, y2: mid, stroke: "var(--color-line-strong)", "stroke-dasharray": "3 4" }));
-  s.append(text(padL - 8, mid + 4, "0%", { "text-anchor": "end", fill: "var(--color-muted)" }));
+  s.append(text(padL - 8, mid + 4, pct(0, 0), { "text-anchor": "end", fill: "var(--color-muted)" }));
   s.append(svg("circle", { cx: padL, cy: mid, r: 4, fill: "var(--color-page)", stroke: "var(--color-ink-strong)", "stroke-width": 1.6, class: "chart-pulse" }));
   root.replaceChildren(add(h("div", "relative"), s, h("p", "absolute inset-x-0 top-[14%] px-4 text-center text-[13px] text-muted", message)));
 }

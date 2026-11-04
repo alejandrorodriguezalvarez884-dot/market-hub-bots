@@ -1,64 +1,105 @@
 // A bot's rules in words, written here as the engine writes them (describe() in engine.py), so the
 // editor can say what a change does while the member moves a control; and two versions of the
-// rules side by side, line by line: what stays, what goes, what comes.
+// rules side by side, line by line: what stays, what goes, what comes. In the page's language,
+// with the engine's templates (docs/i18n.md).
+import { lang, type Lang } from "../i18n";
 import type { Bot, Factor } from "./types";
 
 export const PERCENT = new Set(["momentum", "trend", "sma_cross", "volatility", "drawdown"]);
 
-export function figure(name: string, v: number): string {
+export function figure(name: string, v: number, l: Lang = lang()): string {
   if (PERCENT.has(name)) {
     const s = `${v * 100 >= 0 ? "+" : ""}${(v * 100).toFixed(0)}%`;
-    return s.replace("+0%", "0%").replace("-0%", "0%").replace("-", "−");
+    const out = s.replace("+0%", "0%").replace("-0%", "0%").replace("-", "−");
+    return l === "es" ? out.replace("%", " %") : out;
   }
-  return String(+v.toPrecision(6)).replace("-", "−");
+  const out = String(+v.toPrecision(6)).replace("-", "−");
+  return l === "es" ? out.replace(".", ",") : out;
 }
 
-export function what(f: Factor): string {
-  const n = f as Record<string, number | string | undefined>;
-  switch (f.factor) {
-    case "momentum":
-      return `its return over ${n.days} sessions` + (n.skip ? `, leaving out the last ${n.skip}` : "");
-    case "sma_cross":
-      return `its ${n.fast}-session average against its ${n.slow}-session one`;
-    case "trend":
-      return `its close against its ${n.days}-session average`;
-    case "volatility":
-      return `its volatility over ${n.days} sessions`;
-    case "rsi":
-      return `its RSI over ${n.days} sessions`;
-    case "drawdown":
-      return `how far it is under its high of ${n.days} sessions`;
-    case "beta":
-      return `its beta to the S&P 500 over ${n.days} sessions`;
-  }
-  return f.factor;
-}
-
-export function range(f: Factor): string {
-  const { min, max } = f;
-  if (min != null && max != null) return `between ${figure(f.factor, min)} and ${figure(f.factor, max)}`;
-  return min != null ? `at least ${figure(f.factor, min)}` : `at most ${figure(f.factor, max ?? 0)}`;
-}
-
-const PARTS: Record<string, string> = { equal: "in equal parts", inverse_volatility: "the calmer ones with more", score: "the best scored with more" };
-const AGAIN: Record<string, string> = {
-  daily: "Looks again at every close.", weekly: "Looks again at the first close of each week.", monthly: "Looks again at the first close of each month.",
+type Words = Record<string, (n: Record<string, number | string | undefined>) => string>;
+const WHAT: Record<Lang, Words> = {
+  en: {
+    momentum: (n) => `its return over ${n.days} sessions` + (n.skip ? `, leaving out the last ${n.skip}` : ""),
+    sma_cross: (n) => `its ${n.fast}-session average against its ${n.slow}-session one`,
+    trend: (n) => `its close against its ${n.days}-session average`,
+    volatility: (n) => `its volatility over ${n.days} sessions`,
+    rsi: (n) => `its RSI over ${n.days} sessions`,
+    drawdown: (n) => `how far it is under its high of ${n.days} sessions`,
+    beta: (n) => `its beta to the S&P 500 over ${n.days} sessions`,
+  },
+  es: {
+    momentum: (n) => `su rentabilidad en ${n.days} sesiones` + (n.skip ? `, sin contar las últimas ${n.skip}` : ""),
+    sma_cross: (n) => `su media de ${n.fast} sesiones frente a la de ${n.slow}`,
+    trend: (n) => `su cierre frente a su media de ${n.days} sesiones`,
+    volatility: (n) => `su volatilidad en ${n.days} sesiones`,
+    rsi: (n) => `su RSI en ${n.days} sesiones`,
+    drawdown: (n) => `su caída desde su máximo de ${n.days} sesiones`,
+    beta: (n) => `su beta al S&P 500 en ${n.days} sesiones`,
+  },
 };
 
-export function describe(bot: Bot): string[] {
+export function what(f: Factor, l: Lang = lang()): string {
+  const said = WHAT[l][f.factor];
+  return said ? said(f as Record<string, number | string | undefined>) : f.factor;
+}
+
+const RULES = {
+  en: {
+    between: (a: string, b: string) => `between ${a} and ${b}`, least: (a: string) => `at least ${a}`, most: (b: string) => `at most ${b}`,
+    largest: (n: number, out: string[]) => `Looks at the ${n} largest US companies` + (out.length ? `, leaving out ${out.join(", ")}.` : "."),
+    tickers: (n: number, names: string) => `Looks at ${n} companies: ${names}.`,
+    keeps: (w: string, r: string) => `Keeps those where ${w} is ${r}.`,
+    scores: (terms: string[]) => "Scores them on " + terms.join("; ") + ".",
+    term: (w: string, higher: boolean, weight: string) => `${w} (${higher ? "higher" : "lower"} is better, weight ${weight})`,
+    holds: (n: number, parts: string, cap: string) => `Holds the best ${n}, ${parts}${cap}.`,
+    cap: (x: string) => `, none above ${x}%`,
+    parts: { equal: "in equal parts", inverse_volatility: "the calmer ones with more", score: "the best scored with more" } as Record<string, string>,
+    again: {
+      daily: "Looks again at every close.", weekly: "Looks again at the first close of each week.", monthly: "Looks again at the first close of each month.",
+    } as Record<string, string>,
+    market: (w: string, r: string, x: string) => `When, for the S&P 500, ${w} is not ${r}, holds ${x}% in cash.`,
+  },
+  es: {
+    between: (a: string, b: string) => `entre ${a} y ${b}`, least: (a: string) => `al menos ${a}`, most: (b: string) => `como mucho ${b}`,
+    largest: (n: number, out: string[]) => `Mira las ${n} mayores empresas de EE. UU.` + (out.length ? `, sin contar ${out.join(", ")}.` : ""),
+    tickers: (n: number, names: string) => `Mira ${n} empresas: ${names}.`,
+    keeps: (w: string, r: string) => `Se queda con aquellas en las que ${w} es ${r}.`,
+    scores: (terms: string[]) => "Las puntúa por " + terms.join("; ") + ".",
+    term: (w: string, higher: boolean, weight: string) => `${w} (mejor cuanto más ${higher ? "alto" : "bajo"}, peso ${weight})`,
+    holds: (n: number, parts: string, cap: string) => (n === 1 ? `Mantiene la mejor, ${parts}${cap}.` : `Mantiene las ${n} mejores, ${parts}${cap}.`),
+    cap: (x: string) => `, ninguna por encima del ${x} %`,
+    parts: { equal: "a partes iguales", inverse_volatility: "con más peso para las más tranquilas", score: "con más peso para las mejor puntuadas" } as Record<string, string>,
+    again: {
+      daily: "Revisa la cartera en cada cierre.", weekly: "Revisa la cartera en el primer cierre de cada semana.",
+      monthly: "Revisa la cartera en el primer cierre de cada mes.",
+    } as Record<string, string>,
+    market: (w: string, r: string, x: string) => `Cuando, para el S&P 500, ${w} no es ${r}, mantiene el ${x} % en liquidez.`,
+  },
+};
+
+export function range(f: Factor, l: Lang = lang()): string {
+  const { min, max } = f;
+  const r = RULES[l];
+  if (min != null && max != null) return r.between(figure(f.factor, min, l), figure(f.factor, max, l));
+  return min != null ? r.least(figure(f.factor, min, l)) : r.most(figure(f.factor, max ?? 0, l));
+}
+
+export function describe(bot: Bot, l: Lang = lang()): string[] {
+  const r = RULES[l];
   const u = bot.universe;
   const out: string[] = [];
-  if (u.largest != null) out.push(`Looks at the ${u.largest} largest US companies` + (u.exclude.length ? `, leaving out ${u.exclude.join(", ")}.` : "."));
+  if (u.largest != null) out.push(r.largest(u.largest, u.exclude));
   else {
     const names = (u.tickers ?? []).filter((t) => !u.exclude.includes(t));
-    out.push(`Looks at ${names.length} companies: ${names.slice(0, 12).join(", ")}${names.length > 12 ? "…" : ""}.`);
+    out.push(r.tickers(names.length, `${names.slice(0, 12).join(", ")}${names.length > 12 ? "…" : ""}`));
   }
-  for (const f of bot.filters) out.push(`Keeps those where ${what(f)} is ${range(f)}.`);
-  out.push("Scores them on " + bot.score.map((s) => `${what(s)} (${(s.weight ?? 0) > 0 ? "higher" : "lower"} is better, weight ${Math.abs(s.weight ?? 0)})`).join("; ") + ".");
-  const cap = bot.max_weight < 1 ? `, none above ${(bot.max_weight * 100).toFixed(0)}%` : "";
-  out.push(`Holds the best ${bot.hold}, ${PARTS[bot.weighting] ?? bot.weighting}${cap}.`);
-  out.push(AGAIN[bot.rebalance] ?? "");
-  if (bot.market) out.push(`When, for the S&P 500, ${what(bot.market)} is not ${range(bot.market)}, holds ${((bot.market.cash ?? 1) * 100).toFixed(0)}% in cash.`);
+  for (const f of bot.filters) out.push(r.keeps(what(f, l), range(f, l)));
+  out.push(r.scores(bot.score.map((s) => r.term(what(s, l), (s.weight ?? 0) > 0, figure("weight", Math.abs(s.weight ?? 0), l)))));
+  const cap = bot.max_weight < 1 ? r.cap((bot.max_weight * 100).toFixed(0)) : "";
+  out.push(r.holds(bot.hold, r.parts[bot.weighting] ?? bot.weighting, cap));
+  out.push(r.again[bot.rebalance] ?? "");
+  if (bot.market) out.push(r.market(what(bot.market, l), range(bot.market, l), ((bot.market.cash ?? 1) * 100).toFixed(0)));
   return out;
 }
 

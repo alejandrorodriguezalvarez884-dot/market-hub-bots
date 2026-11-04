@@ -1,7 +1,9 @@
 ---
 // Every page: the head, the top bar with the mark and the way in, the content and the foot.
 import "../styles/global.css";
-import { HUB_URL, SITE_NAME, link } from "../lib/site";
+import { SITE_NAME, asset, hub, link } from "../lib/site";
+import { stripLang, type Lang } from "../i18n";
+import { layout } from "../i18n/layout";
 import Mark from "../components/Mark.astro";
 
 interface Props {
@@ -9,39 +11,59 @@ interface Props {
 	description: string;
 	page?: "home" | "board" | "rules" | "me" | "bot";
 	noindex?: boolean;
+	lang?: Lang;
+	only?: boolean; // a page in one language only (no other to offer or to move to)
 }
-const { title, description, page = "home", noindex = false } = Astro.props;
-const canonical = Astro.site && !noindex ? new URL(Astro.url.pathname, Astro.site) : null;
+const { title, description, page = "home", noindex = false, lang = "en", only = false } = Astro.props;
+const t = layout[lang];
+// The same page in each language, without the site's base, and the other language's address.
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const bare = stripLang(Astro.url.pathname.slice(base.length) || "/");
+const other: Lang = lang === "es" ? "en" : "es";
+const alt = only ? null : link(bare, other);
+const abs = (l: Lang) => (Astro.site ? new URL(link(bare, l), Astro.site).href : null);
+const canonical = Astro.site && !noindex ? abs(lang) : null;
 // The picture a shared link shows (brand/share.mjs draws it): an absolute address, when the site has one.
-const picture = Astro.site ? new URL(link("/share.png"), Astro.site).href : null;
+const picture = Astro.site ? new URL(asset("/share.png"), Astro.site).href : null;
 const nav = [
-	{ key: "board", href: link("/board/"), label: "Board" },
-	{ key: "how", href: `${link("/")}#how`, label: "How it works" },
-	{ key: "rules", href: link("/rules/"), label: "Rules" },
+	{ key: "board", href: link("/board/", lang), label: t.board },
+	{ key: "how", href: `${link("/", lang)}#how`, label: t.how },
+	{ key: "rules", href: link("/rules/", lang), label: t.rules },
 ];
+const [aboutBefore, aboutAfter] = t.about.split("{hub}");
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang} data-alt={alt}>
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href={link("/favicon.svg")} />
-		<link rel="icon" href={link("/favicon.ico")} sizes="48x48" />
-		<link rel="apple-touch-icon" href={link("/apple-touch-icon.png")} />
+		<script is:inline define:vars={{ here: lang, alt }}>
+			// The reader chose a language (the cookie mh_lang, shared with the portal and the tools):
+			// move to it before anything is drawn.
+			var chose = document.cookie.match(/(?:^|;\s*)mh_lang=(en|es)/);
+			if (alt && chose && chose[1] !== here) location.replace(alt + location.search + location.hash);
+		</script>
+		<link rel="icon" type="image/svg+xml" href={asset("/favicon.svg")} />
+		<link rel="icon" href={asset("/favicon.ico")} sizes="48x48" />
+		<link rel="apple-touch-icon" href={asset("/apple-touch-icon.png")} />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="dark" />
 		<meta name="theme-color" content="#0b0c0d" />
 		<meta name="description" content={description} />
 		{noindex && <meta name="robots" content="noindex" />}
 		{canonical && <link rel="canonical" href={canonical} />}
+		{canonical && alt && <link rel="alternate" hreflang="en" href={abs("en")} />}
+		{canonical && alt && <link rel="alternate" hreflang="es" href={abs("es")} />}
+		{canonical && alt && <link rel="alternate" hreflang="x-default" href={abs("en")} />}
 		<meta property="og:type" content="website" />
-		<meta property="og:site_name" content={`${SITE_NAME}, by The Market Hub`} />
+		<meta property="og:site_name" content={`${SITE_NAME}, ${t.by}`} />
+		<meta property="og:locale" content={lang === "es" ? "es_ES" : "en_US"} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
 		{picture && <meta property="og:image" content={picture} />}
 		{picture && <meta property="og:image:width" content="1200" />}
 		{picture && <meta property="og:image:height" content="630" />}
-		{picture && <meta property="og:image:alt" content="Bot League, by The Market Hub" />}
+		{picture && <meta property="og:image:alt" content={t.shareAlt} />}
 		<meta name="twitter:card" content={picture ? "summary_large_image" : "summary"} />
 		<title>{title}</title>
 		<script is:inline>
@@ -66,25 +88,25 @@ const nav = [
 		<header class="topbar">
 			<div class="wrap flex h-14 items-center gap-4 lg:gap-8">
 				<div class="flex flex-none items-baseline gap-2.5 whitespace-nowrap">
-					<a href={link("/")} class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-ink-strong" aria-label="Bot League, home">
+					<a href={link("/", lang)} class="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight text-ink-strong" aria-label={t.home}>
 						<Mark class="h-5 w-5 self-center" />
 						<span>Bot League</span>
 					</a>
-					<a href={HUB_URL} class="hidden text-[12.5px] text-muted hover:text-ink-strong sm:inline">by The Market Hub</a>
+					<a href={hub("/", lang)} class="hidden text-[12.5px] text-muted hover:text-ink-strong sm:inline">{t.by}</a>
 				</div>
-				<nav class="hidden sm:block" aria-label="Main">
+				<nav class="hidden sm:block" aria-label={t.main}>
 					<ul class="flex items-center gap-5">
 						{nav.map((n) => <li><a class="nav-link" href={n.href} aria-current={n.key === page ? "page" : undefined}>{n.label}</a></li>)}
 					</ul>
 				</nav>
 				<div class="ml-auto flex items-center gap-3" id="account">
-					<a class="btn btn-primary py-1.5 text-[13px]" href={link("/me/")} data-me>Your bot</a>
+					<a class="btn btn-primary py-1.5 text-[13px]" href={link("/me/", lang)} data-me>{t.yourBot}</a>
 				</div>
 			</div>
-			<nav class="border-t border-line sm:hidden" aria-label="Main">
+			<nav class="border-t border-line sm:hidden" aria-label={t.main}>
 				<ul class="flex gap-5 overflow-x-auto px-5 text-sm [scrollbar-width:none]">
 					{nav.map((n) => <li><a class="nav-link -mb-px block py-2" href={n.href} aria-current={n.key === page ? "page" : undefined}>{n.label}</a></li>)}
-					<li><a class="nav-link -mb-px block py-2" href={HUB_URL}>The Market Hub</a></li>
+					<li><a class="nav-link -mb-px block py-2" href={hub("/", lang)}>The Market Hub</a></li>
 				</ul>
 			</nav>
 		</header>
@@ -94,18 +116,24 @@ const nav = [
 		<footer class="border-t border-line">
 			<div class="wrap grid gap-6 py-8 text-[13px] text-muted md:grid-cols-[1fr_auto]">
 				<div class="max-w-2xl space-y-2">
-					<p>
-						Bot League is part of <a href={HUB_URL} class="link">The Market Hub</a>. Bots of rules, built by talking to Claude or with your own AI agent, and run on
-						paper: no money, no broker, no orders.
-					</p>
-					<p>Nothing here is investment advice or a recommendation to buy or sell anything. Past returns say nothing about future ones.</p>
+					<p>{aboutBefore}<a href={hub("/", lang)} class="link">The Market Hub</a>{aboutAfter}</p>
+					<p>{t.notAdvice}</p>
 				</div>
 				<div class="flex flex-wrap items-start gap-x-5 gap-y-1">
-					<a href={link("/board/")} class="hover:text-ink-strong">Board</a>
-					<a href={link("/rules/")} class="hover:text-ink-strong">Rules</a>
-					<a href={`${HUB_URL}/privacy/`} class="hover:text-ink-strong">Privacy</a>
-					<a href={`${HUB_URL}/terms/`} class="hover:text-ink-strong">Terms</a>
-					<a href={HUB_URL} class="hover:text-ink-strong">The Market Hub</a>
+					<a href={link("/board/", lang)} class="hover:text-ink-strong">{t.board}</a>
+					<a href={link("/rules/", lang)} class="hover:text-ink-strong">{t.rules}</a>
+					<a href={hub("/privacy/", lang)} class="hover:text-ink-strong">{t.privacy}</a>
+					<a href={hub("/terms/", lang)} class="hover:text-ink-strong">{t.terms}</a>
+					<a href={hub("/", lang)} class="hover:text-ink-strong">The Market Hub</a>
+					{
+						!only && (
+							<span class="lang-switch flex gap-2" aria-label={t.language} role="group">
+								<a href={link(bare, "en")} data-lang="en" hreflang="en" lang="en" aria-current={lang === "en" ? "true" : undefined} class="hover:text-ink-strong">English</a>
+								<span aria-hidden="true">·</span>
+								<a href={link(bare, "es")} data-lang="es" hreflang="es" lang="es" aria-current={lang === "es" ? "true" : undefined} class="hover:text-ink-strong">Español</a>
+							</span>
+						)
+					}
 				</div>
 			</div>
 		</footer>
@@ -113,16 +141,21 @@ const nav = [
 			// The way in says who is in: "Your bot" for a member, "Sign in" for a visitor.
 			import { api, link, localVisitor } from "../lib/site";
 			import type { Me } from "../lib/types";
+			import { lang } from "../i18n";
+			import { languageChoice } from "../i18n/choice";
+			import { layout } from "../i18n/layout";
 			localVisitor();
+			languageChoice();
+			const t = layout[lang()];
 			api<Me>("/api/me")
 				.then((me) => {
 					const a = document.querySelector<HTMLAnchorElement>("[data-me]");
 					if (!a) return;
 					if (me.user) {
-						a.textContent = "Your bot";
+						a.textContent = t.yourBot;
 						a.href = link("/me/");
 					} else {
-						a.textContent = "Sign in";
+						a.textContent = t.signIn;
 						a.href = me.signin ?? link("/me/");
 					}
 					(window as unknown as { __me?: Me }).__me = me;

@@ -52,7 +52,9 @@ Reglas que no se negocian:
   en público cuándo cambió (no qué). Interruptores sí (pausar, excluir), órdenes no.
 
 Convenciones:
-- Hablar con el usuario en español. Código, comentarios y textos de la web en inglés.
+- Hablar con el usuario en español. Código y comentarios en inglés. **Textos de la web en inglés y
+  en español** (decisión del usuario, 2026-11-04): el inglés en la raíz, el español en `/es/`, cada texto
+  en `site/src/i18n/` con sus dos idiomas. Mecanismo, estilo y glosario en [docs/i18n.md](docs/i18n.md).
 - Python 3.12 con `uv`. Tests con `make test`; web con `make check`; todo en local con `make demo`.
 - **El aspecto es el de The Market Hub** (lo pidió el usuario): `site/src/styles/global.css` es el
   del portal con lo propio de Bot League al final, sin color de marca (lo "signal" se dibuja en la

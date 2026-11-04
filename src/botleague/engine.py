@@ -340,50 +340,81 @@ def needs(bot: dict) -> int:
     return out
 
 
-def _figure(name: str, v: float) -> str:
+def _figure(name: str, v: float, lang: str = "en") -> str:
     if name in PERCENT:
-        return f"{v * 100:+.0f}%".replace("+0%", "0%").replace("-", "−")
-    return f"{v:g}".replace("-", "−")
+        out = f"{v * 100:+.0f}%".replace("+0%", "0%").replace("-", "−")
+        return out.replace("%", " %") if lang == "es" else out
+    out = f"{v:g}".replace("-", "−")
+    return out.replace(".", ",") if lang == "es" else out
 
 
-def _what(f: dict) -> str:
-    name = f["factor"]
-    if name == "momentum":
-        return f"its return over {f['days']} sessions" + (f", leaving out the last {f['skip']}" if f["skip"] else "")
-    if name == "sma_cross":
-        return f"its {f['fast']}-session average against its {f['slow']}-session one"
-    return {"trend": "its close against its {days}-session average", "volatility": "its volatility over {days} sessions",
-            "rsi": "its RSI over {days} sessions", "drawdown": "how far it is under its high of {days} sessions",
-            "beta": "its beta to the S&P 500 over {days} sessions"}[name].format(**f)
+# The words of describe(), in English and in Spanish (market-hub-bots: docs/i18n.md).
+WHAT = {
+    "en": {"momentum": "its return over {days} sessions", "skip": ", leaving out the last {skip}",
+           "sma_cross": "its {fast}-session average against its {slow}-session one", "trend": "its close against its {days}-session average",
+           "volatility": "its volatility over {days} sessions", "rsi": "its RSI over {days} sessions",
+           "drawdown": "how far it is under its high of {days} sessions", "beta": "its beta to the S&P 500 over {days} sessions"},
+    "es": {"momentum": "su rentabilidad en {days} sesiones", "skip": ", sin contar las últimas {skip}",
+           "sma_cross": "su media de {fast} sesiones frente a la de {slow}", "trend": "su cierre frente a su media de {days} sesiones",
+           "volatility": "su volatilidad en {days} sesiones", "rsi": "su RSI en {days} sesiones",
+           "drawdown": "su caída desde su máximo de {days} sesiones", "beta": "su beta al S&P 500 en {days} sesiones"},
+}
+RULES = {
+    "en": {"largest": "Looks at the {n} largest US companies", "leaving": ", leaving out {names}", "tickers": "Looks at {n} companies: {names}",
+           "keeps": "Keeps those where {what} is {range}.", "scores": "Scores them on ", "term": "{what} ({side} is better, weight {w})",
+           "higher": "higher", "lower": "lower", "holds": "Holds the best {n}, {parts}{cap}.", "holds_one": "Holds the best 1, {parts}{cap}.",
+           "cap": ", none above {x}%", "equal": "in equal parts", "inverse_volatility": "the calmer ones with more", "score": "the best scored with more",
+           "daily": "Looks again at every close.", "weekly": "Looks again at the first close of each week.",
+           "monthly": "Looks again at the first close of each month.", "market": "When, for the S&P 500, {what} is not {range}, holds {x}% in cash.",
+           "between": "between {a} and {b}", "least": "at least {a}", "most": "at most {b}"},
+    "es": {"largest": "Mira las {n} mayores empresas de EE. UU.", "leaving": ", sin contar {names}", "tickers": "Mira {n} empresas: {names}",
+           "keeps": "Se queda con aquellas en las que {what} es {range}.", "scores": "Las puntúa por ",
+           "term": "{what} (mejor cuanto más {side}, peso {w})", "higher": "alto", "lower": "bajo", "holds": "Mantiene las {n} mejores, {parts}{cap}.",
+           "holds_one": "Mantiene la mejor, {parts}{cap}.", "cap": ", ninguna por encima del {x} %", "equal": "a partes iguales",
+           "inverse_volatility": "con más peso para las más tranquilas", "score": "con más peso para las mejor puntuadas",
+           "daily": "Revisa la cartera en cada cierre.", "weekly": "Revisa la cartera en el primer cierre de cada semana.",
+           "monthly": "Revisa la cartera en el primer cierre de cada mes.",
+           "market": "Cuando, para el S&P 500, {what} no es {range}, mantiene el {x} % en liquidez.",
+           "between": "entre {a} y {b}", "least": "al menos {a}", "most": "como mucho {b}"},
+}
 
 
-def _range(f: dict) -> str:
-    low, high = f.get("min"), f.get("max")
+def _what(f: dict, lang: str = "en") -> str:
+    w = WHAT[lang]
+    if f["factor"] == "momentum":
+        return w["momentum"].format(**f) + (w["skip"].format(**f) if f["skip"] else "")
+    return w[f["factor"]].format(**f)
+
+
+def _range(f: dict, lang: str = "en") -> str:
+    low, high, r = f.get("min"), f.get("max"), RULES[lang]
     if low is not None and high is not None:
-        return f"between {_figure(f['factor'], low)} and {_figure(f['factor'], high)}"
-    return f"at least {_figure(f['factor'], low)}" if low is not None else f"at most {_figure(f['factor'], high)}"
+        return r["between"].format(a=_figure(f["factor"], low, lang), b=_figure(f["factor"], high, lang))
+    return r["least"].format(a=_figure(f["factor"], low, lang)) if low is not None else r["most"].format(b=_figure(f["factor"], high, lang))
 
 
-def describe(bot: dict, universe: list[str] | None = None) -> list[str]:
-    """The rules of a bot in a few sentences, written by the code."""
+def describe(bot: dict, universe: list[str] | None = None, lang: str = "en") -> list[str]:
+    """The rules of a bot in a few sentences, written by the code, in English or in Spanish ("es")."""
+    lang = "es" if lang == "es" else "en"
+    r = RULES[lang]
     u = bot["universe"]
     if "largest" in u:
-        out = [f"Looks at the {u['largest']} largest US companies" + (f", leaving out {', '.join(u['exclude'])}." if u["exclude"] else ".")]
+        first = r["largest"].format(n=u["largest"]) + (r["leaving"].format(names=", ".join(u["exclude"])) if u["exclude"] else "")
+        out = [first if first.endswith(".") else first + "."]  # "EE. UU." ends the sentence already
     else:
         names = universe if universe is not None else [t for t in u["tickers"] if t not in u["exclude"]]
-        out = [f"Looks at {len(names)} companies: {', '.join(names[:12])}{'…' if len(names) > 12 else ''}."]
+        out = [r["tickers"].format(n=len(names), names=", ".join(names[:12]) + ("…" if len(names) > 12 else "")) + "."]
     for f in bot["filters"]:
-        out.append(f"Keeps those where {_what(f)} is {_range(f)}.")
-    terms = [f"{_what(s)} ({'higher' if s['weight'] > 0 else 'lower'} is better, weight {abs(s['weight']):g})" for s in bot["score"]]
-    out.append("Scores them on " + "; ".join(terms) + ".")
-    parts = {"equal": "in equal parts", "inverse_volatility": "the calmer ones with more", "score": "the best scored with more"}
-    cap = f", none above {bot['max_weight'] * 100:.0f}%" if bot["max_weight"] < 1 else ""
-    out.append(f"Holds the best {bot['hold']}, {parts[bot['weighting']]}{cap}.")
-    out.append({"daily": "Looks again at every close.", "weekly": "Looks again at the first close of each week.",
-                "monthly": "Looks again at the first close of each month."}[bot["rebalance"]])
+        out.append(r["keeps"].format(what=_what(f, lang), range=_range(f, lang)))
+    terms = [r["term"].format(what=_what(s, lang), side=r["higher" if s["weight"] > 0 else "lower"], w=_figure("weight", abs(s["weight"]), lang))
+             for s in bot["score"]]
+    out.append(r["scores"] + "; ".join(terms) + ".")
+    cap = r["cap"].format(x=f"{bot['max_weight'] * 100:.0f}") if bot["max_weight"] < 1 else ""
+    out.append(r["holds_one" if bot["hold"] == 1 else "holds"].format(n=bot["hold"], parts=r[bot["weighting"]], cap=cap))
+    out.append(r[bot["rebalance"]])
     if bot.get("market"):
         m = bot["market"]
-        out.append(f"When, for the S&P 500, {_what(m)} is not {_range(m)}, holds {m['cash'] * 100:.0f}% in cash.")
+        out.append(r["market"].format(what=_what(m, lang), range=_range(m, lang), x=f"{m['cash'] * 100:.0f}"))
     return out
 
 

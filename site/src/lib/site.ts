@@ -1,16 +1,23 @@
 // Site-wide constants, links and the call to the API.
+import { inLang, lang, type Lang } from "../i18n";
+
 export const SITE_NAME = "Bot League";
 
 // Market Hub, the portal: where members sign in, and what Bot League is part of.
 export const HUB_URL = (import.meta.env.PUBLIC_HUB_URL ?? "https://themarkethub.app").replace(/\/$/, "");
-export const hubQuoteUrl = (ticker: string) => `${HUB_URL}/quote/?t=${encodeURIComponent(ticker)}`;
+// A page of the portal, in the reader's language (the portal has the same /es/ pages).
+export const hub = (path = "/", l: Lang = lang()) => `${HUB_URL}${inLang(path, l)}`;
+export const hubQuoteUrl = (ticker: string, l: Lang = lang()) => `${hub("/quote/", l)}?t=${encodeURIComponent(ticker)}`;
 
-// Every internal link goes through here, so the site works under a sub-path too.
-export function link(path: string): string {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-  return `${base}${path}`;
+// Every internal link goes through here, so the site works under a sub-path too, and stays in the
+// page's language. A page being built passes its language; in the browser it is the page's own.
+export function link(path: string, l: Lang = lang()): string {
+  return `${base()}${path.startsWith("/") ? inLang(path, l) : path}`;
 }
-export const botUrl = (slug: string) => `${link("/bot/")}?b=${encodeURIComponent(slug)}`;
+// A file of the site (an icon, a picture): the same in every language.
+export const asset = (path: string) => `${base()}${path}`;
+const base = () => import.meta.env.BASE_URL.replace(/\/$/, "");
+export const botUrl = (slug: string, l: Lang = lang()) => `${link("/bot/", l)}?b=${encodeURIComponent(slug)}`;
 
 // The API lives on the same origin in production; in development it is another port.
 export const API = (import.meta.env.PUBLIC_API_URL ?? "").replace(/\/$/, "");
@@ -21,17 +28,25 @@ export class ApiError extends Error {
   }
 }
 
+// The headers every call carries: the page's language, so what the service writes in words (the
+// rules, the errors, Claude's replies) comes back in it. A header of our own, not Accept-Language:
+// that one is sent by every browser and phone on its own, and only a page in Spanish asks for Spanish.
+export const apiHeaders = (json = false): Record<string, string> => ({
+  "x-mh-lang": lang(),
+  ...(json ? { "content-type": "application/json" } : {}),
+});
+
 // GET or send JSON to the API. A failed answer throws its own words, and where to sign in when
 // the answer is that one has to.
 export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     method: init?.method ?? "GET",
     credentials: "include",
-    headers: init?.body !== undefined ? { "content-type": "application/json" } : undefined,
+    headers: apiHeaders(init?.body !== undefined),
     body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
   if (!res.ok) {
-    let detail = "Something went wrong. Try again in a minute.";
+    let detail = lang() === "es" ? "Algo ha fallado. Inténtalo de nuevo en un minuto." : "Something went wrong. Try again in a minute.";
     let signin: string | null = null;
     try {
       const body = await res.json();

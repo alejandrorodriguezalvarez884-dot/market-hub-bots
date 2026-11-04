@@ -4,25 +4,24 @@
 // hold at the last close. The companies left out with the switch are not here: they stay out until
 // let back in.
 import { add, h } from "./dom";
-import { day } from "./format";
+import { day, num, pct, plural } from "./format";
 import { slider, segmented, rulesDiff, toggle } from "./controls";
 import { treemap } from "./mybot";
 import { ApiError, api } from "./site";
 import type { Bot, Checked, Factor, Spec } from "./types";
 import { changed, describe, diff, figure } from "./words";
+import { lang } from "../i18n";
+import { editor as ed } from "../i18n/editor";
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
-const NAMES: Record<string, string> = {
-  momentum: "Return", trend: "Close against its average", sma_cross: "Short average against long", volatility: "Volatility",
-  rsi: "RSI", drawdown: "Distance from its high", beta: "Beta to the S&P 500",
-};
+// The words of the page's language (the figures' names and settings are in it too).
+const t = () => ed[lang()];
 // The span of a bound's slider for each figure, its step and a starting value (fractions for the
 // percentages).
 const BOUNDS: Record<string, [number, number, number, number]> = {
   momentum: [-0.5, 1, 0.01, 0], trend: [-0.3, 0.3, 0.01, 0], sma_cross: [-0.2, 0.2, 0.01, 0], volatility: [0, 1, 0.01, 0.3],
   rsi: [0, 100, 1, 50], drawdown: [-0.6, 0, 0.01, -0.1], beta: [0, 3, 0.05, 1],
 };
-const SETTING: Record<string, string> = { days: "Over", skip: "Leaving out the last", fast: "Short average", slow: "Long average" };
 
 export type EditorOptions = {
   before: Bot; // the bot as it is, or as it will be at the next close: what the change is measured against
@@ -50,11 +49,12 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
   const map = h("div");
   const mapNote = h("p", "mt-2 text-[12px] text-faint");
   const problem = h("p", "mt-3 hidden text-[12.5px] text-warn");
-  const apply = h("button", "btn btn-primary w-full", o.applyLabel ?? "Apply at the next close");
+  const applyLabel = o.applyLabel ?? t().applyNext;
+  const apply = h("button", "btn btn-primary w-full", applyLabel);
   apply.type = "button";
   // On a phone what changes is under every group: a bar at the foot keeps the count and the button.
   const count = h("span", "min-w-0 flex-1 text-[13px] text-ink");
-  const applyBar = h("button", "btn btn-primary py-1.5 text-[13px]", "Apply");
+  const applyBar = h("button", "btn btn-primary py-1.5 text-[13px]", t().apply);
   applyBar.type = "button";
   applyBar.addEventListener("click", () => apply.click());
   let timer = 0, resting = false, previewed = "";
@@ -67,7 +67,7 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
     const differs = changed(lines);
     apply.disabled = applyBar.disabled = !differs || !!o.blocked;
     const n = lines.filter((l) => l.kind === "new").length;
-    count.textContent = !differs ? "No change yet" : n === 0 ? "A rule goes" : `${n} ${n === 1 ? "rule changes" : "rules change"} · at the next close`;
+    count.textContent = !differs ? t().noChange : n === 0 ? t().ruleGoes : t().rulesChange(n);
     clearTimeout(timer);
     if (differs && !resting) timer = window.setTimeout(preview, 1200);
   }
@@ -76,21 +76,21 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
     const key = JSON.stringify(bot);
     if (key === previewed) return;
     previewed = key;
-    mapNote.textContent = "Reading the last close…";
+    mapNote.textContent = t().reading;
     try {
       const got = await api<Checked>("/api/bots/preview", { method: "POST", body: { bot } });
       if (JSON.stringify(bot) !== key) return;
       problem.classList.add("hidden");
       if (got.holds) {
         map.replaceChildren(treemap(got.holds.weights, null, { preview: true, small: true }));
-        mapNote.textContent = `What these rules would hold at the close of ${day(got.holds.as_of)}.`;
+        mapNote.textContent = t().wouldHoldAt(day(got.holds.as_of));
       }
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
         resting = true;
-        mapNote.textContent = "The map rests for a while; the rules in words still follow every move.";
+        mapNote.textContent = t().rests;
       } else {
-        problem.textContent = e instanceof Error ? e.message : "These rules could not be read.";
+        problem.textContent = e instanceof Error ? e.message : t().unreadable;
         problem.classList.remove("hidden");
         mapNote.textContent = "";
       }
@@ -100,11 +100,12 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
   // --- A figure and its settings ---
 
   function factor(f: Factor, extra: "bounds" | "weight" | "market", remove: (() => void) | null): HTMLElement {
+    const w = t();
     const box = h("div", "factor");
     const pick = h("select", "field factor-pick");
-    pick.setAttribute("aria-label", "Figure");
+    pick.setAttribute("aria-label", w.figure);
     for (const k of Object.keys(spec.factors)) {
-      const opt = h("option", "", NAMES[k] ?? k);
+      const opt = h("option", "", w.names[k] ?? k);
       opt.value = k;
       opt.selected = k === f.factor;
       pick.append(opt);
@@ -125,18 +126,18 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
     if (remove) {
       const x = h("button", "factor-x", "×");
       x.type = "button";
-      x.setAttribute("aria-label", "Remove");
+      x.setAttribute("aria-label", w.remove);
       x.addEventListener("click", () => (remove(), draw()));
       top.append(x);
     }
     box.append(top);
     for (const [k, s] of Object.entries(spec.factors[f.factor]?.settings ?? {})) {
-      box.append(row(SETTING[k] ?? k, slider({ min: s.min, max: s.max, step: 1, value: Number(f[k] ?? s.default ?? s.min), label: SETTING[k] ?? k,
-        show: (v) => `${v} sessions`, onInput: (v) => ((f[k] = v), live()) })));
+      box.append(row(w.settings[k] ?? k, slider({ min: s.min, max: s.max, step: 1, value: Number(f[k] ?? s.default ?? s.min), label: w.settings[k] ?? k,
+        show: (v) => plural(v, w.session, w.sessions), onInput: (v) => ((f[k] = v), live()) })));
     }
     if (extra === "weight") {
-      box.append(row("Prefers", slider({ min: -5, max: 5, step: 0.5, value: f.weight ?? 1, label: "Weight",
-        show: (v) => (v === 0 ? "—" : `${v > 0 ? "higher" : "lower"} · ×${Math.abs(v)}`),
+      box.append(row(w.prefers, slider({ min: -5, max: 5, step: 0.5, value: f.weight ?? 1, label: w.weight,
+        show: (v) => (v === 0 ? "—" : `${v > 0 ? w.higher : w.lower} · ×${num(Math.abs(v), Number.isInteger(v) ? 0 : 1)}`),
         onInput: (v) => {
           f.weight = v === 0 ? (Math.sign(f.weight ?? 1) || 1) * 0.5 : v;
           live();
@@ -146,19 +147,19 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
     // Bounds: at least, at most, or between.
     const [lo0, hi0, step, mid] = BOUNDS[f.factor] ?? [-1, 1, 0.01, 0];
     const lo = Math.min(lo0, f.min ?? lo0, f.max ?? lo0), hi = Math.max(hi0, f.min ?? hi0, f.max ?? hi0);
-    const show = (v: number) => (f.factor === "volatility" ? `${(v * 100).toFixed(0)}%` : figure(f.factor, v));
+    const show = (v: number) => (f.factor === "volatility" ? pct(v, 0) : figure(f.factor, v));
     const mode = f.min != null && f.max != null ? "between" : f.max != null ? "most" : "least";
-    box.append(row(extra === "market" ? "Holds stocks while it is" : "Keeps a stock if it is", segmented([["least", "At least"], ["most", "At most"], ["between", "Between"]], mode, (m) => {
+    box.append(row(extra === "market" ? w.holdsWhile : w.keepsIf, segmented([["least", w.atLeast], ["most", w.atMost], ["between", w.between]], mode, (m) => {
       const a = f.min ?? f.max ?? mid, b = f.max ?? f.min ?? mid;
       if (m === "least") (f.min = a), delete f.max;
       else if (m === "most") (f.max = b), delete f.min;
       else (f.min = Math.min(a, b)), (f.max = Math.max(a, b, Math.min(hi, a + (hi - lo) / 4)));
       draw();
-    }, "Bound")));
-    if (f.min != null) box.append(row(mode === "between" ? "From" : "", slider({ min: lo, max: hi, step, value: f.min, show, label: "At least", onInput: (v) => ((f.min = v), live()) })));
-    if (f.max != null) box.append(row(mode === "between" ? "To" : "", slider({ min: lo, max: hi, step, value: f.max, show, label: "At most", onInput: (v) => ((f.max = v), live()) })));
+    }, w.bound)));
+    if (f.min != null) box.append(row(mode === "between" ? w.from : "", slider({ min: lo, max: hi, step, value: f.min, show, label: w.atLeast, onInput: (v) => ((f.min = v), live()) })));
+    if (f.max != null) box.append(row(mode === "between" ? w.to : "", slider({ min: lo, max: hi, step, value: f.max, show, label: w.atMost, onInput: (v) => ((f.max = v), live()) })));
     if (extra === "market") {
-      box.append(row("Otherwise, in cash", slider({ min: 0.05, max: 1, step: 0.05, value: f.cash ?? 1, label: "Cash", show: (v) => `${(v * 100).toFixed(0)}%`, onInput: (v) => ((f.cash = v), live()) })));
+      box.append(row(w.otherwiseCash, slider({ min: 0.05, max: 1, step: 0.05, value: f.cash ?? 1, label: w.cash, show: (v) => pct(v, 0), onInput: (v) => ((f.cash = v), live()) })));
     }
     return box;
   }
@@ -173,42 +174,43 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
   // --- The groups ---
 
   function draw() {
+    const w = t();
     const byList = Array.isArray(bot.universe.tickers);
-    const universe = group("Where it looks", null,
-      segmented([["largest", "The largest companies"], ["tickers", "A list I choose"]], byList ? "tickers" : "largest", (v) => {
+    const universe = group(w.where, null,
+      segmented([["largest", w.largest], ["tickers", w.list]], byList ? "tickers" : "largest", (v) => {
         bot.universe = v === "tickers" ? { tickers: o.before.universe.tickers ?? [], exclude: bot.universe.exclude } : { largest: o.before.universe.largest ?? 100, exclude: bot.universe.exclude };
         draw();
-      }, "Where it looks"));
+      }, w.where));
     if (byList) {
       const list = h("textarea", "field num mt-3 min-h-[60px] uppercase");
       list.value = (bot.universe.tickers ?? []).join(", ");
       list.placeholder = "AAPL, MSFT, NVDA…";
-      list.setAttribute("aria-label", "Tickers");
-      list.addEventListener("input", () => ((bot.universe.tickers = list.value.split(/[\s,]+/).map((t) => t.trim().toUpperCase()).filter(Boolean)), live()));
-      universe.append(list, h("p", "group-hint mt-1", "2 to 100 tickers, among the 500 largest US companies."));
+      list.setAttribute("aria-label", w.tickers);
+      list.addEventListener("input", () => ((bot.universe.tickers = list.value.split(/[\s,]+/).map((x) => x.trim().toUpperCase()).filter(Boolean)), live()));
+      universe.append(list, h("p", "group-hint mt-1", w.tickersHint));
     } else {
-      universe.append(row("How many", slider({ min: spec.universe.largest.min, max: spec.universe.largest.max, step: 1, value: bot.universe.largest ?? 100, label: "How many companies",
-        show: (v) => `the ${v} largest`, onInput: (v) => ((bot.universe.largest = v), live()) })));
+      universe.append(row(w.howMany, slider({ min: spec.universe.largest.min, max: spec.universe.largest.max, step: 1, value: bot.universe.largest ?? 100, label: w.howManyCompanies,
+        show: (v) => w.theLargest(num(v)), onInput: (v) => ((bot.universe.largest = v), live()) })));
     }
 
-    const keeps = group("What it keeps", bot.filters.length ? "A company outside these bounds is left out." : "No filter: any company it looks at can be chosen.",
+    const keeps = group(w.keeps, bot.filters.length ? w.keepsHint : w.noFilter,
       ...bot.filters.map((f, i) => factor(f, "bounds", () => bot.filters.splice(i, 1))),
-      bot.filters.length < 8 ? more("+ Add a filter", () => (bot.filters.push({ factor: "trend", days: 200, min: 0 }), draw())) : null);
+      bot.filters.length < 8 ? more(w.addFilter, () => (bot.filters.push({ factor: "trend", days: 200, min: 0 }), draw())) : null);
 
-    const ranks = group("How it ranks", "Those left are ranked on these figures.",
+    const ranks = group(w.ranks, w.ranksHint,
       ...bot.score.map((f, i) => factor(f, "weight", bot.score.length > 1 ? () => bot.score.splice(i, 1) : null)),
-      bot.score.length < 8 ? more("+ Add a figure", () => (bot.score.push({ factor: "momentum", days: 126, skip: 0, weight: 1 }), draw())) : null);
+      bot.score.length < 8 ? more(w.addFigure, () => (bot.score.push({ factor: "momentum", days: 126, skip: 0, weight: 1 }), draw())) : null);
 
-    const holds = group("How it holds", null,
-      row("Stocks", slider({ min: spec.hold.min, max: spec.hold.max, step: 1, value: bot.hold, label: "How many stocks", show: (v) => `the best ${v}`, onInput: (v) => ((bot.hold = v), live()) })),
-      row("Sizes", segmented([["equal", "Equal"], ["inverse_volatility", "Calmer more"], ["score", "Best more"]], bot.weighting, (v) => ((bot.weighting = v), live()), "Weighting")),
-      row("At most in one", slider({ min: 2, max: 100, step: 1, value: Math.round(bot.max_weight * 100), label: "Most in one stock",
-        show: (v) => (v >= 100 ? "no limit" : `${v}%`), onInput: (v) => ((bot.max_weight = v / 100), live()) })),
-      row("Looks again", segmented([["daily", "Every close"], ["weekly", "Weekly"], ["monthly", "Monthly"]], bot.rebalance, (v) => ((bot.rebalance = v), live()), "Rebalance")));
+    const holds = group(w.holds, null,
+      row(w.stocks, slider({ min: spec.hold.min, max: spec.hold.max, step: 1, value: bot.hold, label: w.howManyStocks, show: (v) => w.theBest(num(v)), onInput: (v) => ((bot.hold = v), live()) })),
+      row(w.sizes, segmented([["equal", w.equal], ["inverse_volatility", w.calmerMore], ["score", w.bestMore]], bot.weighting, (v) => ((bot.weighting = v), live()), w.weighting)),
+      row(w.mostInOne, slider({ min: 2, max: 100, step: 1, value: Math.round(bot.max_weight * 100), label: w.mostInOneStock,
+        show: (v) => (v >= 100 ? w.noLimit : pct(v / 100, 0)), onInput: (v) => ((bot.max_weight = v / 100), live()) })),
+      row(w.looksAgain, segmented([["daily", w.everyClose], ["weekly", w.weekly], ["monthly", w.monthly]], bot.rebalance, (v) => ((bot.rebalance = v), live()), w.rebalance)));
 
-    const market = group("When the market falls", null,
-      add(h("div", "flex items-center justify-between gap-3"), h("span", "text-[13.5px] text-ink", "Step aside to cash when the S&P 500 is out of bounds"),
-        toggle(!!bot.market, "Market switch", (on) => {
+    const market = group(w.market, null,
+      add(h("div", "flex items-center justify-between gap-3"), h("span", "text-[13.5px] text-ink", w.stepAside),
+        toggle(!!bot.market, w.marketSwitch, (on) => {
           if (on) bot.market = { factor: "trend", days: 200, min: 0, cash: 1 };
           else delete bot.market;
           draw();
@@ -221,32 +223,32 @@ export function editor(spec: Spec, start: Bot, o: EditorOptions): HTMLElement {
 
   apply.addEventListener("click", async () => {
     apply.disabled = true;
-    apply.textContent = "Applying…";
+    apply.textContent = t().applying;
     problem.classList.add("hidden");
     try {
       await o.apply(bot);
     } catch (e) {
-      problem.textContent = e instanceof Error ? e.message : "That did not work.";
+      problem.textContent = e instanceof Error ? e.message : t().failed;
       problem.classList.remove("hidden");
-      apply.textContent = o.applyLabel ?? "Apply at the next close";
+      apply.textContent = applyLabel;
       apply.disabled = false;
     }
   });
 
   map.append(treemap(o.now, null, { small: true }));
-  mapNote.textContent = o.applyLabel ? "What it would hold now. Move a control to see it change." : "What it holds now. Move a control to see what it would hold.";
-  const back = h("button", "back-btn", o.backLabel ?? "← The simple way");
+  mapNote.textContent = o.applyLabel ? t().nowWould : t().nowHolds;
+  const back = h("button", "back-btn", o.backLabel ?? t().simpleWay);
   back.type = "button";
   back.addEventListener("click", o.back);
   draw();
   if (JSON.stringify(start) !== JSON.stringify(o.before)) void preview();
   return add(h("div", "adv"),
-    add(h("div", "flex flex-wrap items-baseline justify-between gap-2"), back, h("p", "text-[12.5px] text-muted", "Every rule, by hand")),
+    add(h("div", "flex flex-wrap items-baseline justify-between gap-2"), back, h("p", "text-[12.5px] text-muted", t().everyRule)),
     add(h("div", "mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]"), controls,
       add(h("aside", "adv-side"),
-        h("p", "label pb-2", "What changes"), words,
-        add(h("div", "mt-5"), h("p", "label pb-2", "What it would hold"), map, mapNote),
+        h("p", "label pb-2", t().whatChanges), words,
+        add(h("div", "mt-5"), h("p", "label pb-2", t().wouldHold), map, mapNote),
         add(h("div", "mt-5"), apply, problem,
-          h("p", "mt-2 text-[12px] text-faint", o.blocked ?? o.note ?? "From the next close, once a day. Its record goes on.")))),
+          h("p", "mt-2 text-[12px] text-faint", o.blocked ?? o.note ?? t().footNote)))),
     add(h("div", "adv-bar lg:hidden"), count, applyBar));
 }

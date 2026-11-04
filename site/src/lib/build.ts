@@ -6,7 +6,7 @@
 // and the button that sends it in. Nothing is kept on the server until it is sent in: the
 // conversation and the draft live in this browser only.
 import { add, h, svg } from "./dom";
-import { day, plural, signedPct, tone } from "./format";
+import { day, pct, plural, signedPct, tone } from "./format";
 import { lineChart, type Series } from "./chart";
 import { rulesDiff, segmented } from "./controls";
 import { closeOf } from "./change";
@@ -16,6 +16,8 @@ import { robotSvg } from "./robot";
 import { ApiError, api } from "./site";
 import type { Backtest, Bot, ChatStatus, DraftAnswer, MyBot, Preview, Spec } from "./types";
 import { diff } from "./words";
+import { lang } from "../i18n";
+import { build as words } from "../i18n/build";
 
 export type BuildContext = {
   name: string; // the member's first name, as the board shows it
@@ -46,20 +48,21 @@ const fresh = (): State => ({ talk: [], draft: null, rules: [], before: [], hold
 
 // --- Ideas to start from, each with a small drawing of what it does --------------------------------
 
-type Idea = { key: string; title: string; line: string; say: string; glyph: (g: SVGSVGElement) => void };
+// The words of each idea (its title, its line and what it says to Claude) are in i18n/build.ts.
+type Idea = { key: keyof (typeof words)["en"]["ideas"]; glyph: (g: SVGSVGElement) => void };
 const path = (d: string, extra: Record<string, string | number> = {}) => svg("path", { d, fill: "none", stroke: "currentColor", "stroke-width": 1.6, "stroke-linecap": "round", "stroke-linejoin": "round", ...extra });
 const IDEAS: Idea[] = [
-  { key: "momentum", title: "Momentum", line: "Hold what has risen the most over the last months.", say: "I like momentum: hold what has risen the most.",
+  { key: "momentum",
     glyph: (g) => g.append(path("M3 25 C16 23 24 17 32 12 S48 5 57 3")) },
-  { key: "trend", title: "Ride the trend", line: "Only stocks going up, and cash when the whole market falls.", say: "Follow the trend, and step into cash when the market falls.",
+  { key: "trend",
     glyph: (g) => g.append(path("M3 22 L57 9", { "stroke-dasharray": "2 3", opacity: 0.55 }), path("M3 19 L14 15 L22 17 L33 9 L42 11 L57 4")) },
-  { key: "calm", title: "Calm stocks", line: "The least jumpy companies, which often fall less.", say: "I want calm stocks, the least volatile ones.",
+  { key: "calm",
     glyph: (g) => g.append(path("M3 17 C11 15 17 16 25 14 S41 13 57 11")) },
-  { key: "pullbacks", title: "Buy the dips", line: "Stocks in a long uptrend that just dropped for a few days.", say: "Buy pullbacks: stocks in an uptrend that just dipped.",
+  { key: "pullbacks",
     glyph: (g) => g.append(path("M3 25 L19 13 L27 18 L31 21 L40 10 L57 4"), svg("circle", { cx: 31, cy: 21, r: 2.2, fill: "currentColor" })) },
-  { key: "highs", title: "Near the highs", line: "Companies trading close to their one-year high.", say: "Stocks near their one-year highs.",
+  { key: "highs",
     glyph: (g) => g.append(path("M3 4 L57 4", { "stroke-dasharray": "2 3", opacity: 0.55 }), path("M3 24 L15 17 L25 13 L35 9 L45 6 L57 5")) },
-  { key: "megacaps", title: "A few giants", line: "Rotate among a dozen of the biggest companies.", say: "Rotate among a few of the biggest companies.",
+  { key: "megacaps",
     glyph: (g) => [[6, 14], [18, 8], [30, 18], [42, 11]].forEach(([x, y]) => g.append(svg("rect", { x, y, width: 8, height: 27 - y, rx: 1.5, fill: "currentColor", opacity: y === 8 ? 0.9 : 0.4 }))) },
 ];
 
@@ -81,6 +84,7 @@ const short = (v: number | null | undefined) => signedPct(v ?? null, 1);
 
 export function builder(ctx: BuildContext): HTMLElement {
   const { spec, chat } = ctx;
+  const w = words[lang()];
   const KEY = `bl-build:${ctx.seed}`;
   let s: State = fresh();
   try {
@@ -116,11 +120,11 @@ export function builder(ctx: BuildContext): HTMLElement {
       const got = await api<DraftAnswer>("/api/bots/draft/chat", { method: "POST", body: { message: msg, history, draft: s.draft, backtest } });
       if (typeof got.left === "number") chat.left = got.left;
       s.talk.push({ role: "assistant", text: got.reply });
-      if (got.problems?.length) s.talk.push({ role: "step", kind: "problems", text: "Its proposal did not pass the checks", note: got.problems.join(" ") });
+      if (got.problems?.length) s.talk.push({ role: "step", kind: "problems", text: w.problemsStep, note: got.problems.join(" ") });
       if (got.proposal) adopt(got.proposal, got.rules ?? [], got.holds ?? null, "draft");
     } catch (e) {
-      if (e instanceof ApiError && e.status === 503 && /messages today/.test(e.message)) chat.left = 0;
-      s.talk.push({ role: "assistant", text: message(e, "The chat could not answer."), error: true });
+      if (e instanceof ApiError && e.status === 503 && /messages today|mensajes/.test(e.message)) chat.left = 0;
+      s.talk.push({ role: "assistant", text: message(e, w.chatFailed), error: true });
     }
     thinking = false;
     save();
@@ -137,9 +141,9 @@ export function builder(ctx: BuildContext): HTMLElement {
     s.holds = holds;
     s.version += 1;
     s.test = null; // the backtest was of the draft before
-    const held = holds ? plural(Object.keys(holds.weights).length, "stock") : null;
-    s.talk.push({ role: "step", kind, text: `Draft ${s.version} · ${bot.name}`,
-      note: [`checked: ${plural(rules.length, "rule")}`, held ? `would hold ${held} today` : null].filter(Boolean).join(" · ") });
+    const held = holds ? plural(Object.keys(holds.weights).length, w.stock, w.stocks) : null;
+    s.talk.push({ role: "step", kind, text: w.draftStep(s.version, bot.name),
+      note: [w.checked(plural(rules.length, w.rule, w.rules)), held ? w.holdsToday(held) : null].filter(Boolean).join(" · ") });
   }
 
   async function backtest(n: number) {
@@ -150,11 +154,11 @@ export function builder(ctx: BuildContext): HTMLElement {
     try {
       const result = await api<Backtest>("/api/bots/backtest", { method: "POST", body: { bot: s.draft, years: n } });
       s.test = { years: n, result };
-      s.talk.push({ role: "step", kind: "test", text: `Backtest of draft ${s.version}, ${plural(n, "year")}`,
-        note: `bot ${short(result.bot.total_return)} · S&P 500 ${short(result.benchmark.total_return)} · worst fall ${short(result.bot.max_drawdown)} · a simulation of the past` });
+      s.talk.push({ role: "step", kind: "test", text: w.testStep(s.version, plural(n, w.year, w.years)),
+        note: w.testNote(short(result.bot.total_return), short(result.benchmark.total_return), short(result.bot.max_drawdown)) });
       save();
     } catch (e) {
-      s.talk.push({ role: "step", kind: "problems", text: "The backtest could not run", note: message(e, "Try again in a minute.") });
+      s.talk.push({ role: "step", kind: "problems", text: w.testFailed, note: message(e, w.tryAgain) });
     }
     testing = 0;
     draw();
@@ -163,7 +167,7 @@ export function builder(ctx: BuildContext): HTMLElement {
   async function sendIn(b: HTMLButtonElement) {
     if (!s.draft) return;
     b.disabled = true;
-    b.textContent = "Sending it in…";
+    b.textContent = w.sending;
     try {
       await api("/api/bots/mine", { method: "PUT", body: { bot: s.draft } });
       try {
@@ -171,14 +175,14 @@ export function builder(ctx: BuildContext): HTMLElement {
       } catch {}
       await ctx.sent();
     } catch (e) {
-      sendNote = message(e, "It could not be sent in.");
+      sendNote = message(e, w.sendFailed);
       b.disabled = false;
       draw();
     }
   }
 
   function startOver() {
-    if (s.talk.length && !confirm("Start over? This conversation and its draft go.")) return;
+    if (s.talk.length && !confirm(w.startOverConfirm)) return;
     s = fresh();
     confirming = byHand = false;
     save();
@@ -192,21 +196,21 @@ export function builder(ctx: BuildContext): HTMLElement {
     if (t.role === "assistant") return add(h("div", `bubble is-them ${t.error ? "is-error" : ""}`), h("span", "bubble-who", "Claude"), h("span", "", t.text));
     const line = add(h("div", `step-line is-${t.kind}`), h("span", "step-dot"),
       add(h("div", "min-w-0"), h("p", "step-text", t.text), t.note ? h("p", "step-note", t.note) : null));
-    if (t.kind === "draft" || t.kind === "hand") line.append(button("step-see lg:hidden", "See it ↓", () => root.querySelector(".draft")?.scrollIntoView({ behavior: "smooth", block: "start" })));
+    if (t.kind === "draft" || t.kind === "hand") line.append(button("step-see lg:hidden", w.seeIt, () => root.querySelector(".draft")?.scrollIntoView({ behavior: "smooth", block: "start" })));
     return line;
   }
 
   function welcome(): HTMLElement {
     return add(h("div", "bubble is-them"), h("span", "bubble-who", "Claude"),
-      h("span", "", `Hi ${ctx.name}. Let's build your bot together. How would you like it to pick stocks? Tap an idea or tell me yours, in your own words.`));
+      h("span", "", w.greeting(ctx.name)));
   }
 
   function ideas(): HTMLElement {
     return add(h("div", "ideas"), ...IDEAS.map((i) => {
-      const b = add(h("button", "idea"), glyph(i), h("span", "idea-title", i.title), h("span", "idea-line", i.line));
+      const b = add(h("button", "idea"), glyph(i), h("span", "idea-title", w.ideas[i.key].title), h("span", "idea-line", w.ideas[i.key].line));
       b.type = "button";
       b.disabled = thinking || !canTalk();
-      b.addEventListener("click", () => void say(i.say));
+      b.addEventListener("click", () => void say(w.ideas[i.key].say));
       return b;
     }));
   }
@@ -215,22 +219,22 @@ export function builder(ctx: BuildContext): HTMLElement {
   const canTalk = () => chat.on && left() > 0;
 
   function box(): HTMLElement {
-    if (!chat.on) return add(h("div", "ask is-off"), h("p", "py-1 text-[14px] text-ink", "The chat is off on this copy of the site. The kit below builds it with your own agent."));
+    if (!chat.on) return add(h("div", "ask is-off"), h("p", "py-1 text-[14px] text-ink", w.chatOff));
     if (left() <= 0) {
-      return add(h("div", "ask is-off"), add(h("div", "py-1"), h("p", "text-[14px] text-ink", `That is the ${chat.per_member_per_day} messages of today: the chat is back tomorrow.`),
-        h("p", "mt-1 text-[12.5px] text-muted", s.draft ? "Your draft stays here. You can still change every rule by hand, backtest it and send it in." : "The kit below builds it with your own agent.")));
+      return add(h("div", "ask is-off"), add(h("div", "py-1"), h("p", "text-[14px] text-ink", w.usedUp(chat.per_member_per_day)),
+        h("p", "mt-1 text-[12.5px] text-muted", s.draft ? w.draftStays : w.kitBelow)));
     }
     const form = h("form", "ask");
     const input = h("textarea", "ask-input");
     input.rows = 1;
     input.maxLength = 600;
-    input.placeholder = s.draft ? "Tell Claude what to change…" : "Or describe your own idea…";
-    input.setAttribute("aria-label", "Your message to Claude");
+    input.placeholder = s.draft ? w.askChange : w.askIdea;
+    input.setAttribute("aria-label", w.askLabel);
     input.disabled = thinking;
     const go = h("button", "ask-send");
     go.type = "submit";
     go.disabled = thinking;
-    go.setAttribute("aria-label", "Send");
+    go.setAttribute("aria-label", w.send);
     go.innerHTML = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 10h11M10.5 5.5 15 10l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const grow = () => ((input.style.height = "auto"), (input.style.height = `${Math.min(input.scrollHeight, 160)}px`));
     input.addEventListener("input", grow);
@@ -246,14 +250,14 @@ export function builder(ctx: BuildContext): HTMLElement {
 
   function chips(): HTMLElement | null {
     if (!s.draft || !canTalk()) return null;
-    const tap = (label: string, text: string) => button("suggest", label, () => void say(text));
+    const tap = ([label, text]: [string, string]) => button("suggest", label, () => void say(text));
     const row = add(h("div", "suggests"),
-      tap("Fewer stocks", "Hold fewer stocks"),
-      tap("More stocks", "Hold more stocks"),
-      tap("Calmer", "Make it calmer, more defensive"),
-      s.draft.rebalance === "monthly" ? tap("Look again weekly", "Look again weekly") : tap("Look again monthly", "Look again monthly"),
-      s.test ? tap("What does the backtest say?", "What does the backtest say about it?") : null,
-      tap("Rename it", "Give it a better name"));
+      tap(w.chips.fewer),
+      tap(w.chips.more),
+      tap(w.chips.calmer),
+      s.draft.rebalance === "monthly" ? tap(w.chips.weekly) : tap(w.chips.monthly),
+      s.test ? tap(w.chips.backtest) : null,
+      tap(w.chips.rename));
     if (thinking) row.querySelectorAll("button").forEach((b) => (b.disabled = true));
     return row;
   }
@@ -269,12 +273,12 @@ export function builder(ctx: BuildContext): HTMLElement {
   function chatSide(): HTMLElement {
     const started = s.talk.some((t) => t.role === "user");
     const meta = add(h("div", "mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12.5px]"),
-      h("span", "num text-faint", chat.on ? `${left()} of ${chat.per_member_per_day} messages left today` : ""),
-      s.talk.length ? button("text-muted underline-offset-4 hover:text-ink-strong hover:underline", "Start over", startOver) : null);
+      h("span", "num text-faint", chat.on ? w.left(left(), chat.per_member_per_day) : ""),
+      s.talk.length ? button("text-muted underline-offset-4 hover:text-ink-strong hover:underline", w.startOver, startOver) : null);
     return add(h("section", "build-chat frame"),
-      add(h("div", "build-head"), h("span", "build-mark", "✳"), add(h("div", "min-w-0"), h("h2", "change-title", "Build it with Claude"),
-        h("p", "text-[12.5px] text-muted", "Say the idea; Claude writes the rules and the code checks them. You decide when it goes in.")),
-        ctx.cancel ? Object.assign(button("change-close", "×", ctx.cancel), { ariaLabel: "Back to your bot", title: "Back to your bot" }) : null),
+      add(h("div", "build-head"), h("span", "build-mark", "✳"), add(h("div", "min-w-0"), h("h2", "change-title", w.title),
+        h("p", "text-[12.5px] text-muted", w.sub)),
+        ctx.cancel ? Object.assign(button("change-close", "×", ctx.cancel), { ariaLabel: w.backToBot, title: w.backToBot }) : null),
       conversation(),
       !started && !s.draft ? ideas() : null,
       add(h("div", "mt-4"), box()), chips(), meta);
@@ -284,32 +288,32 @@ export function builder(ctx: BuildContext): HTMLElement {
 
   function testPanel(): HTMLElement {
     const box = h("div", "mt-6");
-    const head = add(h("div", "flex flex-wrap items-center justify-between gap-2"), h("p", "label", "How it would have done"), h("span", "tag", "simulation of the past"));
-    const pick = segmented([["1", "1 year"], ["3", "3 years"]], String(years) as "1" | "3", (v) => ((years = Number(v)), void backtest(years)), "Backtest years");
+    const head = add(h("div", "flex flex-wrap items-center justify-between gap-2"), h("p", "label", w.wouldHaveDone), h("span", "tag", w.simulation));
+    const pick = segmented([["1", w.oneYear], ["3", w.threeYears]], String(years) as "1" | "3", (v) => ((years = Number(v)), void backtest(years)), w.testYears);
     const t = s.test;
     if (!t) {
-      const run = button("btn btn-ghost w-full", testing ? "Running the backtest…" : "Run a backtest", () => void backtest(years));
+      const run = button("btn btn-ghost w-full", testing ? w.testing : w.runTest, () => void backtest(years));
       run.disabled = !!testing;
       return add(box, head, add(h("div", "mt-2 flex flex-wrap items-center gap-2"), pick, run),
-        h("p", "mt-2 text-[12px] text-faint", "What these rules would have done over the last years, against the S&P 500."));
+        h("p", "mt-2 text-[12px] text-faint", w.testHint));
     }
     const r = t.result;
     const chart = h("div", "mt-3");
     requestAnimationFrame(() => {
       const series: Series[] = [
         { name: "S&P 500", values: r.curve.map((p) => p.benchmark), color: "var(--color-muted)", width: 1.5 },
-        { name: s.draft?.name ?? "Draft", values: r.curve.map((p) => p.bot), color: "var(--color-signal)", width: 2.25 },
+        { name: s.draft?.name ?? w.draft, values: r.curve.map((p) => p.bot), color: "var(--color-signal)", width: 2.25 },
       ];
       lineChart(chart, r.curve.map((p) => p.date), series, 190, { ranges: false });
     });
     const cell = (label: string, bot: number | null, index: number | null) => add(h("div", "bt-cell"), h("span", "label", label),
       h("span", `num text-[17px] font-semibold ${tone(bot)}`, short(bot)), h("span", "num text-[11.5px] text-faint", `S&P ${short(index)}`));
     if (testing) (pick.querySelectorAll("button") as NodeListOf<HTMLButtonElement>).forEach((b) => (b.disabled = true));
-    return add(box, head, add(h("div", "mt-2 flex items-center gap-2"), pick, testing ? h("span", "text-[12px] text-faint", "Running…") : null),
+    return add(box, head, add(h("div", "mt-2 flex items-center gap-2"), pick, testing ? h("span", "text-[12px] text-faint", w.runningShort) : null),
       chart,
-      add(h("div", "bt-cells"), cell("Total", r.bot.total_return, r.benchmark.total_return), cell("A year", r.bot.annual_return, r.benchmark.annual_return),
-        cell("Worst fall", r.bot.max_drawdown, r.benchmark.max_drawdown)),
-      h("p", "mt-2 text-[12px] text-faint", `${day(r.start)} to ${day(r.end)} · trades ${Math.round(r.turnover_per_year * 100)}% a year`),
+      add(h("div", "bt-cells"), cell(w.total, r.bot.total_return, r.benchmark.total_return), cell(w.aYear, r.bot.annual_return, r.benchmark.annual_return),
+        cell(w.worstFall, r.bot.max_drawdown, r.benchmark.max_drawdown)),
+      h("p", "mt-2 text-[12px] text-faint", w.span(day(r.start), day(r.end), pct(r.turnover_per_year, 0))),
       add(h("ul", "mt-2 space-y-1"), ...r.notes.map((n) => h("li", "text-[12px] text-faint", n))));
   }
 
@@ -317,18 +321,18 @@ export function builder(ctx: BuildContext): HTMLElement {
     const box = h("div", "send-box");
     const starts = day(closeOf(new Date().toISOString()));
     if (!confirming) {
-      return add(box, button("btn btn-signal w-full", "Send it in", () => ((confirming = true), (sendNote = ""), draw())),
-        h("p", "mt-2 text-center text-[12px] text-faint", `It starts at the close of ${starts}.`));
+      return add(box, button("btn btn-signal w-full", w.sendIn, () => ((confirming = true), (sendNote = ""), draw())),
+        h("p", "mt-2 text-center text-[12px] text-faint", w.startsAt(starts)));
     }
     const name = s.draft!.name;
-    return add(box, h("p", "label", "Before it goes in"),
+    return add(box, h("p", "label", w.beforeIn),
       add(h("ul", "mt-2 space-y-1.5 text-[13.5px] text-ink"),
-        add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", `“${name}” and its idea go on the public board, next to ${ctx.name}.`)),
-        add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", "Its rules stay yours alone.")),
-        add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", `It runs on paper from the close of ${starts}. You can keep changing it from your page.`)),
-        ctx.replacing ? add(h("li", "flex gap-2"), h("span", "text-warn", "›"), h("span", "text-warn", `It replaces “${ctx.replacing.name}”, whose record ends.`)) : null),
-      add(h("div", "mt-3 flex flex-wrap gap-2"), button("btn btn-signal flex-1", "Send it in", (b) => void sendIn(b)),
-        button("btn btn-ghost", "Not yet", () => ((confirming = false), draw()))),
+        add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", w.publicLine(name, ctx.name))),
+        add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", w.rulesYours)),
+        add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", w.paperFrom(starts))),
+        ctx.replacing ? add(h("li", "flex gap-2"), h("span", "text-warn", "›"), h("span", "text-warn", w.replaces(ctx.replacing.name))) : null),
+      add(h("div", "mt-3 flex flex-wrap gap-2"), button("btn btn-signal flex-1", w.sendIn, (b) => void sendIn(b)),
+        button("btn btn-ghost", w.notYet, () => ((confirming = false), draw()))),
       sendNote ? h("p", "mt-2 text-[12.5px] text-warn", sendNote) : null);
   }
 
@@ -337,27 +341,27 @@ export function builder(ctx: BuildContext): HTMLElement {
     const face = h("span", `robot draft-face ${s.draft ? (s.test ? "is-tested" : "is-drafted") : ""}`);
     face.innerHTML = robotSvg(ctx.seed, 64);
     if (!s.draft) {
-      return add(card, add(h("div", "flex items-center gap-4"), face, add(h("div", "min-w-0"), h("p", "label", "Your bot"), h("p", "mt-1 text-[15px] text-ink-strong", "Takes shape here as you talk"))),
+      return add(card, add(h("div", "flex items-center gap-4"), face, add(h("div", "min-w-0"), h("p", "label", w.yourBot), h("p", "mt-1 text-[15px] text-ink-strong", w.takesShape))),
         add(h("ol", "draft-steps"),
-          add(h("li", ""), h("span", "step-n", "1"), h("span", "", "Tell Claude the idea")),
-          add(h("li", ""), h("span", "step-n", "2"), h("span", "", "See its rules, what it would hold and how it would have done")),
-          add(h("li", ""), h("span", "step-n", "3"), h("span", "", "Send it in when you like it"))));
+          add(h("li", ""), h("span", "step-n", "1"), h("span", "", w.steps[0])),
+          add(h("li", ""), h("span", "step-n", "2"), h("span", "", w.steps[1])),
+          add(h("li", ""), h("span", "step-n", "3"), h("span", "", w.steps[2]))));
     }
     const d = s.draft;
     const held = s.holds ? Object.keys(s.holds.weights).length : 0;
     return add(card,
       add(h("div", "flex items-center gap-4"), face, add(h("div", "min-w-0 flex-1"),
-        add(h("p", "flex items-center gap-2"), h("span", "label", "Your bot"), h("span", "tag", `draft ${s.version}`)),
+        add(h("p", "flex items-center gap-2"), h("span", "label", w.yourBot), h("span", "tag", w.draftTag(s.version))),
         h("h2", "mt-1 text-[19px] font-medium leading-tight text-ink-strong", d.name),
         d.about ? h("p", "mt-1 text-[13px] text-muted", d.about) : null)),
-      add(h("div", "mt-5"), h("p", "label pb-2", s.before.length ? "Its rules · what changed from the last draft" : "Its rules, in words"),
+      add(h("div", "mt-5"), h("p", "label pb-2", s.before.length ? w.rulesChanged : w.rulesInWords),
         s.before.length ? rulesDiff(diff(s.before, s.rules), true)
           : add(h("ul", "space-y-1.5 text-[13.5px] text-ink"), ...s.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", r))))),
-      s.holds ? add(h("div", "mt-6"), add(h("div", "flex items-baseline justify-between gap-2 pb-2"), h("p", "label", "What it would hold"),
-        h("span", "text-[12px] text-faint", `${plural(held, "stock")} · close of ${day(s.holds.as_of)}`)),
+      s.holds ? add(h("div", "mt-6"), add(h("div", "flex items-baseline justify-between gap-2 pb-2"), h("p", "label", w.wouldHold),
+        h("span", "text-[12px] text-faint", w.heldAt(plural(held, w.stock, w.stocks), day(s.holds.as_of)))),
         treemap(s.holds.weights, null, { preview: true, small: true })) : null,
       testPanel(),
-      add(h("div", "mt-5 flex justify-end"), button("text-[12.5px] text-muted underline-offset-4 hover:text-ink-strong hover:underline", "Every rule, by hand ›", () => ((byHand = true), draw()))),
+      add(h("div", "mt-5 flex justify-end"), button("text-[12.5px] text-muted underline-offset-4 hover:text-ink-strong hover:underline", w.byHand, () => ((byHand = true), draw()))),
       sendBox());
   }
 
@@ -366,8 +370,8 @@ export function builder(ctx: BuildContext): HTMLElement {
   function draw() {
     if (byHand && s.draft) {
       const panel = add(h("section", "change frame"), editor(spec, s.draft, {
-        before: s.draft, now: s.holds?.weights ?? {}, blocked: null, applyLabel: "Use these rules", backLabel: "← Back to the conversation",
-        note: "They become your draft. Nothing is sent in until you say so.",
+        before: s.draft, now: s.holds?.weights ?? {}, blocked: null, applyLabel: w.useRules, backLabel: w.backToTalk,
+        note: w.handNote,
         apply: async (bot) => {
           const seen = await api<{ bot: Bot; rules: string[]; holds: Preview }>("/api/bots/preview", { method: "POST", body: { bot } });
           adopt(seen.bot, seen.rules, seen.holds, "hand");

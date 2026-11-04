@@ -2,9 +2,13 @@
 // as a mark on a line, and what it has done as a timeline of its rebalances and changes. In the ink;
 // green and red stay for the market's moves.
 import { add, h, svg } from "./dom";
-import { day, ordinal, pct } from "./format";
+import { day, ordinal, pct, plural } from "./format";
 import { hubQuoteUrl } from "./site";
 import type { Move, Version } from "./types";
+import { lang } from "../i18n";
+import { common } from "../i18n/common";
+
+const w = () => common[lang()];
 
 const share = (w: number) => pct(w, w < 0.1 ? 1 : 0);
 
@@ -47,9 +51,9 @@ export function treemap(weights: Record<string, number>, cash: number | null | u
   const held = Object.entries(weights).filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
   const left = cash ?? Math.max(0, 1 - held.reduce((s, [, w]) => s + w, 0));
   const tiles: Tile[] = held.map(([key, w]) => ({ key, w }));
-  if (left > 0.005) tiles.push({ key: "Cash", w: left, cash: true });
+  if (left > 0.005) tiles.push({ key: w().cashTile, w: left, cash: true });
   const box = h("div", `treemap ${opts.preview ? "is-preview" : ""} ${opts.small ? "is-small" : ""}`);
-  if (!tiles.length) return add(box, h("p", "absolute inset-0 grid place-items-center text-[13px] text-muted", "Nothing held"));
+  if (!tiles.length) return add(box, h("p", "absolute inset-0 grid place-items-center text-[13px] text-muted", w().nothingHeld));
   const place = () => {
     const pxW = box.clientWidth || 600, pxH = box.clientHeight || 280;
     const layout = squarify(tiles, 0, 0, pxW, pxH);
@@ -78,7 +82,7 @@ export function treemap(weights: Record<string, number>, cash: number | null | u
 
 export function rankMeter(rank: number | undefined, of: number): HTMLElement {
   const box = h("div", "rank");
-  if (!rank || of < 1) return add(box, h("span", "text-[12px] text-faint", "not ranked yet"));
+  if (!rank || of < 1) return add(box, h("span", "text-[12px] text-faint", w().notRanked));
   const track = h("span", "rank-track");
   if (of <= 16) {
     for (let i = 1; i <= of; i++) track.append(h("i", i === rank ? "on" : ""));
@@ -88,7 +92,7 @@ export function rankMeter(rank: number | undefined, of: number): HTMLElement {
     track.classList.add("is-line");
     track.append(mark);
   }
-  return add(box, track, h("span", "num text-[12px] text-muted", `${ordinal(rank)} of ${of}`));
+  return add(box, track, h("span", "num text-[12px] text-muted", w().rankOf(ordinal(rank), of)));
 }
 
 // --- What it has done: its rebalances and changes on a timeline --------------------------------
@@ -105,18 +109,19 @@ export function timeline(log: Move[], changes: Version[], from: string, to: stri
     const t0 = ms(from), t1 = Math.max(ms(to), t0 + 86400000);
     const x = (iso: string) => padL + ((ms(iso) - t0) / (t1 - t0)) * (W - padL - padR);
     const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart block w-full h-auto select-none", role: "img" });
-    s.setAttribute("aria-label", `${log.length} rebalances and ${changes.length} changes`);
+    const t = w();
+    s.setAttribute("aria-label", t.timelineLabel(plural(log.length, ...t.rebalance), plural(changes.length, ...t.change)));
     const label = (y: number, text: string) => {
       const t = svg("text", { x: padL - 10, y, fill: "var(--color-faint)", "font-size": 11, "text-anchor": "end", "font-family": "var(--font-sans)" });
       t.textContent = text;
       s.append(t);
     };
-    label(mid - room + 10, "bought");
-    label(mid + room - 2, "sold");
+    label(mid - room + 10, t.bought);
+    label(mid + room - 2, t.sold);
     s.append(svg("line", { x1: padL, x2: W - padR, y1: mid, y2: mid, stroke: "var(--color-line-strong)" }));
     if (lanes) {
       s.append(svg("line", { x1: padL, x2: W - padR, y1: lane, y2: lane, stroke: "var(--color-line)", "stroke-dasharray": "2 4" }));
-      label(lane + 4, "changes");
+      label(lane + 4, t.changes);
     }
     const amount = (m: Move) => ({
       up: m.bought.reduce((t, b) => t + b.weight, 0) + m.raised.reduce((t, r) => t + r.after - r.before, 0),
@@ -180,6 +185,6 @@ export function detail(item: Move | Version, words: (what: string[]) => string):
     ...item.cut.map((x) => chip(`↓ ${x.ticker} ${share(x.after)}`)),
   ];
   return add(h("div", "flex flex-wrap items-center gap-1.5"), h("span", "num mr-1.5 text-[13px] text-ink-strong", day(item.date)),
-    ...(parts.length ? parts : [h("span", "text-[13px] text-muted", Object.keys(item.after).length ? "Weights back into place" : "Went to cash")]),
-    h("span", "num ml-auto pl-2 text-[12px] text-faint", `traded ${pct(item.turnover, 0)}`));
+    ...(parts.length ? parts : [h("span", "text-[13px] text-muted", Object.keys(item.after).length ? w().weightsBack : w().wentToCash)]),
+    h("span", "num ml-auto pl-2 text-[12px] text-faint", w().traded(pct(item.turnover, 0))));
 }
