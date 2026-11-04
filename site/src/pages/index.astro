@@ -1,6 +1,7 @@
 ---
-// The landing: what Bot League is, the board live as its first screen, how a bot is built with an
-// agent in three steps, what a bot is, who it is for, the rules and the questions people ask.
+// The landing: what Bot League is, the board live as its first screen, how a bot is built by talking
+// to Claude on the site in three steps (and with one's own agent and the kit), what a bot is, who it
+// is for, the rules and the questions people ask.
 import Layout from "../layouts/Layout.astro";
 import { link } from "../lib/site";
 
@@ -32,9 +33,9 @@ const words = [
 	"When, for the S&P 500, its close against its 200-session average is not at least 0%, holds 100% in cash.",
 ];
 const audience = [
-	{ title: "You have an idea, not a codebase", body: "Momentum, calm stocks, buying dips in an uptrend: say it in your own words. The agent turns it into rules and shows you what they mean." },
-	{ title: "You build, and want a fair test", body: "Every bot runs on the same closes, pays the same cost and starts at the same kind of moment: the close after it is sent in. No curve fitting counts." },
-	{ title: "You want to see what an agent can do", body: "A whole loop on your own machine: an interview, a file, a check, a three-year backtest, a submission. You decide at every step." },
+	{ title: "You have an idea, not a codebase", body: "Momentum, calm stocks, buying dips in an uptrend: say it in your own words. Claude turns it into rules and shows you what they mean, what they would hold and how they would have done." },
+	{ title: "You want a fair test", body: "Every bot runs on the same closes, pays the same cost and starts at the same kind of moment: the close after it is sent in. No curve fitting counts." },
+	{ title: "You like to build with your own agent", body: "Take the kit to Claude Code, Codex or yours: an interview, a file, a check, a three-year backtest, a submission, on your own machine. You decide at every step." },
 ];
 const rules = [
 	["Paper only", "No money, no broker, no orders. Ever."],
@@ -46,7 +47,7 @@ const rules = [
 ];
 const faq = [
 	["Is any money involved?", "No. Bot League runs every bot on paper, with the closing prices of each session. There is no broker and no order, and there is nothing to deposit or win."],
-	["Do I need to know how to code?", "No. A bot is a short file of rules, and your agent writes it with you. You need an AI coding agent on your computer (Claude Code, Codex, Gemini CLI or another) and an account on The Market Hub."],
+	["Do I need to know how to code?", "No. A bot is a short file of rules, and Claude writes it with you on your page of Bot League, in your own words. If you prefer, your own AI agent (Claude Code, Codex, Gemini CLI or another) builds it with the kit. Either way you need an account on The Market Hub."],
 	["Which figures can a bot use?", "Seven, all worked out from daily closes: momentum, trend, a moving-average cross, volatility, RSI, distance from the high and beta to the S&P 500. It can filter on them, score on them, cap its weights and step aside when the index falls."],
 	["Can others copy my bot?", "Its rules are yours alone. The board is public: anyone sees the name you show under, the bot's name and idea, its returns and what it holds."],
 	["How is it ranked?", "By return over the day, the week, the month, the year and since it started, each among the bots that have run that long. The S&P 500 sits on the board for reference."],
@@ -54,19 +55,20 @@ const faq = [
 ];
 ---
 
-<Layout title="Bot League · Build a stock bot with your AI agent" description="Describe an idea to your AI agent. It writes the rules, backtests them and sends the bot in. Bot League runs it on paper against every member's bot, from the next close." page="home">
+<Layout title="Bot League · Build a stock bot by talking to Claude" description="Tell Claude how you would pick stocks. It writes the rules, you see what they would hold and how they would have done, and send the bot in. Bot League runs it on paper against every member's bot, from the next close." page="home">
 	<!-- The first screen: the promise, and the board live beside it. -->
 	<section class="hero">
 		<div class="wrap grid items-center gap-12 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
 			<div>
 				<p class="kicker">The Market Hub's bot competition</p>
-				<h1 class="display mt-4">Your AI agent builds the bot. <em>The market</em> keeps score.</h1>
+				<h1 class="display mt-4">Tell Claude your idea. <em>The market</em> keeps score.</h1>
 				<p class="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink">
-					Tell Claude Code or Codex how you would pick stocks. It writes the rules, backtests them and sends the bot in. Bot League
-					runs it on paper against every member's bot, from the next close, and ranks them all.
+					Say how you would pick stocks, in your own words. Claude writes the rules, you see what they would hold and how they would
+					have done, and you send the bot in. Bot League runs it on paper against every member's bot, from the next close, and ranks
+					them all.
 				</p>
 				<div class="mt-8 flex flex-wrap items-center gap-3">
-					<a class="btn btn-signal btn-big" href={link("/me/")} data-cta>Get the kit, it's free</a>
+					<a class="btn btn-signal btn-big" href={link("/me/")} data-cta>Build your bot, it's free</a>
 					<a class="btn btn-ghost btn-big" href={link("/board/")}>See the board</a>
 				</div>
 				<p class="mt-4 text-[12.5px] text-muted">With your account on The Market Hub · paper only · no code needed</p>
@@ -85,29 +87,29 @@ const faq = [
 		</div>
 	</section>
 
-	<!-- Three steps, with the agent at work beside them. -->
+	<!-- Three steps, with the conversation beside them. -->
 	<section id="how" class="wrap scroll-mt-20 pt-6">
 		<p class="kicker chapter">How it works</p>
-		<h2 class="h2 mt-3 max-w-2xl">Three steps, and a conversation with your agent.</h2>
+		<h2 class="h2 mt-3 max-w-2xl">Three steps, and a conversation with Claude.</h2>
 		<div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.15fr]">
 			<ol class="space-y-8">
 				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
 					<span class="step-n">1</span>
 					<div>
-						<h3 class="text-[17px] font-semibold text-ink-strong">Get the kit</h3>
+						<h3 class="text-[17px] font-semibold text-ink-strong">Say your idea</h3>
 						<p class="mt-1 text-[14px] text-muted">
-							Sign in with your account on The Market Hub and download a folder: instructions for your agent, the format of a bot, six bots
-							that work, a small tool, and your personal key inside it.
+							Sign in with your account on The Market Hub, open <span class="text-ink">Your bot</span> and tap one of six ideas or write
+							your own. Claude asks what matters to you: how many stocks, how often it trades, whether it steps aside when the market falls.
 						</p>
 					</div>
 				</li>
 				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
 					<span class="step-n">2</span>
 					<div>
-						<h3 class="text-[17px] font-semibold text-ink-strong">Open it with your agent</h3>
+						<h3 class="text-[17px] font-semibold text-ink-strong">See it before it goes in</h3>
 						<p class="mt-1 text-[14px] text-muted">
-							Unzip it and start Claude Code, Codex or the agent you use inside it. Say <span class="text-ink">“Let's build my bot”</span>.
-							It asks what you have in mind, or offers ideas in plain words.
+							Every draft is checked by the code and shown in plain words, with a map of what it would hold today and, if you ask, how it
+							would have done against the S&P 500. Change it by talking, or rule by rule.
 						</p>
 					</div>
 				</li>
@@ -116,12 +118,43 @@ const faq = [
 					<div>
 						<h3 class="text-[17px] font-semibold text-ink-strong">It races from the next close</h3>
 						<p class="mt-1 text-[14px] text-muted">
-							The agent checks the rules, backtests them over up to three years against the S&P 500, and sends the bot in when you
-							say so. From the next close it is on the board, session by session.
+							Send it in when you like it. From the next close it is on the board, session by session, and you can keep changing it
+							from your page.
 						</p>
 					</div>
 				</li>
 			</ol>
+			<div class="frame overflow-hidden" aria-label="A conversation building a bot">
+				<div class="frame-head">
+					<span class="build-mark build-mark-sm" aria-hidden="true">✳</span>
+					<span class="text-[12.5px] font-medium text-ink-strong">Build it with Claude</span>
+					<span class="ml-auto text-[12px] text-faint">Your bot</span>
+				</div>
+				<div class="mock flex flex-col gap-2.5 p-4 sm:p-5" id="mock">
+					<p class="line bubble is-me">Trend following, and stay out when the whole market falls</p>
+					<div class="line bubble is-them"><span class="bubble-who">Claude</span><span>Here is a first go: the strongest of the 300 largest companies over their 200-session average, and cash while the S&P 500 is under its own. How many stocks would you like?</span></div>
+					<div class="line step-line"><span class="step-dot"></span><div><p class="step-text">Draft 1 · Trend follower</p><p class="step-note">checked: 6 rules · would hold 15 stocks today</p></div></div>
+					<p class="line bubble is-me">Fifteen is fine. Look again every week</p>
+					<div class="line step-line"><span class="step-dot"></span><div><p class="step-text">Draft 2 · Trend follower</p><p class="step-note">looks again at the first close of each week</p></div></div>
+					<div class="line step-line is-test"><span class="step-dot"></span><div><p class="step-text">Backtest of draft 2, 3 years</p><p class="step-note">against the S&P 500 · a simulation of the past</p></div></div>
+					<div class="line flex flex-wrap items-center gap-2 pt-1"><span class="btn btn-signal pointer-events-none py-1.5 text-[13px]">Send it in</span><span class="text-[12px] text-faint">It starts at the next close.</span></div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Or with one's own agent: the kit. -->
+	<section class="wrap pt-24">
+		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+			<div>
+				<p class="kicker chapter">Or with your own agent</p>
+				<h2 class="h2 mt-3">The same bot, from your terminal.</h2>
+				<p class="mt-5 max-w-md text-[15px] text-muted">
+					Download the kit from your page: instructions for your agent, the format, six bots that work, a small tool and your key. Open
+					it with Claude Code, Codex or yours and say <span class="text-ink">“Let's build my bot”</span>.
+				</p>
+				<a class="link mt-5 inline-block text-[14px] text-signal" href={link("/me/")}>Get the kit →</a>
+			</div>
 			<div class="frame overflow-hidden">
 				<div class="frame-head">
 					<span class="dots"><i></i><i></i><i></i></span>
@@ -131,13 +164,12 @@ const faq = [
 					<p class="line"><span class="me">› Let's build my bot</span></p>
 					<p class="line">How would you like it to pick stocks? A few ideas: momentum, trend following, calm stocks, buying pullbacks…</p>
 					<p class="line"><span class="me">› Trend following, and stay out when the whole market falls</span></p>
-					<p class="line"><span class="dim">Writing bot.json from examples/trend-with-market-filter.json</span></p>
 					<p class="line"><span class="dim">$ python tools/mh.py check</span></p>
 					<p class="line"><span class="ok">✓</span> It is a bot. In words: looks at the 300 largest US companies, keeps those over their 200-session average…</p>
 					<p class="line"><span class="dim">$ python tools/mh.py backtest --years 3</span></p>
-					<p class="line"><span class="ok">✓</span> Three years against SPY: total and yearly return, volatility, worst drawdown, best and worst months. A simulation of the past, not a forecast.</p>
-					<p class="line"><span class="me">› Send it in as “tape_and_trend”</span></p>
-					<p class="line"><span class="dim">$ python tools/mh.py submit --handle "tape_and_trend"</span></p>
+					<p class="line"><span class="ok">✓</span> Three years against SPY. A simulation of the past, not a forecast.</p>
+					<p class="line"><span class="me">› Send it in</span></p>
+					<p class="line"><span class="dim">$ python tools/mh.py submit</span></p>
 					<p class="line"><span class="ok">✓</span> Sent in. Its record starts at the next close.</p>
 				</div>
 			</div>
@@ -174,7 +206,7 @@ const faq = [
 	<!-- Who it is for. -->
 	<section class="wrap pt-28">
 		<p class="kicker chapter">Who it is for</p>
-		<h2 class="h2 mt-3 max-w-2xl">Anyone with an idea about markets and an agent on their computer.</h2>
+		<h2 class="h2 mt-3 max-w-2xl">Anyone with an idea about markets.</h2>
 		<div class="mt-10 grid gap-px overflow-hidden rounded-md border border-line bg-line md:grid-cols-3">
 			{audience.map((a) => (
 				<div class="bg-page p-6">
@@ -184,7 +216,7 @@ const faq = [
 			))}
 		</div>
 		<p class="mt-6 text-[13px] text-muted">
-			Works with <span class="text-ink">Claude Code</span>, <span class="text-ink">Codex</span>, <span class="text-ink">Gemini CLI</span> and any agent that reads
+			The kit works with <span class="text-ink">Claude Code</span>, <span class="text-ink">Codex</span>, <span class="text-ink">Gemini CLI</span> and any agent that reads
 			an <span class="num text-ink">AGENTS.md</span>. The kit's tool needs nothing but Python.
 		</p>
 	</section>
@@ -232,8 +264,8 @@ const faq = [
 	<section class="wrap pt-28">
 		<div class="frame relative overflow-hidden px-6 py-12 text-center sm:px-12">
 			<h2 class="h2 relative mx-auto max-w-xl">Your idea, on the board by the next close.</h2>
-			<p class="relative mx-auto mt-4 max-w-md text-[15px] text-muted">Get the kit, open it with your agent and say “Let's build my bot”.</p>
-			<a class="btn btn-signal btn-big relative mt-8" href={link("/me/")} data-cta>Get the kit, it's free</a>
+			<p class="relative mx-auto mt-4 max-w-md text-[15px] text-muted">Tell Claude how you would pick stocks, see what it builds, and send it in.</p>
+			<a class="btn btn-signal btn-big relative mt-8" href={link("/me/")} data-cta>Build your bot, it's free</a>
 		</div>
 	</section>
 </Layout>
@@ -288,13 +320,16 @@ const faq = [
 		rows.replaceChildren(add(h("p", "px-4 py-8 text-center text-[13px] text-muted"), "The board could not be read just now. Try again in a minute."));
 	});
 
-	// The terminal types itself out once it is on screen.
-	const lines = [...document.querySelectorAll<HTMLElement>("#term .line")];
+	// The conversation and the terminal write themselves out once they are on screen.
 	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-	const seen = new IntersectionObserver((entries) => {
-		if (!entries.some((x) => x.isIntersecting)) return;
-		seen.disconnect();
-		lines.forEach((l, i) => setTimeout(() => l.classList.add("on"), reduced ? 0 : i * 420));
-	}, { threshold: 0.3 });
-	seen.observe(document.getElementById("term")!);
+	for (const id of ["mock", "term"]) {
+		const box = document.getElementById(id)!;
+		const lines = [...box.querySelectorAll<HTMLElement>(".line")];
+		const seen = new IntersectionObserver((entries) => {
+			if (!entries.some((x) => x.isIntersecting)) return;
+			seen.disconnect();
+			lines.forEach((l, i) => setTimeout(() => l.classList.add("on"), reduced ? 0 : i * (id === "mock" ? 650 : 420)));
+		}, { threshold: 0.3 });
+		seen.observe(box);
+	}
 </script>

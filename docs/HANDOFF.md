@@ -18,6 +18,20 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **Revisión para que la web sea más intuitiva y visual** (sin desplegar). El usuario lo pidió tras lo de
+> crear desde la web. La entrada principal ya no es el kit sino hablar con Claude en la web:
+> - **Portada**: "Tell Claude your idea. The market keeps score."; botón "Build your bot, it's free" (a `/me/`); los tres
+>   pasos son ahora decir la idea, verla antes de enviarla (reglas en palabras, mapa, backtest) y competir desde el
+>   próximo cierre, con una **maqueta de la conversación** que se escribe sola (`#mock`); el kit pasa a un bloque
+>   propio, "Or with your own agent", con el terminal (sin el `--handle` de antes, que ya no existe). Para quién,
+>   preguntas, llamada final, pie y `/rules/` dicen las dos vías.
+> - **Tablero**: un **podio** con los tres primeros del periodo (sus robots, el 1.º en medio y más alto) y, a quien
+>   no tiene bot, "Your bot could be on this board" con "Build your bot".
+> - **Página de un bot**: lo que tiene como **treemap** (como en "Your bot", en vez de barras), lo que hizo como la
+>   **línea de tiempo** de "Your bot" (tocar una barra la lee) con la lista entera plegada debajo, "Changes" solo si
+>   hay alguno, y "Have an idea of your own? · Build your bot" a quien no es su dueño.
+> - Probado: `make check` y en local; a 375 px sin scroll lateral en todas las páginas.
+
 > 2026-11-04: **Crear el bot desde la web, hablando con Claude** (sin desplegar). El usuario lo pidió:
 > "que el bot league se pudiese crear/modificar directamente en la web… con lenguaje natural, de manera
 > similar a como se hace con Claude". Decisiones suyas (2026-11-04): **30 mensajes al día por jugador,

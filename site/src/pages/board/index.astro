@@ -28,7 +28,7 @@ import Layout from "../../layouts/Layout.astro";
 	import { indexFace, robot } from "../../lib/robot";
 	import { add, h } from "../../lib/dom";
 	import { day, pct, plural, signedPct, tone } from "../../lib/format";
-	import { api, botUrl, localVisitor } from "../../lib/site";
+	import { api, botUrl, link, localVisitor } from "../../lib/site";
 	import { PERIODS, digits, type Board, type Me, type Period } from "../../lib/types";
 
 	localVisitor();
@@ -65,6 +65,23 @@ import Layout from "../../layouts/Layout.astro";
 		return a;
 	}
 
+	// The first three of the period, on a podium: the first in the middle, raised.
+	function podium(entries: Entry[]): HTMLElement | null {
+		const top = entries.filter((e): e is Extract<Entry, { kind: "bot" }> => e.kind === "bot" && !!e.line.ranks[period] && e.line.ranks[period]! <= 3)
+			.sort((x, y) => x.line.ranks[period]! - y.line.ranks[period]!);
+		if (top.length < 3) return null;
+		const place = (e: Extract<Entry, { kind: "bot" }>) => {
+			const r = e.line, n = r.ranks[period]!;
+			const a = add(h("a", `podium-place is-${n}`), robot(r.slug, n === 1 ? 64 : 52),
+				h("span", "podium-name", r.name), h("span", "podium-by", `by ${r.handle}`),
+				h("span", `num podium-value ${tone(e.value)}`, signedPct(e.value, digits(period))),
+				h("span", "podium-step num", String(n)));
+			a.href = botUrl(r.slug);
+			return a;
+		};
+		return add(h("div", "podium"), place(top[1]), place(top[0]), place(top[2]));
+	}
+
 	function draw() {
 		if (!board) return;
 		const b = board;
@@ -82,7 +99,12 @@ import Layout from "../../layouts/Layout.astro";
 		if (!b.visible) list.append(add(h("div", "border-y border-signal-line"), locked(b, signin)));
 		for (const e of ordered(b, period)) list.append(line(e));
 		if (b.sample) list.append(h("p", "px-3 py-3 text-[12px] text-warn", "Sample figures: this copy of the site is not on the market's closes."));
-		root.replaceChildren(list);
+		const mine = b.rows.some((r) => r.you);
+		const join = mine ? null : add(h("div", "frame mt-8 flex flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-6"),
+			add(h("div", "min-w-0"), h("p", "text-[16px] font-medium text-ink-strong", "Your bot could be on this board"),
+				h("p", "mt-1 text-[13.5px] text-muted", "Tell Claude how you would pick stocks. It runs from the next close.")),
+			Object.assign(h("a", "btn btn-signal", "Build your bot"), { href: link("/me/") }));
+		root.replaceChildren(...[b.visible ? podium(ordered(b, period)) : null, list, join].filter((x): x is HTMLElement => !!x));
 	}
 
 	async function load() {
