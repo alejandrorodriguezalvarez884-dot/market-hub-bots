@@ -18,6 +18,14 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **Desplegado** `bot-league-00011-g7c` desde un export limpio de 0e1c40e, con el OK del usuario. Lleva **la web
+> en inglés y en español** (c7ade99 y siguientes) y **solo el chat** (la entrada de abajo). Desplegado desde el Mac, que no
+> tenía `.env`: se rehízo, solo en el export, con los valores del servicio. Configuración igual salvo que
+> `BOTLEAGUE_CHAT_DAILY_MAX_USD` sale ahora vacía (antes no estaba): `config.py` lo lee igual, sin tope del servicio. Nota:
+> `scripts/deploy-cloudrun.sh` no es ejecutable en git; en Mac se lanza con `bash scripts/deploy-cloudrun.sh`. Comprobado:
+> portada, `/es/`, `/me/`, `/rules/`, clasificación y salud en 200; el botón al chat en los dos idiomas, sin el kit, y en
+> el móvil dentro de la primera pantalla. El portal se desplegó a la vez (`market-hub-00071-5vg`), con su español.
+
 > 2026-11-04: **Fuera la vía "en tu ordenador": solo el chat** (sin desplegar). El usuario lo pidió: "eliminar la
 > posibilidad de crear el bot en tu ordenador. Quiero simplificar la app para que sea muy claro y lo primero que salga un
 > botón que lleva al chat para crear tu bot".
