@@ -15,7 +15,8 @@ export function num(v: N, digits = 0): string {
 export function pct(v: N, digits = 1, signed = false): string {
   if (!ok(v)) return DASH;
   const s = (v * 100).toFixed(digits);
-  const shown = lang() === "es" ? `${s.replace(".", ",")} %` : `${s}%`;
+  // In Spanish the space before "%" does not break, so "%" never ends up alone on the next line.
+  const shown = lang() === "es" ? `${s.replace(".", ",")}${String.fromCharCode(160)}%` : `${s}%`;
   return `${signed && v > 0 ? "+" : ""}${shown.replace("-", "−")}`;
 }
 export const signedPct = (v: N, digits = 1) => pct(v, digits, true);
