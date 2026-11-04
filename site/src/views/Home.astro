@@ -1,7 +1,7 @@
 ---
-// The landing: what Bot League is, the board live as its first screen, how a bot is built by talking
-// to Claude on the site in three steps (and with one's own agent and the kit), what a bot is, who it
-// is for, the rules and the questions people ask. Its words are in i18n/home.ts.
+// The landing. First, and alone on the first screen, the way in: one big button to the chat on
+// "Your bot" that builds a bot with Claude. Below it, lighter: the board live, how a bot is built in
+// three steps, the rules and the questions people ask. Its words are in i18n/home.ts.
 import Layout from "../layouts/Layout.astro";
 import { link } from "../lib/site";
 import type { Lang } from "../i18n";
@@ -14,50 +14,35 @@ const { lang } = Astro.props;
 const t = home[lang];
 const L = (path: string) => link(path, lang);
 
-// A bot of the kit (examples/trend-with-market-filter.json) and its rules as the service words them.
-const example = `{
-  "format": "markethub-bot/1",
-  "name": "${t.exampleName}",
-  "about": "${t.exampleAbout}",
-  "universe": { "largest": 300 },
-  "rebalance": "weekly",
-  "filters": [{ "factor": "trend", "days": 200, "min": 0 }],
-  "score": [{ "factor": "momentum", "days": 126, "skip": 5, "weight": 1 }],
-  "hold": 15,
-  "weighting": "equal",
-  "market": { "factor": "trend", "days": 200, "min": 0, "cash": 1 }
-}`;
-const coloured = example
-	.replace(/&/g, "&amp;")
-	.replace(/</g, "&lt;")
-	.replace(/("[a-z_]+")(\s*:)/g, '<span class="k">$1</span>$2')
-	.replace(/(:\s*)("[^"]*")/g, '$1<span class="s">$2</span>')
-	.replace(/(:\s*|\[\s*)(-?\d+(?:\.\d+)?)/g, '$1<span class="n">$2</span>');
 // A sentence with a {slot} in it, as the text before and after the slot.
 const around = (text: string, slot: string) => text.split(`{${slot}}`) as [string, string];
 const [step1a, step1b] = around(t.step1Body, "yourBot");
-const [kitA, kitB] = around(t.kitBody, "say");
-const agents = t.agents.split(/\{(a|b|c|file)\}/);
-const agentNames: Record<string, string> = { a: "Claude Code", b: "Codex", c: "Gemini CLI" };
 ---
 
 <Layout title={t.title} description={t.description} page="home" lang={lang}>
-	<!-- The first screen: the promise, and the board live beside it. -->
+	<!-- The first screen: the promise and the one button, to the chat that builds the bot. -->
 	<section class="hero">
-		<div class="wrap grid items-center gap-12 pb-20 pt-14 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
-			<div>
-				<p class="kicker">{t.kicker}</p>
-				<h1 class="display mt-4">{t.h1} <em>{t.h1Em}</em> {t.h1End}</h1>
-				<p class="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-ink">{t.lede}</p>
-				<div class="mt-8 flex flex-wrap items-center gap-3">
-					<a class="btn btn-signal btn-big" href={L("/me/")} data-cta>{t.cta}</a>
-					<a class="btn btn-ghost btn-big" href={L("/board/")}>{t.seeBoard}</a>
-				</div>
-				<p class="mt-4 text-[12.5px] text-muted">{t.small}</p>
+		<div class="wrap flex flex-col items-center pb-14 pt-12 text-center sm:pb-20 sm:pt-20">
+			<p class="kicker">{t.kicker}</p>
+			<h1 class="display mx-auto mt-4">{t.h1} <em>{t.h1Em}</em> {t.h1End}</h1>
+			<p class="mx-auto mt-5 max-w-[34rem] text-[16px] leading-relaxed text-ink sm:text-[17px]">{t.lede}</p>
+			<a class="btn btn-signal btn-hero mt-8" href={L("/me/")} data-cta>
+				<span class="build-mark" aria-hidden="true">✳</span><span>{t.cta}</span>
+			</a>
+			<p class="mt-4 text-[12.5px] text-muted">{t.small}</p>
+			<a class="mt-6 text-[13.5px] text-muted hover:text-ink-strong" href="#board">{t.seeBoard}</a>
+		</div>
+	</section>
+
+	<!-- The board, live, lighter. -->
+	<section id="board" class="wrap scroll-mt-20">
+		<div class="mx-auto max-w-3xl">
+			<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+				<h2 class="text-[17px] font-semibold text-ink-strong">{t.theBoard}</h2>
+				<span class="text-[12.5px] text-muted">{t.boardNote}</span>
 			</div>
-			<div class="frame" id="hero-board">
+			<div class="frame mt-3" id="hero-board">
 				<div class="frame-head">
-					<span class="whitespace-nowrap text-[13px] font-semibold text-ink-strong">{t.theBoard}</span>
 					<span class="live whitespace-nowrap" id="hero-asof">{t.loading}</span>
 					<span class="ml-auto" id="hero-tabs"></span>
 				</div>
@@ -70,7 +55,7 @@ const agentNames: Record<string, string> = { a: "Claude Code", b: "Codex", c: "G
 	</section>
 
 	<!-- Three steps, with the conversation beside them. -->
-	<section id="how" class="wrap scroll-mt-20 pt-6">
+	<section id="how" class="wrap scroll-mt-20 pt-24">
 		<p class="kicker chapter">{t.howKicker}</p>
 		<h2 class="h2 mt-3 max-w-2xl">{t.howTitle}</h2>
 		<div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.15fr]">
@@ -114,77 +99,6 @@ const agentNames: Record<string, string> = { a: "Claude Code", b: "Codex", c: "G
 				</div>
 			</div>
 		</div>
-	</section>
-
-	<!-- Or with one's own agent: the kit. -->
-	<section class="wrap pt-24">
-		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
-			<div>
-				<p class="kicker chapter">{t.kitKicker}</p>
-				<h2 class="h2 mt-3">{t.kitTitle}</h2>
-				<p class="mt-5 max-w-md text-[15px] text-muted">{kitA}<span class="text-ink">{t.kitSay}</span>{kitB}</p>
-				<a class="link mt-5 inline-block text-[14px] text-signal" href={L("/me/")}>{t.getKit}</a>
-			</div>
-			<div class="frame overflow-hidden">
-				<div class="frame-head">
-					<span class="dots"><i></i><i></i><i></i></span>
-					<span class="num text-[12px] text-muted">~/markethub-bot · claude</span>
-				</div>
-				<div class="term space-y-1 p-5" id="term">
-					<p class="line"><span class="me">{t.term.me1}</span></p>
-					<p class="line">{t.term.them1}</p>
-					<p class="line"><span class="me">{t.term.me2}</span></p>
-					<p class="line"><span class="dim">$ python tools/mh.py check</span></p>
-					<p class="line"><span class="ok">✓</span> {t.term.checked}</p>
-					<p class="line"><span class="dim">$ python tools/mh.py backtest --years 3</span></p>
-					<p class="line"><span class="ok">✓</span> {t.term.tested}</p>
-					<p class="line"><span class="me">{t.term.me3}</span></p>
-					<p class="line"><span class="dim">$ python tools/mh.py submit</span></p>
-					<p class="line"><span class="ok">✓</span> {t.term.sent}</p>
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<!-- What a bot is: a file, and the same file in words. -->
-	<section class="wrap pt-28">
-		<div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
-			<div>
-				<p class="kicker chapter">{t.botKicker}</p>
-				<h2 class="h2 mt-3">{t.botTitle}</h2>
-				<p class="mt-5 max-w-md text-[15px] text-muted">{t.botBody}</p>
-				<a class="link mt-5 inline-block text-[14px] text-signal" href={L("/rules/")}>{t.wholeFormat}</a>
-			</div>
-			<div class="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-				<div class="frame overflow-hidden">
-					<div class="frame-head"><span class="num text-[12px] text-muted">bot.json</span></div>
-					<pre class="code p-4 text-[11.5px] leading-[1.7]" set:html={coloured} />
-				</div>
-				<div class="frame">
-					<div class="frame-head"><span class="text-[12px] text-muted">{t.inWords}</span></div>
-					<ul class="space-y-2.5 p-4 text-[13px] text-ink">
-						{t.exampleWords.map((w) => <li class="flex gap-2"><span class="text-signal">›</span><span>{w}</span></li>)}
-					</ul>
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<!-- Who it is for. -->
-	<section class="wrap pt-28">
-		<p class="kicker chapter">{t.forKicker}</p>
-		<h2 class="h2 mt-3 max-w-2xl">{t.forTitle}</h2>
-		<div class="mt-10 grid gap-px overflow-hidden rounded-md border border-line bg-line md:grid-cols-3">
-			{t.audience.map((a) => (
-				<div class="bg-page p-6">
-					<h3 class="text-[16px] font-semibold text-ink-strong">{a.title}</h3>
-					<p class="mt-2 text-[14px] text-muted">{a.body}</p>
-				</div>
-			))}
-		</div>
-		<p class="mt-6 text-[13px] text-muted">
-			{agents.map((part, i) => (i % 2 === 0 ? part : part === "file" ? <span class="num text-ink">AGENTS.md</span> : <span class="text-ink">{agentNames[part]}</span>))}
-		</p>
 	</section>
 
 	<!-- The rules in six. -->
@@ -253,7 +167,7 @@ const agentNames: Record<string, string> = { a: "Claude Code", b: "Codex", c: "G
 	let board: Board | null = null;
 	let period: Period = "1m";
 	let signin: string | null = null;
-	const SHOWN = 7;
+	const SHOWN = 5;
 
 	function draw() {
 		if (!board) return;
@@ -294,16 +208,14 @@ const agentNames: Record<string, string> = { a: "Claude Code", b: "Codex", c: "G
 		rows.replaceChildren(add(h("p", "px-4 py-8 text-center text-[13px] text-muted"), t.unread));
 	});
 
-	// The conversation and the terminal write themselves out once they are on screen.
+	// The conversation writes itself out once it is on screen.
 	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-	for (const id of ["mock", "term"]) {
-		const box = document.getElementById(id)!;
-		const lines = [...box.querySelectorAll<HTMLElement>(".line")];
-		const seen = new IntersectionObserver((entries) => {
-			if (!entries.some((x) => x.isIntersecting)) return;
-			seen.disconnect();
-			lines.forEach((l, i) => setTimeout(() => l.classList.add("on"), reduced ? 0 : i * (id === "mock" ? 650 : 420)));
-		}, { threshold: 0.3 });
-		seen.observe(box);
-	}
+	const mock = document.getElementById("mock")!;
+	const lines = [...mock.querySelectorAll<HTMLElement>(".line")];
+	const seen = new IntersectionObserver((entries) => {
+		if (!entries.some((x) => x.isIntersecting)) return;
+		seen.disconnect();
+		lines.forEach((l, i) => setTimeout(() => l.classList.add("on"), reduced ? 0 : i * 650));
+	}, { threshold: 0.3 });
+	seen.observe(mock);
 </script>

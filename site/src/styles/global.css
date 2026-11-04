@@ -516,6 +516,32 @@
     font-size: 15px;
     font-weight: 500;
   }
+  /* The landing's one button: to the chat that builds the bot. Full width on a phone. */
+  .btn-hero {
+    gap: 12px;
+    width: 100%;
+    max-width: 24rem;
+    justify-content: center;
+    padding: 16px 28px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  @media (min-width: 640px) {
+    .btn-hero {
+      width: auto;
+      padding: 18px 34px;
+      font-size: 19px;
+    }
+  }
+  .btn-hero .build-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--color-page);
+    color: var(--color-ink-strong);
+    font-size: 15px;
+  }
 
   .hero {
     position: relative;
@@ -566,16 +592,6 @@
     border-bottom: 1px solid var(--color-line);
     padding: 10px 14px;
   }
-  .dots {
-    display: flex;
-    gap: 6px;
-  }
-  .dots i {
-    width: 8px;
-    height: 8px;
-    border-radius: 99px;
-    background: var(--color-line-strong);
-  }
 
   /* Which close the board is at. */
   .live {
@@ -617,30 +633,6 @@
   .tag-you {
     border-color: var(--color-ink-strong);
     color: var(--color-ink-strong);
-  }
-
-  /* The agent at work, in a terminal: one colour, what the member says in full ink. */
-  .term {
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    line-height: 1.65;
-    color: var(--color-ink);
-  }
-  .term .me,
-  .term .ok {
-    color: var(--color-ink-strong);
-  }
-  .term .dim {
-    color: var(--color-faint);
-  }
-  .term .line {
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.35s ease, transform 0.35s ease;
-  }
-  .term .line.on {
-    opacity: 1;
-    transform: none;
   }
 
   /* A bot's file: keys in full ink, the rest in the ink. */
@@ -690,11 +682,6 @@
   .draw {
     animation: none;
     stroke-dashoffset: 0;
-  }
-  .term .line {
-    transition: none;
-    opacity: 1;
-    transform: none;
   }
 }
 

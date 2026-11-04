@@ -1,4 +1,4 @@
-// Building a bot on the member's page, by talking to Claude, as the kit does with their own agent.
+// Building a bot on the member's page, by talking to Claude.
 // On the left, the conversation: the member's words, Claude's replies and, between them, what the
 // code did (each draft checked and mapped, each backtest run), like the steps of an agent. On the
 // right, the draft as it stands: its robot, its rules in words (what changed since the last one),
@@ -252,7 +252,7 @@ export function builder(ctx: BuildContext): HTMLElement {
     if (!chat.on) return add(h("div", "ask is-off"), h("p", "py-1 text-[14px] text-ink", w.chatOff));
     if (left() <= 0) {
       return add(h("div", "ask is-off"), add(h("div", "py-1"), h("p", "text-[14px] text-ink", w.usedUp(chat.per_member_per_day)),
-        h("p", "mt-1 text-[12.5px] text-muted", s.draft ? w.draftStays : w.kitBelow)));
+        s.draft ? h("p", "mt-1 text-[12.5px] text-muted", w.draftStays) : null));
     }
     const form = h("form", "ask");
     const input = h("textarea", "ask-input");

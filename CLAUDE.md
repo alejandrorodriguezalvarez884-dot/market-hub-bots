@@ -3,9 +3,12 @@
 Lee primero [docs/HANDOFF.md](docs/HANDOFF.md): estado, pendientes y siguientes pasos.
 
 **Bot League** es la competición de bots de Market Hub como producto propio, con su web: un
-miembro construye un bot de reglas hablando con Claude en su página ("Your bot") o, con el kit y su
-clave, con su propio agente (Claude Code, Codex…), lo prueba y lo envía, y aquí se ejecuta en papel
-y se clasifica. Los datos son los del portal:
+miembro construye un bot de reglas hablando con Claude en su página ("Your bot"), lo prueba y lo
+envía, y aquí se ejecuta en papel y se clasifica. **La web solo ofrece el chat** (decisión del
+usuario, 2026-11-04: "eliminar la posibilidad de crear el bot en tu ordenador"): lo primero de la
+portada es el botón que lleva a él. El kit para un agente propio y las claves ya no salen en la web
+(ni en Community del portal ni en la app); su API (`/api/bots/kit`, `/api/bots/key`, `/api/bot/*`)
+sigue en pie para las claves que ya existen, y quitarla es decisión del usuario. Los datos son los del portal:
 las colecciones `bots`, `bot_keys` y `bot_meta` del Firestore `market-hub`, que también lee la
 sección Community de `market-hub-landing`.
 

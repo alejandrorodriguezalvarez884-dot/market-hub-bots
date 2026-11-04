@@ -18,6 +18,23 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **Fuera la vía "en tu ordenador": solo el chat** (sin desplegar). El usuario lo pidió: "eliminar la
+> posibilidad de crear el bot en tu ordenador. Quiero simplificar la app para que sea muy claro y lo primero que salga un
+> botón que lleva al chat para crear tu bot".
+> - **Portada**: lo primero, centrado y solo, es el botón grande **"Build your bot with Claude" / "Crea tu bot con
+>   Claude"** (a `/me/`), con el titular y una frase; en el móvil, a lo ancho y dentro de la primera pantalla. Debajo, más
+>   ligero: la clasificación (5 líneas), los tres pasos con la conversación de ejemplo, las reglas en seis, las preguntas y
+>   el botón otra vez. Fuera: el bloque del kit con el terminal, el `bot.json` de ejemplo y "para quién es".
+> - **"Your bot"**: fuera el kit plegado ("Prefer your own agent?"), la descarga, la clave (crear, ver, retirar) y el kit
+>   de "Start again from scratch" (queda crear otro con Claude y retirar el bot). El chat apagado o sin mensajes ya no
+>   manda al kit. `/rules/`, el pie y las preguntas ya no hablan del kit ni de la clave.
+> - **El backend no cambia**: `/api/bots/kit`, `/api/bots/key` y `/api/bot/*` siguen (las claves que hay siguen
+>   funcionando; `/api/bot/spec` lo usa la web). Nada se borra de Firestore. Quitar esas rutas es decisión del usuario.
+> - **Fuera de este repo**: Community del portal (`market-hub-landing` d1e33a8) y la app (`market-hub-mobile` cce88c1)
+>   ya mandan al chat; a quien aún tiene clave le dejan retirarla.
+> - Probado: `make check` (74 tests) y en local con la demo, de escritorio y a 375 px (el botón acaba a 528 px, sin
+>   scroll lateral), en inglés y en español, también "Crear otro con Claude".
+
 > 2026-11-04: **La web en inglés y en español** (sin desplegar). El usuario pidió que Bot League "se vea entero en
 > español para quien lo prefiera, que quede perfectamente", como piloto del portal. Decisiones suyas (2026-11-04): los
 > textos de la web pasan a ser en inglés **y** en español (cambiado en los `CLAUDE.md`), Bot League y el portal a la vez,

@@ -49,10 +49,9 @@ export const build = words(
     seeIt: "See it ↓",
     greeting: (name: string) =>
       `Hi ${name}. Let's build your bot together. How would you like it to pick stocks? Tap an idea or tell me yours, in your own words.`,
-    chatOff: "The chat is off on this copy of the site. The kit below builds it with your own agent.",
+    chatOff: "The chat is off on this copy of the site.",
     usedUp: (n: number) => `That is the ${n} messages of today: the chat is back tomorrow.`,
     draftStays: "Your draft stays here. You can still change every rule by hand, backtest it and send it in.",
-    kitBelow: "The kit below builds it with your own agent.",
     askChange: "Tell Claude what to change…",
     askIdea: "Or describe your own idea…",
     askLabel: "Your message to Claude",
@@ -142,10 +141,9 @@ export const build = words(
     seeIt: "Verlo ↓",
     greeting: (name: string) =>
       `${name ? `Hola, ${name}.` : "Hola."} Vamos a crear tu bot juntos. ¿Cómo quieres que elija acciones? Toca una idea o cuéntame la tuya, con tus palabras.`,
-    chatOff: "El chat está apagado en esta copia de la web. Con el kit de abajo lo creas con tu propio agente.",
+    chatOff: "El chat está apagado en esta copia de la web.",
     usedUp: (n: number) => `Ya has usado los ${n} mensajes de hoy: el chat vuelve mañana.`,
     draftStays: "Tu borrador sigue aquí. Aún puedes cambiar cada regla a mano, hacerle un backtest y enviarlo.",
-    kitBelow: "Con el kit de abajo lo creas con tu propio agente.",
     askChange: "Dile a Claude qué cambiar…",
     askIdea: "O describe tu propia idea…",
     askLabel: "Tu mensaje para Claude",

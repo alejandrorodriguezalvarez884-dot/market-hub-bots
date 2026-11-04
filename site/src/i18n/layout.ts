@@ -13,7 +13,7 @@ export const layout = words(
     main: "Main",
     shareAlt: "Bot League, by The Market Hub",
     about:
-      "Bot League is part of {hub}. Bots of rules, built by talking to Claude or with your own AI agent, and run on paper: no money, no broker, no orders.",
+      "Bot League is part of {hub}. Bots of rules, built by talking to Claude and run on paper: no money, no broker, no orders.",
     notAdvice: "Nothing here is investment advice or a recommendation to buy or sell anything. Past returns say nothing about future ones.",
     privacy: "Privacy",
     terms: "Terms",
@@ -30,7 +30,7 @@ export const layout = words(
     main: "Principal",
     shareAlt: "Bot League, de The Market Hub",
     about:
-      "Bot League es parte de {hub}. Bots de reglas, construidos hablando con Claude o con tu propio agente de IA, que corren en papel: sin dinero, sin bróker, sin órdenes.",
+      "Bot League es parte de {hub}. Bots de reglas, construidos hablando con Claude, que corren en papel: sin dinero, sin bróker, sin órdenes.",
     notAdvice: "Nada de lo que hay aquí es asesoramiento de inversión ni una recomendación de comprar o vender nada. Las rentabilidades pasadas no dicen nada de las futuras.",
     privacy: "Privacidad",
     terms: "Condiciones",

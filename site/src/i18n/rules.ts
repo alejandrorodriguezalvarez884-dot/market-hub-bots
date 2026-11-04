@@ -14,7 +14,7 @@ export const rules = words(
     kicker: "Rules and format",
     h1: "The same closes, the same costs and the same start for every bot.",
     rules: [
-      ["A bot is a file of rules", "Not code. The format is markethub-bot/1, below and in the kit's SPEC.md. Claude writes it with you on your page, or your own agent with the kit; the service checks every field and refuses anything it does not describe."],
+      ["A bot is a file of rules", "Not code. The format is markethub-bot/1, below. Claude writes it with you on your page, in your own words; the service checks every field and refuses anything it does not describe."],
       ["Paper only", "Bot League runs every bot with no money, no broker and no orders. On the sessions a bot looks again, it decides at the close and trades at that close."],
       ["The 500 largest US companies", "A bot chooses among them, funds left out, from the list of the day it is sent in. It holds 1 to 50 of them, long only: no short sales and no borrowing."],
       ["Costs and returns", "Each rebalance pays 0.10% of what changes hands. Returns are on price, dividends left out, and cash earns nothing."],
@@ -22,7 +22,6 @@ export const rules = words(
       ["Day, week, month, year and since start", "Over the last 1, 5, 21 and 252 sessions, and since each bot started, each ranked among the bots that have run that long. The S&P 500 (SPY) is on the board for reference, never ranked."],
       ["One bot per member", "Sending in another one replaces it and starts its record again. Withdrawing it removes it and its record."],
       ["What everyone sees", "The board is public: anyone, signed in or not, sees the name you show under, the bot's name and idea, its returns, its curve and what it holds. Its rules are yours alone."],
-      ["Your key", "The kit carries a key that lets your agent check, backtest and send in your bot, nothing else. Only its fingerprint is kept. A new key replaces the old one; you can take it back at any time."],
     ] as [string, string][],
     formatKicker: "The format",
     formatTitle: "What a bot can say",
@@ -47,7 +46,7 @@ export const rules = words(
     kicker: "Reglas y formato",
     h1: "Los mismos cierres, los mismos costes y el mismo comienzo para todos los bots.",
     rules: [
-      ["Un bot es un archivo de reglas", "No es código. El formato es markethub-bot/1, aquí abajo y en el SPEC.md del kit. Claude lo escribe contigo en tu página, o tu propio agente con el kit; el servicio comprueba cada campo y rechaza todo lo que el formato no describe."],
+      ["Un bot es un archivo de reglas", "No es código. El formato es markethub-bot/1, aquí abajo. Claude lo escribe contigo en tu página, con tus palabras; el servicio comprueba cada campo y rechaza todo lo que el formato no describe."],
       ["Solo en papel", "Bot League ejecuta todos los bots sin dinero, sin bróker y sin órdenes. En las sesiones en las que un bot revisa la cartera, decide al cierre y opera a ese mismo cierre."],
       ["Las 500 mayores empresas de EE. UU.", "Un bot elige entre ellas, sin fondos, de la lista del día en que se envía. Tiene de 1 a 50, solo posiciones largas: sin ventas en corto y sin préstamos."],
       ["Costes y rentabilidades", "Cada rebalanceo paga el 0,10 % de lo que cambia de manos. Las rentabilidades son de precio, sin dividendos, y la liquidez no rinde nada."],
@@ -55,7 +54,6 @@ export const rules = words(
       ["Día, semana, mes, año y desde el inicio", "En las últimas 1, 5, 21 y 252 sesiones, y desde que empezó cada bot, cada periodo clasificado entre los bots que llevan ese tiempo. El S&P 500 (SPY) está en la clasificación como referencia y nunca ocupa un puesto."],
       ["Un bot por miembro", "Enviar otro lo sustituye y su historial empieza de cero. Retirarlo lo borra junto con su historial."],
       ["Lo que ve todo el mundo", "La clasificación es pública: cualquiera, haya entrado o no, ve el nombre con el que sales, el nombre y la idea del bot, sus rentabilidades, su curva y lo que tiene. Sus reglas son solo tuyas."],
-      ["Tu clave", "El kit lleva una clave que deja a tu agente comprobar tu bot, hacer su backtest y enviarlo, y nada más. Solo se guarda su huella. Una clave nueva sustituye a la anterior; puedes retirarla cuando quieras."],
     ],
     formatKicker: "El formato",
     formatTitle: "Lo que puede decir un bot",

@@ -1,5 +1,5 @@
-// The landing (views/Home.astro): what Bot League is, the board live, how a bot is built, what a
-// bot is, who it is for, the rules and the questions.
+// The landing (views/Home.astro): the way in (build your bot with Claude), the board live, how a
+// bot is built, the rules and the questions.
 import { words } from ".";
 
 export const home = words(
@@ -12,11 +12,12 @@ export const home = words(
     h1Em: "The market",
     h1End: "keeps score.",
     lede:
-      "Say how you would pick stocks, in your own words. Claude writes the rules, you see what they would hold and how they would have done, and you send the bot in. Bot League runs it on paper against every member's bot, from the next close, and ranks them all.",
-    cta: "Build your bot, it's free",
-    seeBoard: "See the board",
-    small: "With your account on The Market Hub · paper only · no code needed",
+      "Say how you would pick stocks, in your own words. Claude builds the bot with you, and Bot League runs it on paper against every member's, from the next close.",
+    cta: "Build your bot with Claude",
+    seeBoard: "See the board ↓",
+    small: "Free · with your account on The Market Hub · paper only, no code",
     theBoard: "The board",
+    boardNote: "Every member's bot, ranked by what it has done.",
     loading: "loading",
     wholeBoard: "The whole board →",
     howKicker: "How it works",
@@ -47,56 +48,6 @@ export const home = words(
       send: "Send it in",
       starts: "It starts at the next close.",
     },
-    kitKicker: "Or with your own agent",
-    kitTitle: "The same bot, from your terminal.",
-    kitBody:
-      "Download the kit from your page: instructions for your agent, the format, six bots that work, a small tool and your key. Open it with Claude Code, Codex or yours and say {say}.",
-    kitSay: "“Let's build my bot”",
-    getKit: "Get the kit →",
-    term: {
-      me1: "› Let's build my bot",
-      them1: "How would you like it to pick stocks? A few ideas: momentum, trend following, calm stocks, buying pullbacks…",
-      me2: "› Trend following, and stay out when the whole market falls",
-      checked: "It is a bot. In words: looks at the 300 largest US companies, keeps those over their 200-session average…",
-      tested: "Three years against SPY. A simulation of the past, not a forecast.",
-      me3: "› Send it in",
-      sent: "Sent in. Its record starts at the next close.",
-    },
-    botKicker: "What a bot is",
-    botTitle: "A few rules in a file. Not code, not a black box.",
-    botBody:
-      "Which companies it looks at, what it filters and scores them on, how many it holds, how it weighs them, how often it looks again and when it steps aside. Every bot is run the same way, on the same closes, so the only difference is the idea.",
-    wholeFormat: "The whole format →",
-    inWords: "The same bot, in words",
-    // The kit's example bot (examples/trend-with-market-filter.json): its name and idea, and its
-    // rules as the service words them.
-    exampleName: "Trend follower",
-    exampleAbout: "The strongest large caps over their long average.",
-    exampleWords: [
-      "Looks at the 300 largest US companies.",
-      "Keeps those where its close against its 200-session average is at least 0%.",
-      "Scores them on its return over 126 sessions, leaving out the last 5 (higher is better, weight 1).",
-      "Holds the best 15, in equal parts.",
-      "Looks again at the first close of each week.",
-      "When, for the S&P 500, its close against its 200-session average is not at least 0%, holds 100% in cash.",
-    ],
-    forKicker: "Who it is for",
-    forTitle: "Anyone with an idea about markets.",
-    audience: [
-      {
-        title: "You have an idea, not a codebase",
-        body: "Momentum, calm stocks, buying dips in an uptrend: say it in your own words. Claude turns it into rules and shows you what they mean, what they would hold and how they would have done.",
-      },
-      {
-        title: "You want a fair test",
-        body: "Every bot runs on the same closes, pays the same cost and starts at the same kind of moment: the close after it is sent in. No curve fitting counts.",
-      },
-      {
-        title: "You like to build with your own agent",
-        body: "Take the kit to Claude Code, Codex or yours: an interview, a file, a check, a three-year backtest, a submission, on your own machine. You decide at every step.",
-      },
-    ],
-    agents: "The kit works with {a}, {b}, {c} and any agent that reads an {file}. The kit's tool needs nothing but Python.",
     rulesKicker: "The rules",
     rulesTitle: "Same closes, same costs, same start.",
     allRules: "All of them →",
@@ -114,7 +65,7 @@ export const home = words(
       ["Is any money involved?", "No. Bot League runs every bot on paper, with the closing prices of each session. There is no broker and no order, and there is nothing to deposit or win."],
       [
         "Do I need to know how to code?",
-        "No. A bot is a short file of rules, and Claude writes it with you on your page of Bot League, in your own words. If you prefer, your own AI agent (Claude Code, Codex, Gemini CLI or another) builds it with the kit. Either way you need an account on The Market Hub.",
+        "No. A bot is a short file of rules, and Claude writes it with you on your page of Bot League, in your own words. All you need is an account on The Market Hub.",
       ],
       [
         "Which figures can a bot use?",
@@ -144,11 +95,12 @@ export const home = words(
     h1Em: "El mercado",
     h1End: "lleva la cuenta.",
     lede:
-      "Di cómo elegirías acciones, con tus palabras. Claude escribe las reglas, tú ves qué tendrían y cómo les habría ido, y envías el bot. Bot League lo ejecuta en papel contra los bots de todos los miembros, desde el próximo cierre, y los clasifica a todos.",
-    cta: "Crea tu bot, es gratis",
-    seeBoard: "Ver la clasificación",
-    small: "Con tu cuenta de The Market Hub · solo en papel · sin programar",
+      "Di cómo elegirías acciones, con tus palabras. Claude crea el bot contigo, y Bot League lo ejecuta en papel contra los de todos los miembros, desde el próximo cierre.",
+    cta: "Crea tu bot con Claude",
+    seeBoard: "Ver la clasificación ↓",
+    small: "Gratis · con tu cuenta de The Market Hub · solo en papel, sin programar",
     theBoard: "La clasificación",
+    boardNote: "Los bots de todos los miembros, ordenados por lo que han hecho.",
     loading: "cargando",
     wholeBoard: "La clasificación entera →",
     howKicker: "Cómo funciona",
@@ -179,54 +131,6 @@ export const home = words(
       send: "Enviarlo",
       starts: "Empieza en el próximo cierre.",
     },
-    kitKicker: "O con tu propio agente",
-    kitTitle: "El mismo bot, desde tu terminal.",
-    kitBody:
-      "Descarga el kit desde tu página: instrucciones para tu agente, el formato, seis bots que funcionan, una pequeña herramienta y tu clave. Ábrelo con Claude Code, Codex o el tuyo y di {say}.",
-    kitSay: "«Vamos a crear mi bot»",
-    getKit: "Consigue el kit →",
-    term: {
-      me1: "› Vamos a crear mi bot",
-      them1: "¿Cómo quieres que elija acciones? Algunas ideas: momentum, seguir la tendencia, acciones tranquilas, comprar retrocesos…",
-      me2: "› Seguir la tendencia, y salirme cuando cae todo el mercado",
-      checked: "Es un bot. En palabras: mira las 300 mayores empresas de EE. UU., se queda con las que están por encima de su media de 200 sesiones…",
-      tested: "Tres años contra SPY. Una simulación del pasado, no una previsión.",
-      me3: "› Envíalo",
-      sent: "Enviado. Su historial empieza en el próximo cierre.",
-    },
-    botKicker: "Qué es un bot",
-    botTitle: "Unas pocas reglas en un archivo. Ni código ni una caja negra.",
-    botBody:
-      "Qué empresas mira, por qué las filtra y las puntúa, cuántas tiene, cuánto pesa cada una, cada cuánto revisa la cartera y cuándo se aparta. Todos los bots se ejecutan igual, con los mismos cierres, así que lo único que cambia es la idea.",
-    wholeFormat: "El formato entero →",
-    inWords: "El mismo bot, en palabras",
-    exampleName: "Seguidor de tendencia",
-    exampleAbout: "Las grandes más fuertes, por encima de su media larga.",
-    exampleWords: [
-      "Mira las 300 mayores empresas de EE. UU.",
-      "Se queda con aquellas en las que su cierre frente a su media de 200 sesiones es al menos 0 %.",
-      "Las puntúa por su rentabilidad en 126 sesiones, sin contar las últimas 5 (mejor cuanto más alto, peso 1).",
-      "Mantiene las 15 mejores, a partes iguales.",
-      "Revisa la cartera en el primer cierre de cada semana.",
-      "Cuando, para el S&P 500, su cierre frente a su media de 200 sesiones no es al menos 0 %, mantiene el 100 % en liquidez.",
-    ],
-    forKicker: "Para quién es",
-    forTitle: "Para cualquiera con una idea sobre los mercados.",
-    audience: [
-      {
-        title: "Tienes una idea, no un programa",
-        body: "Momentum, acciones tranquilas, comprar caídas en una tendencia alcista: dilo con tus palabras. Claude lo convierte en reglas y te enseña qué significan, qué tendrían y cómo les habría ido.",
-      },
-      {
-        title: "Quieres una prueba justa",
-        body: "Todos los bots corren con los mismos cierres, pagan el mismo coste y empiezan en el mismo tipo de momento: el cierre siguiente a su envío. Ajustarse al pasado no cuenta.",
-      },
-      {
-        title: "Te gusta construir con tu propio agente",
-        body: "Lleva el kit a Claude Code, a Codex o al tuyo: una entrevista, un archivo, una comprobación, un backtest de tres años y un envío, en tu propio ordenador. Tú decides en cada paso.",
-      },
-    ],
-    agents: "El kit funciona con {a}, {b}, {c} y cualquier agente que lea un {file}. La herramienta del kit solo necesita Python.",
     rulesKicker: "Las reglas",
     rulesTitle: "Mismos cierres, mismos costes, mismo comienzo.",
     allRules: "Todas →",
@@ -244,7 +148,7 @@ export const home = words(
       ["¿Hay dinero de por medio?", "No. Bot League ejecuta todos los bots en papel, con los precios de cierre de cada sesión. No hay bróker ni órdenes, y no hay nada que depositar ni que ganar."],
       [
         "¿Necesito saber programar?",
-        "No. Un bot es un archivo corto de reglas, y Claude lo escribe contigo en tu página de Bot League, con tus palabras. Si lo prefieres, tu propio agente de IA (Claude Code, Codex, Gemini CLI u otro) lo construye con el kit. En los dos casos necesitas una cuenta en The Market Hub.",
+        "No. Un bot es un archivo corto de reglas, y Claude lo escribe contigo en tu página de Bot League, con tus palabras. Solo necesitas una cuenta en The Market Hub.",
       ],
       [
         "¿Qué cifras puede usar un bot?",
