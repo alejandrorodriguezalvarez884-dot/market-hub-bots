@@ -18,6 +18,21 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **"Su cartera, cierre a cierre": movimientos y composición, más claros** (sin desplegar). El usuario: "en la
+> pestaña de mi bot no quedan claros los movimientos que hace el bot ni tampoco la composición de la cartera en función del
+> tiempo". Una sección nueva (`site/src/lib/history.ts`, textos en `i18n/history.ts`) sustituye a "Lo que tiene", "Lo que ha
+> tenido" (la cuadrícula sin fechas) y "Lo que ha hecho" (las barras):
+> - **Una fecha cada vez**: un deslizador con ‹ › por cada rebalanceo y "Hoy" al final; para la fecha elegida, el treemap de lo
+>   que tenía (lo que compró ese día, marcado "nueva") y al lado, en palabras, qué cambió: compró, vendió, más peso, menos peso
+>   (antes → después) y cuánto movió de la cartera y su coste. En "Hoy", que no ha operado desde el último y qué hizo en él.
+> - **Todos sus movimientos** debajo, una línea en palabras cada uno ("Compró AMGN y AXP, vendió TXN y CRM · movió el 41 %"),
+>   el más reciente primero, 8 y "Ver los N"; los cambios de reglas o interruptores van entre ellos con ◆. Tocar uno lleva el
+>   deslizador a esa fecha.
+> - Lo mismo en la página pública de cada bot (`views/Bot.astro`), que perdía también su sección "Cambios" (va en la lista).
+>   Fuera `timeline`, `detail`, `strip`, `moves`, `bars` y `versions` y sus textos. La API no cambia.
+> - Probado: `make test`, `astro check` y en local con la demo, en los dos idiomas, de escritorio y a 375 px sin scroll lateral:
+>   deslizador, botones, tocar un movimiento. Sin probar dibujada una fila de cambio de reglas (la demo no tiene ninguna).
+
 > 2026-11-04: **Desplegado** `bot-league-00011-g7c` desde un export limpio de 0e1c40e, con el OK del usuario. Lleva **la web
 > en inglés y en español** (c7ade99 y siguientes) y **solo el chat** (la entrada de abajo). Desplegado desde el Mac, que no
 > tenía `.env`: se rehízo, solo en el export, con los valores del servicio. Configuración igual salvo que

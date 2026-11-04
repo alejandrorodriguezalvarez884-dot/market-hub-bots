@@ -25,17 +25,20 @@ const t = words[lang];
 	import { chartWaiting, lineChart, type Series } from "../lib/chart";
 	import { add, h } from "../lib/dom";
 	import { day, plural, signedPct, tone } from "../lib/format";
-	import { detail, rankMeter, timeline, treemap } from "../lib/mybot";
+	import { rankMeter, treemap } from "../lib/mybot";
+	import { portfolioHistory } from "../lib/history";
+	import { history as historyWords } from "../i18n/history";
 	import { robot, robotSvg } from "../lib/robot";
 	import { ApiError, api, botUrl, localVisitor } from "../lib/site";
 	import { PERIODS, digits, type BotPage, type ChatStatus, type Me, type MyBot, type Overview, type Spec } from "../lib/types";
-	import { said, strip } from "../lib/doings";
+	import { said } from "../lib/doings";
 	import { changePanel } from "../lib/change";
 	import { builder } from "../lib/build";
 	import { lang } from "../i18n";
 	import { me as words } from "../i18n/me";
 
 	const t = words[lang()];
+	const th = historyWords[lang()];
 	localVisitor();
 	const root = document.getElementById("me")!;
 	let data: Overview;
@@ -188,20 +191,11 @@ const t = words[lang];
 		return add(section(t.holds, you.as_of ? t.afterClose(day(you.as_of)) : null), treemap(weights, you.cash));
 	}
 
-	function held(you: MyBot): HTMLElement | null {
-		const grid = strip(you.log, 30, 10);
-		return grid ? add(section(t.hasHeld, t.darker), grid) : null;
-	}
-
-	function done(you: MyBot): HTMLElement | null {
-		if (!you.since) return null;
-		const versions = you.versions.map(({ from, what }) => ({ from, what }));
-		const read = h("div", "mt-3 min-h-[2rem] border-t border-line pt-3");
-		const first = you.log[0] ?? versions[versions.length - 1];
-		if (first) read.append(detail(first, said));
-		else read.append(h("p", "text-[13px] text-muted", t.noRebalance));
-		const out = add(section(t.hasDone, you.log.length ? plural(you.log.length, t.rebalance, t.rebalances) : null),
-			timeline(you.log, versions, you.since, you.as_of ?? you.since, (item) => read.replaceChildren(detail(item, said))), read);
+	// What it has held and done, close by close: a date at a time, and every move (lib/history.ts).
+	function portfolio(you: MyBot): HTMLElement {
+		const weights = Object.fromEntries(you.holdings.map((x) => [x.ticker, x.weight]));
+		const out = add(section(th.title, th.note),
+			portfolioHistory({ log: you.log, versions: you.versions, now: { weights, cash: you.cash, as_of: you.as_of } }));
 		if (you.exclude.length) out.append(add(h("div", "mt-4 flex flex-wrap items-center gap-1.5"), h("span", "mr-1 text-[12.5px] text-muted", t.leftOut),
 			...you.exclude.map((x) => h("span", "chip num", x))));
 		return out;
@@ -271,9 +265,9 @@ const t = words[lang];
 		const you = data.you;
 		if (!you || rebuilding) return create(me);
 		root.replaceChildren();
-		const pair = you.since ? [curve(you), add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), held(you) ?? h("div"))]
-			: [add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), curve(you))]; // before it starts: what it would hold first
-		add(root, head(you), change(you), you.since ? numbers(you) : null, ...pair, done(you), rules(you), corner());
+		// Before it starts: what it would hold first, beside where its line will be.
+		const body = you.since ? [curve(you), portfolio(you)] : [add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), curve(you))];
+		add(root, head(you), change(you), you.since ? numbers(you) : null, ...body, rules(you), corner());
 	}
 
 	async function load() {

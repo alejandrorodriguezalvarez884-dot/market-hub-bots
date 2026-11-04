@@ -1,6 +1,6 @@
 ---
 // A bot's own page (/bot/?b=slug): its idea, its returns and ranks, its curve against the S&P 500
-// from its first close, and what it holds. Its rules are shown to its owner alone.
+// from its first close, and its portfolio close by close with every move. Its rules are shown to its owner alone.
 import Layout from "../layouts/Layout.astro";
 import type { Lang } from "../i18n";
 import { bot as words } from "../i18n/bot";
@@ -25,15 +25,17 @@ const t = words[lang];
 	import { robot } from "../lib/robot";
 	import { ApiError, api, link, localVisitor } from "../lib/site";
 	import { PERIODS, digits, type BotPage } from "../lib/types";
-	import { moves, said, strip, versions } from "../lib/doings";
-	import { detail, timeline, treemap } from "../lib/mybot";
+	import { portfolioHistory } from "../lib/history";
+	import { treemap } from "../lib/mybot";
 	import { lang } from "../i18n";
 	import { bot as words } from "../i18n/bot";
 	import { common } from "../i18n/common";
+	import { history as historyWords } from "../i18n/history";
 
 	localVisitor();
 	const t = words[lang()];
 	const c = common[lang()];
+	const th = historyWords[lang()];
 	const root = document.getElementById("bot")!;
 	const slug = new URLSearchParams(location.search).get("b") ?? "";
 
@@ -51,11 +53,11 @@ const t = words[lang];
 	const section = (title: string, note: string | null, ...body: (Node | null)[]) =>
 		add(h("section", "sec mt-12"), add(h("div", "sec-head"), h("h2", "sec-title", title), note ? h("span", "sec-note", note) : null), ...body);
 
+	// What it has held and done, close by close: a date at a time, and every move (lib/history.ts).
 	function holdings(b: BotPage): HTMLElement | null {
 		if (!b.since) return null;
 		const weights = Object.fromEntries(b.holdings.map((x) => [x.ticker, x.weight]));
-		return section(t.holdsNow, b.paused ? t.pausedAfter(day(b.as_of)) : t.holdingAfter(plural(b.holding, ...c.stock), day(b.as_of)),
-			treemap(weights, b.cash));
+		return section(th.title, th.note, portfolioHistory({ log: b.log, versions: b.versions, now: { weights, cash: b.cash, as_of: b.as_of } }));
 	}
 
 	// Before its first close: when it starts, and what its rules would hold at the last close.
@@ -63,22 +65,6 @@ const t = words[lang];
 		if (b.since || !b.preview) return null;
 		return section(t.wouldHold, t.previewNote(day(b.preview.as_of), day(b.starts)),
 			treemap(b.preview.weights, null, { preview: true }));
-	}
-
-	function doings(b: BotPage): HTMLElement[] {
-		if (!b.since) return [];
-		const over = strip(b.log);
-		// Each rebalance a bar over time, each change of its owner's a diamond; touch one to read it.
-		const read = h("div", "mt-3 min-h-[2rem] border-t border-line pt-3");
-		const first = b.log[0] ?? b.versions[b.versions.length - 1];
-		read.append(first ? detail(first, said) : h("p", "text-[13px] text-muted", c.noRebalance));
-		const list = add(h("details", "fold mt-4"), h("summary", "", t.everyRebalance), add(h("div", "mt-3"), moves(b.log)));
-		return [
-			section(t.did, b.log.length ? t.didNote(plural(b.log.length, ...c.rebalance)) : null,
-				timeline(b.log, b.versions, b.since!, b.as_of ?? b.since!, (item) => read.replaceChildren(detail(item, said))), read, b.log.length ? list : null),
-			over ? section(t.heldOver, t.heldOverNote, over) : null,
-			b.versions.length ? section(t.changes, t.changesNote, versions(b.versions)) : null,
-		].filter((x): x is HTMLElement => !!x);
 	}
 
 	function rules(b: BotPage): HTMLElement | null {
@@ -117,7 +103,6 @@ const t = words[lang];
 				chart),
 			holdings(b),
 			preview(b),
-			...doings(b),
 			rules(b),
 			b.you ? null : add(h("div", "frame mt-14 flex flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-6"),
 				add(h("div", "min-w-0"), h("p", "text-[16px] font-medium text-ink-strong", t.ideaTitle),
