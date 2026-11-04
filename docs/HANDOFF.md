@@ -18,6 +18,10 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **Desplegado** `bot-league-00012-c2f` desde un export limpio de 50bb963 ("Su cartera, cierre a cierre"), con el
+> OK del usuario y la configuración igual antes y después (mismo `.env` rehecho del servicio, `bash scripts/deploy-cloudrun.sh`).
+> Comprobado: páginas y salud en 200, y la sección nueva en la página pública de "Bag holder" en producción, sin errores.
+
 > 2026-11-04: **"Su cartera, cierre a cierre": movimientos y composición, más claros** (sin desplegar). El usuario: "en la
 > pestaña de mi bot no quedan claros los movimientos que hace el bot ni tampoco la composición de la cartera en función del
 > tiempo". Una sección nueva (`site/src/lib/history.ts`, textos en `i18n/history.ts`) sustituye a "Lo que tiene", "Lo que ha
