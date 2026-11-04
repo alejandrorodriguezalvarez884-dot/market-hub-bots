@@ -18,6 +18,12 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **La respuesta de Claude ya no espera al mapa.** `POST /api/bots/draft/chat` devuelve la respuesta y las
+> reglas en palabras (`bots.check`), sin `holds`; la página pide después lo que tendría a `/api/bots/preview` (cuenta en el tope
+> de 30 por hora con los backtests). Mientras tanto, el paso dice "mapping what it would hold…" y el borrador enseña el hueco
+> del mapa "Reading the closes of its companies…"; si falla, "Try again". Un borrador guardado sin mapa lo pide al abrir la
+> página. Arregla los ~50 s del primer mensaje con la instancia en frío (el usuario lo pidió).
+
 > 2026-11-04: **Probado en producción con Haiku de verdad**, con la sesión del usuario en su Chrome ("Build a new one with
 > Claude", sin enviar: "Bag holder" sigue igual). Dos mensajes en español: Claude contestó en español, propuso un bot entero
 > que pasó las comprobaciones a la primera (5 reglas, 10 valores) y, tras un backtest a 1 año, lo comentó como simulación del

@@ -335,7 +335,9 @@ def test_a_bot_is_built_from_scratch_by_talking_and_sent_in_from_the_page():
     got = owner.post("/api/bots/draft/chat", json={"message": "Momentum sounds good", "history": [
         {"role": "assistant", "text": "Hello"}, {"role": "user", "text": "Hi, I want a bot"}, {"role": "assistant", "text": got["reply"]}]}).json()
     draft = got["proposal"]
-    assert draft["name"] == "Twelve-month momentum" and got["rules"][0].startswith("Looks at the") and got["holds"]["weights"]
+    assert draft["name"] == "Twelve-month momentum" and got["rules"][0].startswith("Looks at the")
+    # The reply does not wait for what it would hold: the page asks for it next.
+    assert "holds" not in got and owner.post("/api/bots/preview", json={"bot": draft}).json()["holds"]["weights"]
     # The member backtests it on the page, and Claude sees its figures with the next message.
     test = owner.post("/api/bots/backtest", json={"bot": draft, "years": 1}).json()
     assert test["notes"] and "benchmark" in test and test["curve"]

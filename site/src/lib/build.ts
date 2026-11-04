@@ -98,6 +98,8 @@ export function builder(ctx: BuildContext): HTMLElement {
   let confirming = false;
   let byHand = false;
   let sendNote = "";
+  let mapping = false; // what the draft would hold is being read
+  let mapNote = ""; // why it could not be
   const root = h("div", "build");
 
   // --- Talking ---
@@ -117,7 +119,10 @@ export function builder(ctx: BuildContext): HTMLElement {
       if (typeof got.left === "number") chat.left = got.left;
       s.talk.push({ role: "assistant", text: got.reply });
       if (got.problems?.length) s.talk.push({ role: "step", kind: "problems", text: "Its proposal did not pass the checks", note: got.problems.join(" ") });
-      if (got.proposal) adopt(got.proposal, got.rules ?? [], got.holds ?? null, "draft");
+      if (got.proposal) {
+        adopt(got.proposal, got.rules ?? [], got.holds ?? null, "draft");
+        if (!s.holds) void mapIt();
+      }
     } catch (e) {
       if (e instanceof ApiError && e.status === 503 && /messages today/.test(e.message)) chat.left = 0;
       s.talk.push({ role: "assistant", text: message(e, "The chat could not answer."), error: true });
@@ -137,9 +142,34 @@ export function builder(ctx: BuildContext): HTMLElement {
     s.holds = holds;
     s.version += 1;
     s.test = null; // the backtest was of the draft before
-    const held = holds ? plural(Object.keys(holds.weights).length, "stock") : null;
-    s.talk.push({ role: "step", kind, text: `Draft ${s.version} · ${bot.name}`,
-      note: [`checked: ${plural(rules.length, "rule")}`, held ? `would hold ${held} today` : null].filter(Boolean).join(" · ") });
+    s.talk.push({ role: "step", kind, text: `Draft ${s.version} · ${bot.name}`, note: stepNote(rules, holds) });
+  }
+
+  function stepNote(rules: string[], holds: Preview): string {
+    const held = holds ? `would hold ${plural(Object.keys(holds.weights).length, "stock")} today` : mapping ? "mapping what it would hold…" : null;
+    return [`checked: ${plural(rules.length, "rule")}`, held].filter(Boolean).join(" · ");
+  }
+
+  // What the draft would hold at the last close, asked for after Claude's reply is on the page: on a
+  // service just woken up, reading the closes of its companies takes a while.
+  async function mapIt() {
+    if (!s.draft || mapping) return;
+    const version = s.version;
+    const step = [...s.talk].reverse().find((t) => t.role === "step" && t.text.startsWith(`Draft ${version} ·`)) as Extract<Turn, { role: "step" }> | undefined;
+    mapping = true;
+    mapNote = "";
+    if (step) step.note = stepNote(s.rules, null);
+    draw();
+    try {
+      const seen = await api<{ holds: Preview }>("/api/bots/preview", { method: "POST", body: { bot: s.draft } });
+      if (s.version === version) s.holds = seen.holds;
+    } catch (e) {
+      if (s.version === version) mapNote = message(e, "What it would hold could not be read just now.");
+    }
+    mapping = false;
+    if (step && s.version === version) step.note = stepNote(s.rules, s.holds);
+    save();
+    draw();
   }
 
   async function backtest(n: number) {
@@ -355,7 +385,11 @@ export function builder(ctx: BuildContext): HTMLElement {
           : add(h("ul", "space-y-1.5 text-[13.5px] text-ink"), ...s.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", r))))),
       s.holds ? add(h("div", "mt-6"), add(h("div", "flex items-baseline justify-between gap-2 pb-2"), h("p", "label", "What it would hold"),
         h("span", "text-[12px] text-faint", `${plural(held, "stock")} · close of ${day(s.holds.as_of)}`)),
-        treemap(s.holds.weights, null, { preview: true, small: true })) : null,
+        treemap(s.holds.weights, null, { preview: true, small: true }))
+        : add(h("div", "mt-6"), h("p", "label pb-2", "What it would hold"),
+          mapping ? add(h("div", "skeleton grid h-[180px] place-items-center"), h("span", "text-[12.5px] text-muted", "Reading the closes of its companies…"))
+            : add(h("div", "flex flex-wrap items-center gap-3"), h("p", "text-[12.5px] text-muted", mapNote || "Not read yet."),
+              button("btn btn-ghost py-1 text-[13px]", "Try again", () => void mapIt()))),
       testPanel(),
       add(h("div", "mt-5 flex justify-end"), button("text-[12.5px] text-muted underline-offset-4 hover:text-ink-strong hover:underline", "Every rule, by hand ›", () => ((byHand = true), draw()))),
       sendBox());
@@ -384,5 +418,6 @@ export function builder(ctx: BuildContext): HTMLElement {
   }
 
   draw();
+  if (s.draft && !s.holds) void mapIt(); // a draft kept from before the map came back
   return root;
 }

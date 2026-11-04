@@ -365,9 +365,10 @@ def create_app(bot_store: BotStore | None = None,
         except MarketUnavailable as exc:
             market_down(exc)
         if got.get("proposal"):
+            # Its rules in words now; what it would hold is asked for by the page next (/api/bots/preview), so
+            # the reply is not kept waiting while the closes of its companies are read.
             try:
-                seen = bots.preview(got["proposal"])
-                got["rules"], got["holds"] = seen["rules"], seen["holds"]
+                got["rules"] = bots.check(got["proposal"])["rules"]
             except MarketUnavailable:
                 got["rules"] = engine.describe(got["proposal"])
         return {**got, "left": chat.left(user_id)}
