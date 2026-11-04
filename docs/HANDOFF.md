@@ -18,6 +18,27 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-04: **La web en inglés y en español** (sin desplegar). El usuario pidió que Bot League "se vea entero en
+> español para quien lo prefiera, que quede perfectamente", como piloto del portal. Decisiones suyas (2026-11-04): los
+> textos de la web pasan a ser en inglés **y** en español (cambiado en los `CLAUDE.md`), Bot League y el portal a la vez,
+> y el idioma lo elige el lector: un aviso discreto cuando el navegador pide el otro idioma, la cookie `mh_lang` en
+> `.themarkethub.app` (compartida con el portal) y un selector `English · Español` en el pie; nunca por IP.
+> - **Rutas**: inglés en la raíz, español en `/es/` (`/es/board/`, `/es/me/`…). Cada página es una vista
+>   (`site/src/views/*.astro`, con `lang`) y dos páginas de dos líneas la pintan; `hreflang` y canónicas por idioma.
+>   `/robots/` (interna) sigue solo en inglés.
+> - **Textos**: `site/src/i18n/<zona>.ts`, inglés y español uno junto al otro (`words(en, es)`); el chequeo de tipos
+>   falla si falta una clave. Cifras y fechas con el idioma de la página (`+30,5 %`, `4 nov 2026`, `3.º de 7`).
+> - **El servidor**: la página manda `X-MH-Lang`; con `es`, `src/botleague/es.py` escribe en español las reglas en
+>   palabras (`describe(..., lang)`, también en el `bots.py` del portal), los ~70 mensajes de error y avisos, las notas
+>   del backtest y de las cifras, y el chat (Claude contesta en español de España; `Scripted` también). Las rutas del
+>   agente, el kit y lo que llega sin la cabecera siguen en inglés. Un test falla si un mensaje nuevo no tiene español.
+> - Mecanismo, estilo, glosario y plantillas de las reglas en español en [i18n.md](i18n.md).
+> - Probado: `make check` (tests en verde) y en local con la demo en los dos idiomas: portada, clasificación, página de
+>   un bot, reglas, "Your bot" (cambiar con el chat, crear de cero con el chat, mapa, backtest, cada regla a mano), de
+>   escritorio y a 375 px sin scroll lateral.
+> - **Al desplegar**: el pie y los avisos enlazan a `/es/privacy/` y `/es/terms/` del portal, así que conviene desplegar
+>   antes (o a la vez) el portal con su español.
+
 > 2026-11-04: **La respuesta de Claude ya no espera al mapa.** `POST /api/bots/draft/chat` devuelve la respuesta y las
 > reglas en palabras (`bots.check`), sin `holds`; la página pide después lo que tendría a `/api/bots/preview` (cuenta en el tope
 > de 30 por hora con los backtests). Mientras tanto, el paso dice "mapping what it would hold…" y el borrador enseña el hueco
