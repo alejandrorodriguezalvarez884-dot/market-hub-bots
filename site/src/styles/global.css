@@ -1875,3 +1875,44 @@
     color: var(--color-muted);
   }
 }
+
+/* Always and never (lib/companies.ts): the companies the member picks by hand. */
+@layer components {
+  .companies.is-busy {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .companies-row {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-line);
+  }
+  .companies-kind {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-ink-strong);
+  }
+  .companies-kind::before {
+    margin-right: 6px;
+    font-weight: 600;
+  }
+  .companies-kind.is-always::before {
+    content: "✓";
+  }
+  .companies-kind.is-never::before {
+    content: "✕";
+    color: var(--color-muted);
+  }
+  .chip-x.is-always {
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+  .chip-x.is-never {
+    color: var(--color-muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--color-line-strong);
+  }
+  .chip-name:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}

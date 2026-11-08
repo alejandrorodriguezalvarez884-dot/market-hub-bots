@@ -27,7 +27,8 @@ export const rules = words(
     formatTitle: "What a bot can say",
     formatOpen: "The format of a bot, field by field ›",
     format: [
-      `${c("universe")} · ${c(`{"largest": 20–500}`)} or a list of 2 to 100 tickers among the largest, and an ${c("exclude")} list.`,
+      `${c("universe")} · ${c(`{"largest": 20–500}`)} or a list of 2 to 100 tickers among the largest (a theme, like AI and chips), and an ${c("exclude")} list: companies it never holds.`,
+      `${c("always")} · up to 10 companies it holds at every close whatever its other rules say, each with a ${c("min_weight")}, the least share of the portfolio it keeps. They count in ${c("hold")}.`,
       `${c("filters")} · up to 8 figures, each with a ${c("min")}, a ${c("max")} or both: a company outside them is left out.`,
       `${c("score")} · 1 to 8 figures, each with a ${c("weight")} from −5 to 5 (below 0 prefers the lowest). Each figure is turned into a z-score across the companies left, capped at ±3, and the weighted sum ranks them.`,
       `${c("hold")} · how many of the best it holds, 1 to 50. ${c("weighting")} · equal, inverse_volatility or score. ${c("max_weight")} · the most one stock can be, 2% to 100%.`,
@@ -60,7 +61,8 @@ export const rules = words(
     formatTitle: "Lo que puede decir un bot",
     formatOpen: "El formato de un bot, campo a campo ›",
     format: [
-      `${c("universe")} · ${c(`{"largest": 20–500}`)} o una lista de 2 a 100 tickers entre las mayores, y una lista ${c("exclude")}.`,
+      `${c("universe")} · ${c(`{"largest": 20–500}`)} o una lista de 2 a 100 tickers entre las mayores (un tema, como IA y chips), y una lista ${c("exclude")}: las empresas que no tiene nunca.`,
+      `${c("always")} · hasta 10 empresas que mantiene en cada cierre, digan lo que digan sus otras reglas, cada una con un ${c("min_weight")}, el peso mínimo que mantiene en la cartera. Cuentan dentro de ${c("hold")}.`,
       `${c("filters")} · hasta 8 cifras, cada una con un ${c("min")}, un ${c("max")} o los dos: una empresa fuera de ellos queda excluida.`,
       `${c("score")} · de 1 a 8 cifras, cada una con un ${c("weight")} de −5 a 5 (por debajo de 0 prefiere las más bajas). Cada cifra se convierte en una puntuación z entre las empresas que quedan, limitada a ±3, y la suma ponderada las ordena.`,
       `${c("hold")} · cuántas de las mejores tiene, de 1 a 50. ${c("weighting")} · equal, inverse_volatility o score. ${c("max_weight")} · lo máximo que puede pesar una acción, del 2 % al 100 %.`,

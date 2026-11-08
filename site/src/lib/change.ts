@@ -12,9 +12,11 @@ import { editor } from "./editor";
 import { treemap } from "./mybot";
 import { ApiError, api } from "./site";
 import type { Bot, ChatAnswer, ChatStatus, Checked, MyBot, Spec } from "./types";
-import { diff } from "./words";
+import { companies } from "./companies";
+import { diff, share } from "./words";
 import { lang } from "../i18n";
 import { change as words } from "../i18n/change";
+import { companies as companyWords } from "../i18n/companies";
 
 export type ChangeContext = {
   you: MyBot;
@@ -34,7 +36,6 @@ let thinking = false;
 let flash: { text: string; undo?: () => Promise<unknown> } | null = null;
 let advanced: Bot | null = null; // the rules open in the editor, when it is open
 let tuning: Answer | null = null; // the proposal the editor was opened from, if it was
-let leaving = false; // the "leave one out" chooser is open
 
 // --- Dates as New York has them -----------------------------------------------------------------
 
@@ -63,6 +64,7 @@ const message = (e: unknown, fallback: string) => (e instanceof Error ? e.messag
 export function changePanel(ctx: ChangeContext): HTMLElement {
   const { you, spec, chat } = ctx;
   const w = words[lang()];
+  const c = companyWords[lang()];
   const root = h("section", "change frame");
   const pendingRules = !!you.pending?.what.includes("rules");
   const rulesToday = !!you.rules_changed_utc && nyDay(new Date(you.rules_changed_utc)) === nyDay(new Date());
@@ -75,7 +77,8 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
   const held: Record<string, number> = you.since ? Object.fromEntries(you.holdings.map((x) => [x.ticker, x.weight])) : you.preview?.weights ?? {};
 
   const cancelAll = () => api("/api/bots/mine/pending", { method: "DELETE" });
-  const flip = (action: string, ticker?: string) => () => api("/api/bots/mine/switch", { method: "POST", body: { action, ticker } });
+  const flip = (action: string, ticker?: string, min_weight?: number) => () =>
+    api("/api/bots/mine/switch", { method: "POST", body: { action, ticker, min_weight } });
 
   // Does ``run``, then says ``text`` on top of the page drawn again, with ``undo`` if there is one.
   async function act(text: string, run: () => Promise<unknown>, note: HTMLElement, undo?: () => Promise<unknown>) {
@@ -295,10 +298,7 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
     const exclude = you.pending?.exclude ?? you.exclude;
     const note = h("p", "mt-2 hidden text-[12.5px] text-warn");
     const UNDO: Record<string, string> = { pause: "resume", resume: "pause", exclude: "include", include: "exclude" };
-    const press = (text: string, action: string, ticker?: string) => {
-      if (action === "exclude") leaving = false;
-      return act(text, flip(action, ticker), note, flip(UNDO[action], ticker?.toUpperCase()));
-    };
+    const press = (text: string, action: string) => act(text, flip(action), note, flip(UNDO[action]));
 
     const run = add(h("div", "switch-card"),
       add(h("div", "flex items-center justify-between gap-3"),
@@ -306,33 +306,23 @@ export function changePanel(ctx: ChangeContext): HTMLElement {
           h("p", "text-[12.5px] text-muted", paused ? w.pausedHint : w.runningHint)),
         toggle(!paused, w.running, (on) => void press(on ? w.runningAgain : w.pausedFrom(nextClose), on ? "resume" : "pause"))));
 
-    const out = add(h("div", "switch-card"),
-      h("p", "text-[14px] font-medium text-ink-strong", w.leftOut),
-      h("p", "text-[12.5px] text-muted", exclude.length ? w.neverChosen : w.leftOutHint));
-    const chips = h("div", "mt-3 flex flex-wrap gap-1.5");
-    for (const t of exclude) {
-      chips.append(add(h("span", "chip-x num"), t, button("chip-x-btn", "×", () => void press(w.comesBack(t), "include", t))));
-      (chips.lastElementChild!.querySelector("button") as HTMLButtonElement).setAttribute("aria-label", w.letBack(t));
-    }
-    chips.append(button("chip-add", leaving ? w.done : w.leaveOne, () => ((leaving = !leaving), draw())));
-    out.append(chips);
-    if (leaving) {
-      const pick = h("div", "mt-3 flex flex-wrap gap-1.5");
-      const choices = Object.keys(held).filter((t) => !exclude.includes(t)).slice(0, 12);
-      for (const t of choices) pick.append(button("chip-pick num", t, () => void press(w.isLeftOut(t), "exclude", t)));
-      const other = h("input", "field num w-28 py-1 text-[13px] uppercase");
-      other.placeholder = w.ticker;
-      other.setAttribute("aria-label", w.anotherTicker);
-      other.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && other.value.trim()) void press(w.isLeftOut(other.value.trim().toUpperCase()), "exclude", other.value.trim());
-      });
-      add(out, choices.length ? h("p", "mt-3 text-[12px] text-faint", w.tapOne) : null, pick,
-        add(h("div", "mt-2 flex items-center gap-2"), other, button("btn btn-ghost py-1 text-[13px]", w.leaveOut, () => {
-          if (other.value.trim()) void press(w.isLeftOut(other.value.trim().toUpperCase()), "exclude", other.value.trim());
-        })));
-    }
-    out.append(note);
-    return add(h("div", "space-y-3"), h("p", "label", w.switches), run, out,
+    // Always and never: each press is a switch from the next close, with its undo.
+    const always = you.pending?.always ?? you.always ?? [];
+    const was = (t: string) => always.find((p) => p.ticker === t);
+    const out = companies({
+      always, never: exclude, picks: Object.keys(held),
+      act: async (action, t, min) => {
+        const before = was(t);
+        await api("/api/bots/mine/switch", { method: "POST", body: { action, ticker: t, min_weight: min } });
+        const undo = action === "pin" ? (before ? flip("pin", t, before.min_weight) : flip("unpin", t))
+          : action === "unpin" ? flip("pin", t, before?.min_weight ?? 0) : flip(UNDO[action], t);
+        const text = action === "pin" ? c.pinnedFrom(t, min ? share(min) : "") : action === "unpin" ? c.unpinnedFrom(t)
+          : action === "exclude" ? w.isLeftOut(t) : w.comesBack(t);
+        flash = { text, undo };
+        await redraw();
+      },
+    });
+    return add(h("div", "space-y-3"), h("p", "label", w.switches), run, note, out,
       h("p", "text-[12px] text-faint", w.switchesNote));
   }
 

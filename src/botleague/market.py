@@ -52,8 +52,8 @@ class TTLCache:
             self._items[key] = (time.monotonic(), value)
 
 
-def sec_loader(client: httpx.Client | None = None) -> list[tuple[str, int]]:
-    """The SEC's companies as (ticker, id), largest first."""
+def sec_loader(client: httpx.Client | None = None) -> list[tuple[str, int, str]]:
+    """The SEC's companies as (ticker, id, name), largest first."""
     agent = os.environ.get("SEC_USER_AGENT", "").strip() or "market-hub contact@example.com"
     c = client or httpx.Client(timeout=30)
     try:
@@ -66,30 +66,34 @@ def sec_loader(client: httpx.Client | None = None) -> list[tuple[str, int]]:
         t = str(row["ticker"]).upper()
         if t not in seen:
             seen.add(t)
-            out.append((t, int(row.get("cik_str") or 0)))
+            out.append((t, int(row.get("cik_str") or 0), " ".join(str(row.get("title") or "").split())))
     return out
 
 
 class Directory:
-    def __init__(self, loader: Callable[[], list[tuple[str, int]]] = sec_loader, ttl: float = 86400):
+    def __init__(self, loader: Callable[[], list[tuple]] = sec_loader, ttl: float = 86400):
         self._loader, self._ttl = loader, ttl
         self._companies: list[tuple[str, int]] | None = None
         self._at = 0.0
         self._lock = threading.Lock()
 
-    def largest(self, n: int) -> list[str]:
-        """The tickers of the ``n`` largest companies."""
+    def names(self, n: int) -> list[tuple[str, str]]:
+        """The ``n`` largest companies, as (ticker, name as the SEC lists it)."""
         with self._lock:
             if self._companies is None or time.monotonic() - self._at > self._ttl:
                 self._companies, self._at = self._loader(), time.monotonic()
             companies = self._companies
-        out: dict[int, str] = {}
-        for ticker, cik in companies:
+        out: dict[int, tuple[str, str]] = {}
+        for ticker, cik, *name in companies:
             if len(out) >= n:
                 break
             if cik:
-                out.setdefault(cik, ticker)
+                out.setdefault(cik, (ticker, name[0] if name else ""))
         return list(out.values())
+
+    def largest(self, n: int) -> list[str]:
+        """The tickers of the ``n`` largest companies."""
+        return [t for t, _ in self.names(n)]
 
 
 class Yahoo:
@@ -191,6 +195,9 @@ class Sample:
 
     def largest(self, n: int) -> list[str]:
         return list(SAMPLE_TICKERS[:n])
+
+    def names(self, n: int) -> list[tuple[str, str]]:
+        return [(t, "") for t in SAMPLE_TICKERS[:n]]
 
     def closes(self, tickers) -> dict[str, list[tuple[str, float]]]:
         days = _sessions(1260, self.today())

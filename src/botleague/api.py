@@ -17,7 +17,8 @@ The member's own, with Market Hub's session cookie (the same routes as the porta
     POST   /api/bots/preview        {bot}: its rules in words and what they would hold at the last close
     PUT    /api/bots/mine/rules     {bot}: new rules, from the next close, keeping the record (once a day)
     PUT    /api/bots/mine/name      {name, about?}: rename the bot, at once, keeping the record
-    POST   /api/bots/mine/switch    {action, ticker?}: pause, resume, exclude or include, from the next close
+    POST   /api/bots/mine/switch    {action, ticker?, min_weight?}: pause, resume, exclude, include, pin (always hold,
+                                    at least min_weight of it) or unpin, from the next close
     DELETE /api/bots/mine/pending   drop everything waiting for the next close
     GET    /api/bots/chat           whether the chat is on, and the member's messages left today
     POST   /api/bots/mine/chat      {message, history?}: a change of rules proposed by Claude, to confirm
@@ -55,7 +56,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import engine, es
 from .chat import Chat, ChatOff, FileLedger, FirestoreLedger, MemoryLedger, Scripted
-from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, CHAT_ENABLED, PER_IP_PER_HOUR, PUBLIC_BOARD,
+from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, BOT_UNIVERSE_MAX, CHAT_ENABLED, PER_IP_PER_HOUR, PUBLIC_BOARD,
                      SAMPLE, SWITCHES_PER_USER_PER_DAY)
 from .engine import BotStore, Bots
 from .hubauth import Hub
@@ -115,13 +116,14 @@ def create_app(bot_store: BotStore | None = None,
     app = FastAPI(title="Bot League", docs_url=None, redoc_url=None, openapi_url=None)
 
     sample = SAMPLE if sample is None else sample
+    named: Callable[[int], list[tuple[str, str]]] | None = None  # the largest companies with their names
     if closes is None or largest is None:
         if sample:
             source = Sample()
-            closes, largest = closes or source.closes, largest or source.largest
+            closes, largest, named = closes or source.closes, largest or source.largest, source.names if largest is None else None
         else:
             yahoo, directory = Yahoo(), Directory()
-            closes, largest = closes or yahoo.closes, largest or directory.largest
+            closes, largest, named = closes or yahoo.closes, largest or directory.largest, directory.names if largest is None else None
     store = Remembering(bot_store or engine.default_bots())
     bots = Bots(store, closes, largest, sample=False, now=clock)
     league = League(bots, store, public=PUBLIC_BOARD if public is None else public, sample=sample, now=clock)
@@ -319,17 +321,18 @@ def create_app(bot_store: BotStore | None = None,
         return es.rules(mine, es.lang_of(request))
 
     @app.post("/api/bots/mine/switch")
-    def switch(request: Request, action: str = Body(embed=True, max_length=10), ticker: str | None = Body(None, embed=True, max_length=12)):
+    def switch(request: Request, action: str = Body(embed=True, max_length=10), ticker: str | None = Body(None, embed=True, max_length=12),
+               min_weight: float | None = Body(None, embed=True, ge=0, le=1)):
         user_id = member(request)["id"]
         allow(request)
         changes_allowed(user_id)
         try:
-            mine = bots.switch(user_id, action, ticker)
+            mine = bots.switch(user_id, action, ticker, min_weight)
         except engine.Refused as exc:
             return refused(exc, request)
         except MarketUnavailable as exc:
             market_down(exc)
-        log.info("bot switch: %s", action if action in ("pause", "resume", "exclude", "include") else "?")
+        log.info("bot switch: %s", action if action in ("pause", "resume", "exclude", "include", "pin", "unpin") else "?")
         return es.rules(mine, es.lang_of(request))
 
     @app.delete("/api/bots/mine/pending")
@@ -345,6 +348,14 @@ def create_app(bot_store: BotStore | None = None,
             market_down(exc)
         log.info("bot change cancelled")
         return es.rules(mine, es.lang_of(request))
+
+    def companies() -> list[tuple[str, str]] | None:
+        """The companies a bot can choose among, for Claude to pick a theme's from: none if the list
+        cannot be read now (the chat still answers)."""
+        try:
+            return named(BOT_UNIVERSE_MAX) if named else [(t, "") for t in largest(BOT_UNIVERSE_MAX)]
+        except MarketUnavailable:
+            return None
 
     def checked(raw) -> dict:
         """A bot Claude proposed, checked as one sent in is: its rules and its universe."""
@@ -370,7 +381,8 @@ def create_app(bot_store: BotStore | None = None,
         lang = es.lang_of(request)
         try:
             current = engine.check(draft) if draft else None
-            got = chat.ask(user_id, current, message, history, mode="create", backtest=backtest, checker=checked, lang=lang)
+            got = chat.ask(user_id, current, message, history, mode="create", backtest=backtest, checker=checked, lang=lang,
+                           companies=companies())
         except engine.Refused as exc:
             return refused(exc, request)
         except ChatOff as exc:
@@ -433,7 +445,7 @@ def create_app(bot_store: BotStore | None = None,
         current = {**doc, **(doc.get("pending") or {})}["spec"]
         lang = es.lang_of(request)
         try:
-            got = chat.ask(user_id, current, message, history, checker=checked, lang=lang)
+            got = chat.ask(user_id, current, message, history, checker=checked, lang=lang, companies=companies())
         except engine.Refused as exc:
             return refused(exc, request)
         except ChatOff as exc:

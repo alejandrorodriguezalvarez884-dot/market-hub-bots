@@ -52,7 +52,7 @@ Reglas que no se negocian:
   crear y cambiar juntos** (2026-11-04; antes 15) y **sin tope diario del servicio** (como
   PlayGround). No se cambian sin preguntarle.
 - **Cambiar un bot conserva su historial**: desde el próximo cierre, una vez al día, y su página dice
-  en público cuándo cambió (no qué). Interruptores sí (pausar, excluir), órdenes no.
+  en público cuándo cambió (no qué). Interruptores sí (pausar, excluir, mantener siempre con un peso mínimo), órdenes no.
 
 Convenciones:
 - Hablar con el usuario en español. Código y comentarios en inglés. **Textos de la web en inglés y

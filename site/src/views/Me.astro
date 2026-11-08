@@ -36,9 +36,12 @@ const t = words[lang];
 	import { builder } from "../lib/build";
 	import { lang } from "../i18n";
 	import { me as words } from "../i18n/me";
+	import { companies as companyWords } from "../i18n/companies";
+	import { share } from "../lib/words";
 
 	const t = words[lang()];
 	const th = historyWords[lang()];
+	const cw = companyWords[lang()];
 	localVisitor();
 	const root = document.getElementById("me")!;
 	let data: Overview;
@@ -196,7 +199,9 @@ const t = words[lang];
 		const weights = Object.fromEntries(you.holdings.map((x) => [x.ticker, x.weight]));
 		const out = add(section(th.title, th.note),
 			portfolioHistory({ log: you.log, versions: you.versions, now: { weights, cash: you.cash, as_of: you.as_of } }));
-		if (you.exclude.length) out.append(add(h("div", "mt-4 flex flex-wrap items-center gap-1.5"), h("span", "mr-1 text-[12.5px] text-muted", t.leftOut),
+		if (you.always?.length) out.append(add(h("div", "mt-4 flex flex-wrap items-center gap-1.5"), h("span", "mr-1 text-[12.5px] text-muted", t.always),
+			...you.always.map((p) => h("span", "chip num", p.min_weight > 0 ? `${p.ticker} · ${cw.least(share(p.min_weight))}` : p.ticker))));
+		if (you.exclude.length) out.append(add(h("div", "mt-2 flex flex-wrap items-center gap-1.5"), h("span", "mr-1 text-[12.5px] text-muted", t.leftOut),
 			...you.exclude.map((x) => h("span", "chip num", x))));
 		return out;
 	}

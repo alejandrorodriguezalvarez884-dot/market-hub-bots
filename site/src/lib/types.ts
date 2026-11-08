@@ -36,9 +36,11 @@ export type BotPage = Line & {
 };
 
 // A bot's rules, in the markethub-bot/1 format.
+// A company it always holds, with the least share of the portfolio it keeps (0 for none).
+export type Pin = { ticker: string; min_weight: number };
 export type Factor = { factor: string; [setting: string]: number | string | undefined; min?: number; max?: number; weight?: number; cash?: number };
 export type Bot = {
-  format: string; name: string; about: string; universe: { largest?: number; tickers?: string[]; exclude: string[] };
+  format: string; name: string; about: string; universe: { largest?: number; tickers?: string[]; exclude: string[] }; always?: Pin[];
   rebalance: string; filters: Factor[]; score: Factor[]; hold: number; weighting: string; max_weight: number; market?: Factor;
 };
 
@@ -48,9 +50,9 @@ export type MyBot = {
   handle: string; id: string | null; name: string; about: string; submitted_utc: string; since: string | null; as_of: string | null; sessions: number;
   returns: Returns | null; ranks: Partial<Record<Period, number>>; entrants: number; holdings: Holding[]; cash: number | null;
   rules: string[]; universe: number; curve: { date: string; value: number }[];
-  bot: Bot; paused: boolean; exclude: string[]; preview: Preview; rules_changed_utc: string | null; log: Move[];
+  bot: Bot; paused: boolean; exclude: string[]; always: Pin[]; preview: Preview; rules_changed_utc: string | null; log: Move[];
   versions: (Version & { changed_utc: string })[];
-  pending: { changed_utc: string; what: string[]; paused: boolean; rules: string[]; bot: Bot; exclude: string[] } | null;
+  pending: { changed_utc: string; what: string[]; paused: boolean; rules: string[]; bot: Bot; exclude: string[]; always: Pin[] } | null;
 };
 export type Checked = { ok: boolean; bot: Bot; universe: number; rules: string[]; holds: Preview };
 export type ChatAnswer = { reply: string; proposal: Bot | null; rules?: string[]; problems?: string[]; left?: number };

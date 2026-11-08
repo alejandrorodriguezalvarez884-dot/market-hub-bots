@@ -29,6 +29,7 @@ them to the next close. No money, no broker, no orders: a simulation on daily cl
 | `name` | The bot's name, shown on the board. | 3 to 40 characters |
 | `about` | One or two sentences on its idea, shown on the board. Optional. | up to 280 characters |
 | `universe` | The companies it chooses among: either `{"largest": N}`, the N largest US companies by market value, or `{"tickers": [...]}`, a list of your own, each one among the 500 largest. `exclude` leaves some out. Funds (ETFs) are never in. | `largest` 20 to 500; `tickers` 2 to 100; `exclude` up to 100 |
+| `always` | Companies it holds at every close whatever its filters and score say, each with `min_weight`, the least share of the whole portfolio it keeps (also when `market` steps into cash). They count in `hold`, are among the 500 largest, never in `exclude`, and no `min_weight` is above `max_weight`. Optional. | up to 10, as `[{"ticker": "NVDA", "min_weight": 0.1}]`; `min_weight` 0 to 1 (default 0), together at most 1 |
 | `rebalance` | How often it looks again: at every close, at the first close of each week, or of each month. | `"daily"`, `"weekly"` (default), `"monthly"` |
 | `filters` | Conditions a stock must meet to be considered: a factor (below) with a `min`, a `max` or both. Optional. | up to 8 |
 | `score` | How the stocks that pass are ranked: factors, each with a `weight`. Each factor is standardised across the stocks (a z-score, capped at ±3) and the weighted sum is the score. A negative weight prefers the lowest values. | 1 to 8; `weight` −5 to 5, not 0 |

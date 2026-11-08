@@ -17,6 +17,12 @@ export function figure(name: string, v: number, l: Lang = lang()): string {
   return l === "es" ? out.replace(".", ",") : out;
 }
 
+// A least share as the engine writes it: 0.125 is "12.5" ("12,5" in Spanish).
+export function share(x: number, l: Lang = lang()): string {
+  const out = String(+(x * 100).toPrecision(4));
+  return l === "es" ? out.replace(".", ",") : out;
+}
+
 type Words = Record<string, (n: Record<string, number | string | undefined>) => string>;
 const WHAT: Record<Lang, Words> = {
   en: {
@@ -49,6 +55,9 @@ const RULES = {
     between: (a: string, b: string) => `between ${a} and ${b}`, least: (a: string) => `at least ${a}`, most: (b: string) => `at most ${b}`,
     largest: (n: number, out: string[]) => `Looks at the ${n} largest US companies` + (out.length ? `, leaving out ${out.join(", ")}.` : "."),
     tickers: (n: number, names: string) => `Looks at ${n} companies: ${names}.`,
+    always: (names: string) => `Always holds ${names}, whatever its other rules say.`,
+    pinLeast: (t: string, x: string) => `${t} (at least ${x}%)`,
+    and: " and ",
     keeps: (w: string, r: string) => `Keeps those where ${w} is ${r}.`,
     scores: (terms: string[]) => "Scores them on " + terms.join("; ") + ".",
     term: (w: string, higher: boolean, weight: string) => `${w} (${higher ? "higher" : "lower"} is better, weight ${weight})`,
@@ -64,6 +73,9 @@ const RULES = {
     between: (a: string, b: string) => `entre ${a} y ${b}`, least: (a: string) => `al menos ${a}`, most: (b: string) => `como mucho ${b}`,
     largest: (n: number, out: string[]) => `Mira las ${n} mayores empresas de EE. UU.` + (out.length ? `, sin contar ${out.join(", ")}.` : ""),
     tickers: (n: number, names: string) => `Mira ${n} empresas: ${names}.`,
+    always: (names: string) => `Mantiene siempre ${names}, digan lo que digan sus otras reglas.`,
+    pinLeast: (t: string, x: string) => `${t} (al menos el ${x} %)`,
+    and: " y ",
     keeps: (w: string, r: string) => `Se queda con aquellas en las que ${w} es ${r}.`,
     scores: (terms: string[]) => "Las puntúa por " + terms.join("; ") + ".",
     term: (w: string, higher: boolean, weight: string) => `${w} (mejor cuanto más ${higher ? "alto" : "bajo"}, peso ${weight})`,
@@ -93,6 +105,11 @@ export function describe(bot: Bot, l: Lang = lang()): string[] {
   else {
     const names = (u.tickers ?? []).filter((t) => !u.exclude.includes(t));
     out.push(r.tickers(names.length, `${names.slice(0, 12).join(", ")}${names.length > 12 ? "…" : ""}`));
+  }
+  const pins = bot.always ?? [];
+  if (pins.length) {
+    const items = pins.map((p) => (p.min_weight > 0 ? r.pinLeast(p.ticker, share(p.min_weight, l)) : p.ticker));
+    out.push(r.always(items.length === 1 ? items[0] : items.slice(0, -1).join(", ") + r.and + items[items.length - 1]));
   }
   for (const f of bot.filters) out.push(r.keeps(what(f, l), range(f, l)));
   out.push(r.scores(bot.score.map((s) => r.term(what(s, l), (s.weight ?? 0) > 0, figure("weight", Math.abs(s.weight ?? 0), l)))));

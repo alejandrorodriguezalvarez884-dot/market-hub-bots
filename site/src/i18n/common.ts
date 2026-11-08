@@ -42,6 +42,8 @@ export const common = words(
       resumed: "resumed",
       excluded: (t: string) => `excluded ${t}`,
       included: (t: string) => `included ${t}`,
+      pinned: (t: string) => `always holds ${t}`,
+      unpinned: (t: string) => `no longer always holds ${t}`,
       renamed: (old: string) => `renamed from ${old}`,
     },
     // The drawings.
@@ -91,6 +93,8 @@ export const common = words(
       resumed: "reanudado",
       excluded: (t: string) => `excluye ${t}`,
       included: (t: string) => `vuelve a incluir ${t}`,
+      pinned: (t: string) => `mantiene siempre ${t}`,
+      unpinned: (t: string) => `ya no mantiene siempre ${t}`,
       renamed: (old: string) => `renombrado, antes «${old}»`,
     },
     cashTile: "Liquidez",

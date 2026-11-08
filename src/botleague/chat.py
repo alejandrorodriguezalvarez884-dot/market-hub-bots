@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 from collections import defaultdict, deque
@@ -58,18 +59,37 @@ def _in(lang: str) -> str:
     return f"\n{SPANISH}" if lang == "es" else ""
 
 
+# What both chats know about the companies: themes are lists of tickers, and a member can name the
+# companies the bot must always hold (with the least share each keeps) and those it must never hold.
+COMPANIES = """Companies, themes, always and never:
+- The format has no sectors or industries as fields, but a member can name a theme, an industry or a kind of company in their own words (AI, chips, banks, oil, healthcare, "the big tech", "boring dividend payers"...). Then put the companies of that theme, picked from the list below by what each is known to do, in "universe": {{"tickers": [...]}} (2 to 100), name them in "reply" and say the member can add or take out any. When unsure about a company, leave it out. The rules then choose among those by figures worked out from prices. If the theme has fewer companies than "hold", lower "hold".
+- Companies the member wants the bot to hold no matter what go in "always": [{{"ticker": "NVDA", "min_weight": 0.1}}, ...], at most {pins}, each with the least share of the whole portfolio it keeps (0.1 is 10%; 0 when the member gives none). They are held whatever the filters and the score say, also when the market rule steps into cash. "hold" counts them, so it is at least as many; a "min_weight" is never above "max_weight"; together they add up to at most 1.
+- Companies the member never wants go in "universe.exclude". A company is never in both.
+- Every ticker in "tickers", "always" and "exclude" is from the list below; a company not in it cannot be chosen (say so).
+- Fundamentals, valuations and news are not in the format: say so and offer the closest rule.
+
+The companies a bot can choose among, the {n} largest US companies by market value, largest first (ticker, then name as the SEC lists it):
+{listed}"""
+
+
+def companies_block(companies: list[tuple[str, str]] | None) -> str:
+    if not companies:
+        return ""
+    listed = "; ".join(f"{t} {name}".strip() for t, name in companies)
+    return "\n\n" + COMPANIES.format(pins=engine.ALWAYS_MAX, n=len(companies), listed=listed)
+
+
 def system_prompt(lang: str = "en") -> str:
     return f"""You help a member of Bot League change the rules of their trading bot, which runs on paper (no money, no broker, no orders) in a competition. The bot is a JSON file in the format "markethub-bot/1". This is what the format allows, as JSON:
 
 {json.dumps(engine.spec(), indent=1)}
 
-Fields: "format" ("markethub-bot/1"), "name" (3 to 40 characters), "about" (up to 280), "universe" ({{"largest": N}} or {{"tickers": [...]}}, and "exclude": [...]), "rebalance", "filters" (each a factor with its settings and "min" and/or "max"), "score" (each a factor with its settings and a "weight" from -5 to 5, not 0; below 0 prefers the lowest), "hold", "weighting", "max_weight", and optionally "market" (a factor of the S&P 500 with "min"/"max" and "cash", the share held in cash when the index is outside those bounds).
+Fields: "format" ("markethub-bot/1"), "name" (3 to 40 characters), "about" (up to 280), "universe" ({{"largest": N}} or {{"tickers": [...]}}, and "exclude": [...]), "always" (optional), "rebalance", "filters" (each a factor with its settings and "min" and/or "max"), "score" (each a factor with its settings and a "weight" from -5 to 5, not 0; below 0 prefers the lowest), "hold", "weighting", "max_weight", and optionally "market" (a factor of the S&P 500 with "min"/"max" and "cash", the share held in cash when the index is outside those bounds).
 
 How to answer:
 - The member writes an instruction about their bot. If it can be done with the format, propose the whole new bot in "bot", changing only what the instruction asks, and say in "reply" what changes, in plain words. Keep "name" and "about" unless asked; update "about" if the idea itself changes.
 - If the instruction is unclear, ask one short question and leave "bot" empty.
-- The format has no sectors or industries: it chooses among the largest US companies by figures worked out from prices. If asked for something it cannot express (a sector, fundamentals, news), say so and offer the closest rule, or leave "bot" empty.
-- Pausing the bot and leaving one company out or letting it back in are switches on the page, not rules: point the member to them instead of changing the rules for that.
+- Pausing the bot is a switch on the page, not a rule: point the member to it. The page also has the lists "Always" and "Never" (in Spanish, "Siempre" and "Nunca"), which do what "always" and "universe.exclude" do from the next close without using up the day's change of rules; letting a left-out company back in is done only there. When the member asks for one of those, you may still propose it in "bot", and mention the lists.
 - Never tell the member to buy or sell anything with their own money, never promise returns, and never present a change as a forecast. You describe what a rule does; the member decides.
 - Answer in the member's language, briefly.{_in(lang)}"""
 
@@ -80,18 +100,17 @@ def create_prompt(lang: str = "en") -> str:
 
 {json.dumps(engine.spec(), indent=1)}
 
-Fields: "format" ("markethub-bot/1"), "name" (3 to 40 characters), "about" (up to 280), "universe" ({{"largest": N}} or {{"tickers": [...]}}, and "exclude": [...]), "rebalance", "filters" (each a factor with its settings and "min" and/or "max"), "score" (each a factor with its settings and a "weight" from -5 to 5, not 0; below 0 prefers the lowest), "hold", "weighting", "max_weight", and optionally "market" (a factor of the S&P 500 with "min"/"max" and "cash", the share held in cash when the index is outside those bounds).
+Fields: "format" ("markethub-bot/1"), "name" (3 to 40 characters), "about" (up to 280), "universe" ({{"largest": N}} or {{"tickers": [...]}}, and "exclude": [...]), "always" (optional), "rebalance", "filters" (each a factor with its settings and "min" and/or "max"), "score" (each a factor with its settings and a "weight" from -5 to 5, not 0; below 0 prefers the lowest), "hold", "weighting", "max_weight", and optionally "market" (a factor of the S&P 500 with "min"/"max" and "cash", the share held in cash when the index is outside those bounds).
 
 Valid bots to start from, one per line:
 {examples}
 
 How to go about it:
 - The member may not know what momentum or an RSI is: plain words, short answers, no jargon without saying what it means.
-- Find the idea first. If they have none, offer three or four in a line each (momentum, trend following with a market filter, calm stocks, buying pullbacks in an uptrend, near the highs, a few megacaps rotated) and ask which one sounds like them.
+- Find the idea first. It can be a way of picking (momentum, trend following with a market filter, calm stocks, buying pullbacks in an uptrend, near the highs, a few megacaps rotated), a theme of companies (AI and chips, banks...), companies they want always or never, or several of these at once. If they have none, offer three or four in a line each and ask which one sounds like them.
 - Then ask, one or two questions at a time, what matters to them: how many stocks (concentrated or spread), how often it looks again (each trade costs 0.10%), and whether it should step into cash when the whole market falls. Do not ask what you can choose sensibly yourself.
 - As soon as you know enough, propose the whole bot in "bot", starting from the closest example, and say in "reply" what it does in two or three plain sentences. Give it a "name" and an "about" that say the idea (the board is public: nothing offensive, no promises), and keep the "about" true to the rules when a change makes it wrong (a number of stocks, how often it looks again). From then on, each answer that changes something proposes the whole bot again; one that only answers a question leaves "bot" empty.
 - The page shows the member each proposal in words and what it would hold at the last close, and a button for a backtest. When the member has run one, its figures come with their message: you may describe them (the total and yearly return, the volatility and the worst fall, against the S&P 500), always as a simulation of the past among today's largest companies, which flatters it, and never as what will happen. After a few rounds of changes, warn once that tuning to the past makes a bot good at the past only.
-- The format has no sectors, fundamentals or news: it chooses among the largest US companies by figures worked out from prices. If asked for something it cannot express, say so and offer the closest rule.
 - The member sends the bot in with a button on the page, when they decide; you cannot send it. When they seem happy, tell them that the button is there, that the public board shows the bot with the first name of their account, that its rules stay theirs alone, and that it starts at the next close.
 - Never tell the member to buy or sell anything with their own money, never promise returns, and never present a bot or a backtest as a forecast or a recommendation. You describe what a rule does; the member decides.
 - Answer in the member's language, briefly: at most five short sentences in "reply".{_in(lang)}"""
@@ -259,12 +278,14 @@ class Chat:
             self.ledger.put(doc)
 
     def ask(self, user_id: str, bot: dict | None, message: str, history: list | None = None, mode: str = "change",
-            backtest: dict | None = None, checker: Callable[[object], dict] = engine.check, lang: str = "en") -> dict:
+            backtest: dict | None = None, checker: Callable[[object], dict] = engine.check, lang: str = "en",
+            companies: list[tuple[str, str]] | None = None) -> dict:
         """Claude's reply to the member and, when it proposes one, the bot checked by the code (or the
         problems the code still found in it after Claude had one go at fixing them). ``bot`` is the
         member's bot when changing it, and the draft so far (or None) when creating one. ``checker``
         returns the checked bot or raises Refused; the site's also checks the bot's universe. ``lang`` is
-        the page's: "es" has Claude answer in Spanish, and what this module says is in Spanish too."""
+        the page's: "es" has Claude answer in Spanish, and what this module says is in Spanish too.
+        ``companies`` are those a bot can choose among, (ticker, name): Claude picks a theme's from them."""
         if mode not in MODES:
             raise engine.Refused("Unknown chat.")
         message = " ".join(str(message or "").split())
@@ -284,6 +305,7 @@ class Chat:
             seen = figures(backtest) if bot else None
             content = draft + (f"\n\nThe backtest of this draft I see on the page: {seen}" if seen else "") + f"\n\nI say: {message}"
             system = create_prompt(lang)
+        system += companies_block(companies)
         messages = [*turns, {"role": "user", "content": content}]
         got = self._call(system, messages, lang)
         if got is None or isinstance(got, str):
@@ -396,7 +418,11 @@ class Scripted:
                          "until you let it run again."),
                "sectors": ("The rules have no sectors: the bot chooses by figures worked out from prices. You can leave single "
                            "companies out with the switch below, or choose from a list of tickers in the advanced editor."),
-               "what": "What would you like to change: how many stocks it holds, how calm they are, or how often it looks again?"},
+               "what": "What would you like to change: how many stocks it holds, how calm they are, or how often it looks again?",
+               "theme": ("Here is a first go with AI and chip companies: {names}. It holds the {hold} that rose the most, and you can add "
+                         "or take out any company."),
+               "pins": "Done: {said}. You can also change them in the lists Always and Never.",
+               "always": "it always holds {names}", "never": "it never holds {names}", "least": "{t} (at least {x}%)", "and": " and "},
         "es": {"ask_idea": ("Encantado de construirlo contigo. ¿Cómo quieres que elija las acciones: lo que más ha subido "
                             "(momentum), solo lo que está en tendencia alcista, las más tranquilas o las que acaban de caer dentro de una tendencia alcista?"),
                "first_go": ("Aquí tienes una primera versión: {about} Mira lo que tendría, haz un backtest si quieres "
@@ -415,8 +441,16 @@ class Scripted:
                          "cierre hasta que lo reanudes."),
                "sectors": ("Las reglas no tienen sectores: el bot elige por cifras sacadas de los precios. Puedes dejar fuera "
                            "empresas concretas con el interruptor de abajo, o elegir de una lista de tickers en el editor avanzado."),
-               "what": "¿Qué quieres cambiar: cuántas acciones mantiene, lo tranquilas que son o cada cuánto revisa la cartera?"},
+               "what": "¿Qué quieres cambiar: cuántas acciones mantiene, lo tranquilas que son o cada cuánto revisa la cartera?",
+               "theme": ("Aquí tienes una primera versión con empresas de IA y de chips: {names}. Mantiene las {hold} que más han subido, "
+                         "y puedes añadir o quitar cualquier empresa."),
+               "pins": "Hecho: {said}. También puedes cambiarlas en las listas Siempre y Nunca.",
+               "always": "mantiene siempre {names}", "never": "nunca tiene {names}", "least": "{t} (al menos el {x} %)", "and": " y "},
     }
+    # A theme the demo knows, and the words that name it.
+    THEME = ("semi", "chip", " ia", "ia ", " ai", "ai ", "inteligencia artificial", "artificial intelligence")
+    AI_CHIPS = ("NVDA", "AVGO", "AMD", "QCOM", "TXN", "AMAT", "ANET", "MSFT", "GOOGL", "META", "ORCL", "PLTR")
+    NOT_TICKERS = {"A", "C", "T", "DE", "MA", "AL", "Y", "O"}  # words of a message, not companies
     REBALANCE = {"monthly": ("monthly", "cada mes", "mensual"), "weekly": ("weekly", "cada semana", "semanal"),
                  "daily": ("daily", "cada día", "cada cierre", "diari")}
 
@@ -424,6 +458,17 @@ class Scripted:
     def build(cls, draft: dict | None, said: str, tested: bool, lang: str = "en") -> tuple[str, dict | None]:
         """Creating a bot: an idea picks the closest example; then it changes as `answer` does."""
         w = cls.WORDS[lang]
+        if draft is None and any(k in f" {said} " for k in cls.THEME):
+            from .market import SAMPLE_TICKERS
+
+            bot = next(b for b in engine.examples() if b["name"] == "Twelve-month momentum")
+            names = [t for t in cls.AI_CHIPS if t in SAMPLE_TICKERS]
+            bot = {**bot, "name": "IA y semis" if lang == "es" else "AI and chips", "hold": 6, "max_weight": 1, "universe": {"tickers": names},
+                   "about": ("Empresas de IA y de chips: mantiene las seis que más han subido en el último año." if lang == "es"
+                             else "AI and chip companies: holds the six that rose the most over the last year.")}
+            pinned = cls.pins(bot, said, lang)
+            first = w["theme"].format(names=", ".join(names), hold=6)
+            return (first + " " + pinned[0] if pinned else first), (pinned[1] if pinned else bot)
         if draft is None:
             name = next((n for k, n in cls.IDEAS if k in said), None)
             if not name:
@@ -439,8 +484,51 @@ class Scripted:
         return cls.answer(draft, said, lang)
 
     @classmethod
+    def pins(cls, bot: dict, said: str, lang: str) -> tuple[str, dict] | None:
+        """"Always NVDA at 15%", "never TSLA": the companies a message names after those words."""
+        from .market import SAMPLE_TICKERS
+
+        w = cls.WORDS[lang]
+        always: dict[str, float] = {}
+        never: list[str] = []
+        for part in re.split(r"(?=\b(?:always|siempre|never|nunca)\b)", said):
+            kind = "always" if part.startswith(("always", "siempre")) else "never" if part.startswith(("never", "nunca")) else None
+            for m in re.finditer(r"\b([a-z]{1,5})\b(?:\s+(?:al|el|a|at|con|with|en|por)?\s*(\d{1,2})\s*%)?", part.partition(" ")[2]) if kind else []:
+                t = m.group(1).upper()
+                if t in SAMPLE_TICKERS and t not in cls.NOT_TICKERS:
+                    if kind == "always":
+                        always[t] = int(m.group(2) or 0) / 100
+                    else:
+                        never.append(t)
+        if not always and not never:
+            return None
+        new = json.loads(json.dumps(bot))
+        pins = {p["ticker"]: p["min_weight"] for p in new.get("always") or [] if p["ticker"] not in never}
+        pins.update(always)
+        new["universe"]["exclude"] = [t for t in dict.fromkeys([*new["universe"].get("exclude", []), *never]) if t not in pins]
+        if pins:
+            new["always"] = [{"ticker": t, "min_weight": x} for t, x in pins.items()]
+            new["hold"] = max(new["hold"], len(pins))
+            new["max_weight"] = max(new.get("max_weight", 1), *pins.values())
+        else:
+            new.pop("always", None)
+
+        def listed(items):
+            return items[0] if len(items) == 1 else ", ".join(items[:-1]) + w["and"] + items[-1]
+
+        parts = []
+        if always:
+            parts.append(w["always"].format(names=listed([w["least"].format(t=t, x=round(x * 100)) if x else t for t, x in always.items()])))
+        if never:
+            parts.append(w["never"].format(names=listed(never)))
+        return w["pins"].format(said=w["and"].join(parts)), new
+
+    @classmethod
     def answer(cls, bot: dict, said: str, lang: str = "en") -> tuple[str, dict | None]:
         w = cls.WORDS[lang]
+        pinned = cls.pins(bot, said, lang)
+        if pinned:
+            return pinned
         new = json.loads(json.dumps(bot))
         if any(k in said for k in ("defensive", "safer", "calm", "risk", "defensiv", "segur", "tranquil", "riesgo")):
             if not any(s["factor"] == "volatility" for s in new["score"]):

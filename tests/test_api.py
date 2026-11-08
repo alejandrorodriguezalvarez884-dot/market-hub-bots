@@ -385,3 +385,31 @@ def test_the_backtest_claude_sees_is_only_figures():
     assert said == ("Over 3 years: the bot total +42.0%, yearly +12.4%, volatility +20.0%, worst fall -31.0%; "
                     "the S&P 500 total n/a, yearly n/a, volatility n/a, worst fall -25.0%. It traded 250% of the portfolio a year.")
     assert figures("nope") is None
+
+
+def test_the_chat_knows_the_companies_a_theme_is_picked_from_and_what_to_hold_always():
+    theme = {**BOT, "name": "AI and chips", "about": "Chip makers and AI.", "hold": 5,
+             "universe": {"tickers": ["NVDA", "AVGO", "AMD", "QCOM", "TXN", "AMAT", "MSFT", "GOOGL"], "exclude": ["TXN"]},
+             "always": [{"ticker": "NVDA", "min_weight": 0.15}]}
+    claude = Claude({"reply": "Here are eight AI and chip companies, with NVIDIA always at 15% or more.", "bot": json.dumps(theme)})
+    app = make(chat=Chat(MemoryLedger(), client=lambda: claude, enabled=True, per_member=5, daily_max=None))
+    owner = client(app, "u1")
+    got = owner.post("/api/bots/draft/chat", json={"message": "AI and semis, always NVDA at 15%, never TXN"}).json()
+    assert got["proposal"]["always"] == [{"ticker": "NVDA", "min_weight": 0.15}] and got["proposal"]["universe"]["exclude"] == ["TXN"]
+    assert "Always holds NVDA (at least 15%), whatever its other rules say." in got["rules"]
+    system = claude.calls[0]["system"]
+    assert f"the {len(SAMPLE_TICKERS)} largest US companies" in system and "NVDA; MSFT; AAPL" in system and '"always"' in system
+
+
+def test_always_and_never_are_switches_on_the_page():
+    app = make()
+    send(app, "u1")
+    owner = client(app, "u1")
+    got = owner.post("/api/bots/mine/switch", json={"action": "pin", "ticker": "amd", "min_weight": 0.1}).json()
+    assert (got["pending"] or got)["always"] == [{"ticker": "AMD", "min_weight": 0.1}]  # a bot not started yet just changes
+    assert owner.post("/api/bots/mine/switch", json={"action": "pin", "ticker": "AMD", "min_weight": 2}).status_code == 422
+    spanish = owner.post("/api/bots/mine/switch", json={"action": "pin", "ticker": "ZZZ"}, headers={"x-mh-lang": "es"})
+    assert spanish.status_code == 400 and "No están entre" in spanish.json()["detail"]
+    got = owner.post("/api/bots/mine/switch", json={"action": "exclude", "ticker": "AMD"}).json()
+    mine = got["pending"] or got
+    assert mine["always"] == [] and mine["exclude"] == ["AMD"]

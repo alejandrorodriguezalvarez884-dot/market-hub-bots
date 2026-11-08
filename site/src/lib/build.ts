@@ -10,6 +10,7 @@ import { day, pct, plural, signedPct, tone } from "./format";
 import { lineChart, type Series } from "./chart";
 import { rulesDiff, segmented } from "./controls";
 import { closeOf } from "./change";
+import { companies, type CompanyAction } from "./companies";
 import { editor } from "./editor";
 import { treemap } from "./mybot";
 import { robotSvg } from "./robot";
@@ -18,6 +19,7 @@ import type { Backtest, Bot, ChatStatus, DraftAnswer, MyBot, Preview, Spec } fro
 import { diff } from "./words";
 import { lang } from "../i18n";
 import { build as words } from "../i18n/build";
+import { companies as companyWords } from "../i18n/companies";
 
 export type BuildContext = {
   name: string; // the member's first name, as the board shows it
@@ -366,6 +368,24 @@ export function builder(ctx: BuildContext): HTMLElement {
       sendNote ? h("p", "mt-2 text-[12.5px] text-warn", sendNote) : null);
   }
 
+  // Always and never, on the draft: each press changes the draft at once, checked by the service.
+  async function pick(action: CompanyAction, t: string, min?: number) {
+    if (!s.draft) return;
+    const bot: Bot = JSON.parse(JSON.stringify(s.draft));
+    // A company is in one list at most: always takes it out of never, and never out of always.
+    const pins = action === "include" ? (bot.always ?? []) : (bot.always ?? []).filter((p) => p.ticker !== t);
+    const never = action === "unpin" ? bot.universe.exclude : bot.universe.exclude.filter((x) => x !== t);
+    if (action === "pin") pins.push({ ticker: t, min_weight: min ?? 0 });
+    if (action === "exclude") never.push(t);
+    bot.universe.exclude = never;
+    if (pins.length) bot.always = pins;
+    else delete bot.always;
+    const seen = await api<{ bot: Bot; rules: string[]; holds: Preview }>("/api/bots/preview", { method: "POST", body: { bot } });
+    adopt(seen.bot, seen.rules, seen.holds, "hand");
+    save();
+    draw();
+  }
+
   function draftSide(): HTMLElement {
     const card = h("aside", "draft frame");
     const face = h("span", `robot draft-face ${s.draft ? (s.test ? "is-tested" : "is-drafted") : ""}`);
@@ -387,6 +407,8 @@ export function builder(ctx: BuildContext): HTMLElement {
       add(h("div", "mt-5"), h("p", "label pb-2", s.before.length ? w.rulesChanged : w.rulesInWords),
         s.before.length ? rulesDiff(diff(s.before, s.rules), true)
           : add(h("ul", "space-y-1.5 text-[13.5px] text-ink"), ...s.rules.map((r) => add(h("li", "flex gap-2"), h("span", "text-muted", "›"), h("span", "", r))))),
+      add(h("div", "mt-5"), companies({ always: d.always ?? [], never: d.universe.exclude, picks: Object.keys(s.holds?.weights ?? {}),
+        act: pick, foot: companyWords[lang()].draftNote })),
       s.holds ? add(h("div", "mt-6"), add(h("div", "flex items-baseline justify-between gap-2 pb-2"), h("p", "label", w.wouldHold),
         h("span", "text-[12px] text-faint", w.heldAt(plural(held, w.stock, w.stocks), day(s.holds.as_of)))),
         treemap(s.holds.weights, null, { preview: true, small: true }))

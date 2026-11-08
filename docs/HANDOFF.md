@@ -18,6 +18,31 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-08: **Temas, "siempre" y "nunca"** (sin desplegar). El usuario: pidió un bot "de IA y semis" y el chat no le
+> entendió; y "quiero que se permita de forma clara e intuitiva incluir empresas que tiene que coger sí o sí y otras que
+> no tiene que incluir nunca", "a las que tiene que incluir sí o sí, fijarle también el peso mínimo".
+> - **Por qué no entendía**: las instrucciones del chat decían que el formato "no tiene sectores" y que lo rechazara,
+>   aunque `universe.tickers` sí permite una lista elegida. Ahora el chat recibe la lista de las 500 mayores **con su
+>   nombre** (`Directory.names`, del mismo fichero de la SEC, que ya traía el nombre) y monta un tema como lista de
+>   tickers, diciendo cuáles ha elegido. Unos 4.000 tokens más por mensaje (Haiku 5.5: ~0,0004 $ por mensaje).
+> - **Campo nuevo `always`** en `markethub-bot/1` (opcional, solo se escribe si hay alguna, así que los bots de antes no
+>   cambian): hasta 10 `{"ticker", "min_weight"}`. Se mantienen en cada cierre digan lo que digan filtros y puntuación,
+>   cuentan en `hold`, y su `min_weight` es del total de la cartera, también cuando la regla de mercado pasa a liquidez
+>   (lo que falta sale primero de la liquidez y luego de las demás, en proporción: `_floor`). Con la ponderación `score`
+>   no tienen puesto y reciben el peso del medio. Comprobaciones: entre las 500, no en `exclude`, `min_weight` ≤
+>   `max_weight`, suma ≤ 1, no más que `hold`. Cambios: `pinned NVDA` / `unpinned NVDA`.
+> - **Interruptores `pin` y `unpin`** (`/api/bots/mine/switch` con `min_weight`), como `exclude`/`include`: desde el
+>   próximo cierre y sin gastar el cambio del día. Una empresa está en una lista como mucho: "siempre" la saca de "nunca"
+>   y al revés.
+> - **Web**: el bloque **"Siempre y nunca"** (`lib/companies.ts`) en el borrador (cambia el borrador al momento) y en
+>   "Cambia tu bot" (sustituye a "Excluidas"), con las que tiene para tocar, el peso mínimo opcional y deshacer. Las
+>   reglas en palabras lo dicen ("Mantiene siempre NVDA (al menos el 15 %)…"); Reglas y `SPEC.md` del kit, también.
+> - **Arreglado de paso**: en el cierre en que entraba un cambio pendiente no se leían los cierres de las empresas nuevas
+>   que traía (afectaba también a un `include` o a cambiar de 20 a 100 empresas); ahora el refresh los lee.
+> - El motor es el del portal: el mismo cambio y los mismos tests en `market-hub-landing` (`bots.py`, `test_bots.py`), y
+>   `tests/fixtures/portal_docs.json` rehecho con su código. Probado en local con la demo (chat de guion: "IA y semis,
+>   siempre NVDA al 15 % y nunca TSLA"); el chat de verdad (Haiku) no se ha probado.
+
 > 2026-11-08: **Desplegado** `bot-league-00013-9wq` desde un export limpio de af24615 ("Que se vea que es un juego"), con el
 > OK del usuario. Configuración igual antes y después (variables, secretos, recursos, escalado y tiempo de espera; `.env`
 > rehecho solo en el export con los valores del servicio, `bash scripts/deploy-cloudrun.sh`). Comprobado: portada,

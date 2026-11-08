@@ -422,12 +422,12 @@
   "2025-08-14",
   "2025-08-15"
  ],
- "key": "mhb_cwQt55Mw-ac1fB1h5UIqrScH3bHVPDyQT1Z_Fy1JI9A",
+ "key": "mhb_UQCaLrhRUL1EHcVKACZof1PvujlH05zNB5eL5eDWHoE",
  "bots": {
   "portal-user-1": {
    "user_id": "portal-user-1",
    "handle": "Ana",
-   "public_id": "d62c00ecaf",
+   "public_id": "5523f8e7ae",
    "spec": {
     "format": "markethub-bot/1",
     "name": "Trend",
@@ -550,8 +550,8 @@
   }
  },
  "keys": {
-  "5e26c84e4bc6f3e63e85c4d5ff9e61d37b275fa9bbcdcb8d35ed32eda8e0b1f5": {
-   "hash": "5e26c84e4bc6f3e63e85c4d5ff9e61d37b275fa9bbcdcb8d35ed32eda8e0b1f5",
+  "d9b119bd9566d8ea4c21cd00533340fdabcd8c81b05f2a112a09fc4b07e1398f": {
+   "hash": "d9b119bd9566d8ea4c21cd00533340fdabcd8c81b05f2a112a09fc4b07e1398f",
    "user_id": "portal-user-1",
    "created_utc": "2025-06-23T15:00:00+00:00",
    "used_utc": null,
@@ -1578,7 +1578,7 @@
  },
  "mine": {
   "handle": "Ana",
-  "id": "d62c00ecaf",
+  "id": "5523f8e7ae",
   "name": "Trend",
   "about": "Rides what is over its average.",
   "submitted_utc": "2025-06-23T15:00:00+00:00",
@@ -1685,6 +1685,7 @@
   ],
   "paused": false,
   "exclude": [],
+  "always": [],
   "preview": null,
   "rules_changed_utc": null,
   "log": [
@@ -1771,7 +1772,7 @@
  },
  "overview_rows": [
   {
-   "id": "d62c00ecaf",
+   "id": "5523f8e7ae",
    "handle": "Ana",
    "stand_in": false,
    "name": "Trend",
