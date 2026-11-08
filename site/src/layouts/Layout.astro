@@ -105,8 +105,8 @@ const [aboutBefore, aboutAfter] = t.about.split("{hub}");
 			</div>
 			<nav class="border-t border-line sm:hidden" aria-label={t.main}>
 				<ul class="flex gap-5 overflow-x-auto px-5 text-sm [scrollbar-width:none]">
-					{nav.map((n) => <li><a class="nav-link -mb-px block py-2" href={n.href} aria-current={n.key === page ? "page" : undefined}>{n.label}</a></li>)}
-					<li><a class="nav-link -mb-px block py-2" href={hub("/", lang)}>The Market Hub</a></li>
+					{nav.map((n) => <li><a class="nav-link -mb-px block whitespace-nowrap py-2" href={n.href} aria-current={n.key === page ? "page" : undefined}>{n.label}</a></li>)}
+					<li><a class="nav-link -mb-px block whitespace-nowrap py-2" href={hub("/", lang)}>The Market Hub</a></li>
 				</ul>
 			</nav>
 		</header>

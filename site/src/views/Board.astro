@@ -1,6 +1,7 @@
 ---
-// The whole board: every bot over the day, week, month, year or since it started, ranked among
-// those that have run that long, with the index as the line of reference.
+// The whole leaderboard: every bot over the day, week, month, year or since it started, ranked
+// among those that have run that long, with the index as the line of reference, and the reader's
+// own place when they play.
 import Layout from "../layouts/Layout.astro";
 import type { Lang } from "../i18n";
 import { board as words } from "../i18n/board";
@@ -35,7 +36,7 @@ const t = words[lang];
 	import { sparkline } from "../lib/chart";
 	import { indexFace, robot } from "../lib/robot";
 	import { add, h } from "../lib/dom";
-	import { day, pct, plural, signedPct, tone } from "../lib/format";
+	import { day, ordinal, pct, plural, signedPct, tone } from "../lib/format";
 	import { api, botUrl, link, localVisitor } from "../lib/site";
 	import { PERIODS, digits, type Board, type Me, type Period } from "../lib/types";
 	import { lang } from "../i18n";
@@ -95,6 +96,26 @@ const t = words[lang];
 		return add(h("div", "podium"), place(top[1]), place(top[0]), place(top[2]));
 	}
 
+	// The reader's own place, when they play: their bot, its place and its return over the period.
+	function place(b: Board): HTMLElement | null {
+		const r = b.rows.find((x) => x.you);
+		if (!r || !b.visible) return null;
+		const rank = r.ranks[period];
+		const of = b.rows.filter((x) => x.ranks[period]).length;
+		const v = r.returns[period];
+		const a = add(h("a", "frame mb-6 flex items-center gap-4 px-4 py-3.5 hover:border-muted sm:px-5"),
+			robot(r.slug, 44),
+			add(h("div", "min-w-0 flex-1"),
+				h("p", "label", `${t.yourPlace} · ${r.name}`),
+				add(h("p", "mt-0.5 flex flex-wrap items-baseline gap-x-2"),
+					h("span", "num text-[22px] font-semibold text-ink-strong", rank ? t.placeOf(ordinal(rank), of) : t.notPlaced),
+					h("span", "text-[13px] text-muted", t.over[period]),
+					v == null ? null : h("span", `num text-[13px] font-semibold ${tone(v)}`, signedPct(v, digits(period))))),
+			h("span", "hidden text-[13px] text-muted sm:inline", t.toYourBot));
+		a.href = link("/me/");
+		return a;
+	}
+
 	function draw() {
 		if (!board) return;
 		const b = board;
@@ -117,7 +138,7 @@ const t = words[lang];
 			add(h("div", "min-w-0"), h("p", "text-[16px] font-medium text-ink-strong", t.joinTitle),
 				h("p", "mt-1 text-[13.5px] text-muted", t.joinBody)),
 			Object.assign(h("a", "btn btn-signal", t.build), { href: link("/me/") }));
-		root.replaceChildren(...[b.visible ? podium(ordered(b, period)) : null, list, join].filter((x): x is HTMLElement => !!x));
+		root.replaceChildren(...[b.visible ? podium(ordered(b, period)) : null, place(b), list, join].filter((x): x is HTMLElement => !!x));
 	}
 
 	async function load() {

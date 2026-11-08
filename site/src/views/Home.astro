@@ -1,7 +1,7 @@
 ---
-// The landing. First, and alone on the first screen, the way in: one big button to the chat on
-// "Your bot" that builds a bot with Claude. Below it, lighter: the board live, how a bot is built in
-// three steps, the rules and the questions people ask. Its words are in i18n/home.ts.
+// The landing. First, and alone on the first screen: that this is a game, and the way in, one big
+// button to the chat on "Your bot" that builds a bot with Claude. Below it, lighter: the leaderboard
+// live, how to play in three steps, the rules and a few questions. Its words are in i18n/home.ts.
 import Layout from "../layouts/Layout.astro";
 import { link } from "../lib/site";
 import type { Lang } from "../i18n";
@@ -13,28 +13,24 @@ interface Props {
 const { lang } = Astro.props;
 const t = home[lang];
 const L = (path: string) => link(path, lang);
-
-// A sentence with a {slot} in it, as the text before and after the slot.
-const around = (text: string, slot: string) => text.split(`{${slot}}`) as [string, string];
-const [step1a, step1b] = around(t.step1Body, "yourBot");
 ---
 
 <Layout title={t.title} description={t.description} page="home" lang={lang}>
-	<!-- The first screen: the promise and the one button, to the chat that builds the bot. -->
+	<!-- The first screen: the game in a line and the one button, to the chat that builds the bot. -->
 	<section class="hero">
 		<div class="wrap flex flex-col items-center pb-14 pt-12 text-center sm:pb-20 sm:pt-20">
 			<p class="kicker">{t.kicker}</p>
-			<h1 class="display mx-auto mt-4">{t.h1} <em>{t.h1Em}</em> {t.h1End}</h1>
+			<h1 class="display mx-auto mt-4 !max-w-none"><span class="block">{t.h1}</span> <em class="block">{t.h1Em}</em> <span class="block">{t.h1End}</span></h1>
 			<p class="mx-auto mt-5 max-w-[34rem] text-[16px] leading-relaxed text-ink sm:text-[17px]">{t.lede}</p>
 			<a class="btn btn-signal btn-hero mt-8" href={L("/me/")} data-cta>
 				<span class="build-mark" aria-hidden="true">✳</span><span>{t.cta}</span>
 			</a>
-			<p class="mt-4 text-[12.5px] text-muted">{t.small}</p>
+			<ul class="badges mt-5">{t.badges.map((b) => <li>{b}</li>)}</ul>
 			<a class="mt-6 text-[13.5px] text-muted hover:text-ink-strong" href="#board">{t.seeBoard}</a>
 		</div>
 	</section>
 
-	<!-- The board, live, lighter. -->
+	<!-- The leaderboard, live, lighter. -->
 	<section id="board" class="wrap scroll-mt-20">
 		<div class="mx-auto max-w-3xl">
 			<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -54,33 +50,21 @@ const [step1a, step1b] = around(t.step1Body, "yourBot");
 		</div>
 	</section>
 
-	<!-- Three steps, with the conversation beside them. -->
+	<!-- How to play: three steps, with the conversation beside them. -->
 	<section id="how" class="wrap scroll-mt-20 pt-24">
 		<p class="kicker chapter">{t.howKicker}</p>
 		<h2 class="h2 mt-3 max-w-2xl">{t.howTitle}</h2>
 		<div class="mt-10 grid gap-10 lg:grid-cols-[1fr_1.15fr]">
 			<ol class="space-y-8">
-				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
-					<span class="step-n">1</span>
-					<div>
-						<h3 class="text-[17px] font-semibold text-ink-strong">{t.step1}</h3>
-						<p class="mt-1 text-[14px] text-muted">{step1a}<span class="text-ink">{t.yourBot}</span>{step1b}</p>
-					</div>
-				</li>
-				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
-					<span class="step-n">2</span>
-					<div>
-						<h3 class="text-[17px] font-semibold text-ink-strong">{t.step2}</h3>
-						<p class="mt-1 text-[14px] text-muted">{t.step2Body}</p>
-					</div>
-				</li>
-				<li class="grid grid-cols-[2.5rem_1fr] gap-3">
-					<span class="step-n">3</span>
-					<div>
-						<h3 class="text-[17px] font-semibold text-ink-strong">{t.step3}</h3>
-						<p class="mt-1 text-[14px] text-muted">{t.step3Body}</p>
-					</div>
-				</li>
+				{t.steps.map(([title, body], i) => (
+					<li class="grid grid-cols-[2.5rem_1fr] gap-3">
+						<span class="step-n">{i + 1}</span>
+						<div>
+							<h3 class="text-[17px] font-semibold text-ink-strong">{title}</h3>
+							<p class="mt-1 text-[14px] text-muted">{body}</p>
+						</div>
+					</li>
+				))}
 			</ol>
 			<div class="frame overflow-hidden" aria-label={t.mockLabel}>
 				<div class="frame-head">

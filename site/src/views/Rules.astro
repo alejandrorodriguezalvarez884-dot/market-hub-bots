@@ -1,6 +1,6 @@
 ---
-// The rules of the competition and the format of a bot, for members and for the curious. The
-// figures a bot can use come from the service (/api/bot/spec), so this page and the checks agree.
+// The rules of the game, and the format of a bot folded away for the curious. The figures a bot
+// can use come from the service (/api/bot/spec), so this page and the checks agree.
 import Layout from "../layouts/Layout.astro";
 import type { Lang } from "../i18n";
 import { rules as words } from "../i18n/rules";
@@ -26,9 +26,12 @@ const t = words[lang];
 		</div>
 	</section>
 
-	<section class="wrap pt-24">
-		<p class="kicker">{t.formatKicker}</p>
-		<h2 class="h2 mt-3">{t.formatTitle}</h2>
+	<details class="wrap group/fmt pt-20">
+		<summary class="cursor-pointer list-none">
+			<p class="kicker">{t.formatKicker}</p>
+			<h2 class="h2 mt-3">{t.formatTitle}</h2>
+			<p class="mt-3 text-[14px] text-muted hover:text-ink-strong group-open/fmt:hidden">{t.formatOpen}</p>
+		</summary>
 		<div class="mt-8 grid gap-10 lg:grid-cols-[1fr_1.2fr]">
 			<div class="space-y-5 text-[14px] text-muted">
 				{t.format.map((p) => <p set:html={p} />)}
@@ -38,7 +41,7 @@ const t = words[lang];
 				<div id="factors" class="divide-y divide-line"><div class="space-y-2 p-4"><div class="skeleton h-8"></div><div class="skeleton h-8"></div><div class="skeleton h-8"></div></div></div>
 			</div>
 		</div>
-	</section>
+	</details>
 </Layout>
 
 <script>

@@ -1,6 +1,6 @@
 # Bot League · Handoff
 
-Última actualización: 2026-11-04.
+Última actualización: 2026-11-08.
 
 ## Qué se pidió
 
@@ -17,6 +17,26 @@ solo desde el envío (el backtest es privado). Por defecto (no las pidió él): 
 reglas privadas.
 
 ## Dónde estamos
+
+> 2026-11-08: **Que se vea que es un juego, y más simple** (sin desplegar). El usuario: "quiero que quede más claro que
+> es un juego. Además quiero simplificar todo. Que la funcionalidad sea la misma, pero que sea más intuitivo". Solo
+> cambian textos y presentación; la API, el motor y lo que se puede hacer son iguales.
+> - **Portada**: "A free game by The Market Hub" / "Un juego gratis de The Market Hub"; el titular en tres líneas,
+>   "Build a bot. Let it play. Climb the board." / "Crea un bot. Déjalo jugar. Sube en la clasificación."; bajo el botón,
+>   tres insignias (Free · No real money · No code). "How to play" / "Cómo se juega" en tres pasos (crear, juega en cada
+>   cierre, sube en la clasificación) con la conversación de ejemplo. Las preguntas pasan de seis a tres: fuera las que
+>   repetían las reglas (dinero, coste, copiar, cómo se clasifica) y entra "¿Puedo cambiar mi bot cuando ya juega?".
+> - **Cabecera**: Leaderboard · How to play · Rules (Clasificación · Cómo se juega · Reglas); en el móvil, sin partir líneas.
+> - **Clasificación**: "Who's ahead" / "Quién va delante", y a quien juega, una tarjeta **"Your place" / "Tu puesto"** bajo el
+>   podio: su robot, su puesto en el periodo elegido entre los bots con puesto en él ("2.º de 6 en el mes") y su
+>   rentabilidad; lleva a "Tu bot". La columna "Running" pasa a "Playing for" / "En juego".
+> - **Tu bot, ficha y chat**: "Playing · …" / "En juego · …", "you play as Local" / "juegas como Local", "Sign in to play" /
+>   "Entra para jugar"; el chat de crear se titula "Chat with Claude" / "Habla con Claude" (antes repetía "Build").
+> - **Reglas**: "Rules of the game" / "Reglas del juego", "One bot per player"; el formato campo a campo y las siete cifras,
+>   plegados bajo "For the curious" / "Para curiosos".
+> - Glosario de [i18n.md](i18n.md) con juego, jugar, tu puesto, Cómo se juega y Reglas del juego.
+> - Probado: `make check` (74 tests, `astro check` sin avisos) y en local con la demo, en los dos idiomas, de escritorio y a
+>   375 px sin scroll lateral (el botón de la portada acaba a 546 px en español). Sin probar con datos de producción.
 
 > 2026-11-04: **Desplegado** `bot-league-00012-c2f` desde un export limpio de 50bb963 ("Su cartera, cierre a cierre"), con el
 > OK del usuario y la configuración igual antes y después (mismo `.env` rehecho del servicio, `bash scripts/deploy-cloudrun.sh`).
