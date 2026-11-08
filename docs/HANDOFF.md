@@ -18,6 +18,11 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-08: **Desplegado** `bot-league-00013-9wq` desde un export limpio de af24615 ("Que se vea que es un juego"), con el
+> OK del usuario. Configuración igual antes y después (variables, secretos, recursos, escalado y tiempo de espera; `.env`
+> rehecho solo en el export con los valores del servicio, `bash scripts/deploy-cloudrun.sh`). Comprobado: portada,
+> clasificación, reglas y "Tu bot" en los dos idiomas, salud y `/api/board` en 200, con los textos nuevos en producción.
+
 > 2026-11-08: **Que se vea que es un juego, y más simple** (sin desplegar). El usuario: "quiero que quede más claro que
 > es un juego. Además quiero simplificar todo. Que la funcionalidad sea la misma, pero que sea más intuitivo". Solo
 > cambian textos y presentación; la API, el motor y lo que se puede hacer son iguales.
