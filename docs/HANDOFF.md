@@ -18,6 +18,13 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-08: **Desplegados** `bot-league-00014-fvr` (c0deabc) y el portal `market-hub-00072-hc4` (56a10ee, su copia del
+> motor), con el OK del usuario y a la vez. Desde exports limpios, con el `.env` rehecho solo en cada export con los
+> valores del servicio (en el portal, `SESSION_SECRET` y `FMP_API_KEY` leídos de Secret Manager y comprobados iguales,
+> y `ANTHROPIC_SECRET=ANTHROPIC_API_KEY`), borrados después. Configuración igual antes y después en los dos; la clave de
+> sesión sigue en su versión 1. Comprobado: las páginas de los dos en los dos idiomas y `/api/health` en 200, Reglas
+> con `always`, y "Siempre y nunca" en el código de "Tu bot". El chat de verdad no se ha probado con el tema.
+
 > 2026-11-08: **Temas, "siempre" y "nunca"** (sin desplegar). El usuario: pidió un bot "de IA y semis" y el chat no le
 > entendió; y "quiero que se permita de forma clara e intuitiva incluir empresas que tiene que coger sí o sí y otras que
 > no tiene que incluir nunca", "a las que tiene que incluir sí o sí, fijarle también el peso mínimo".
