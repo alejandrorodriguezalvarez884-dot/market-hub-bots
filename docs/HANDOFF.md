@@ -18,7 +18,13 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-11-09: **La app de iPhone de Bot League** (fusionado en `main` con el OK del usuario, sin desplegar). El usuario: "abrir una
+> 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
+> del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
+> después (variables, secretos, recursos y tiempo de espera). Comprobado: portada, `/es/`, clasificación, "Tu bot", reglas,
+> salud y `/api/board` en 200; con un token falso, `/api/me` da nadie, `/api/bots` 401 y una escritura sin `Origin` 403.
+> **Sin probar con un token de verdad en producción** (haría falta entrar con una cuenta real desde la app); en local, sí.
+
+> 2026-11-09: **La app de iPhone de Bot League** (fusionado en `main` con el OK del usuario; desplegado, entrada de arriba). El usuario: "abrir una
 > rama para hacer la app de móvil de iPhone de bot league"; eligió una app aparte, en un repo nuevo (`market-hub-bots-mobile`,
 > misma rama). Aquí solo cambia el login: **Bot League lee el token de la app del portal** (`hubauth.py`), el que el portal
 > da en `/api/app/auth/...` (`tokens.py`: el mismo secreto, la sal `markethub.app-token`, un mes). Una petición con
