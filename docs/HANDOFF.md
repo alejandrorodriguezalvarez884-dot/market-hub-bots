@@ -30,6 +30,37 @@ reglas privadas.
 > antes) y nada en el servidor. "Tu bot" sin sesión ya explica el juego ("Entra para jugar", gratis y en papel) y no lleva
 > la tarjeta. Probado con `make demo` (en el puerto 8133): en español y en inglés, en escritorio y en móvil, cerrar y
 > recargar, la portada y "Tu puesto". `make check` en verde.
+> 2026-11-09: **Premios semanales** (rama `bl-weekly-winners`, aquí y en `market-hub-bots-mobile`; fusionada en `main`
+> el mismo día con el OK del usuario; **sin desplegar**). El usuario: "añadir como premios semanales, cada semana un ganador y que haya una clasificación de eso
+> también". Un trofeo, solo reconocimiento: nada de dinero. El motor no cambia (todo en `league.py`), así que el portal tampoco.
+> - **Cómo se calcula** (`weeks()`, `winner()`): una semana son los cierres de lunes a viernes (Nueva York). Juega una
+>   semana entera el bot cuyo historial empezó en una semana anterior y que llegó al último cierre de esa semana; su
+>   rentabilidad es su valor en ese cierre entre su valor en el último cierre de antes de la semana (la misma curva del
+>   tablero). Gana la mejor; **empate** (a la sexta cifra de la curva, que es como se guarda) = la comparten. Cambiar
+>   reglas o pausar a mitad de semana **no** saca a un bot (su historial sigue, como en el tablero); uno enviado durante
+>   la semana juega desde la siguiente. Una semana está **cerrada** cuando ha cerrado su viernes o un cierre posterior
+>   (si el viernes es festivo, se sabe el lunes; el motor no conoce festivos).
+> - **Se guarda sin nada programado**: después de cada refresh, `League.record()` escribe en `bot_meta/board` (`weeks`)
+>   el ganador de cada semana cerrada que aún no esté, una sola vez, así que **el premio no cambia si su bot se retira o se
+>   sustituye después**. Solo se guarda el `public_id` aleatorio y la fecha del primer cierre del bot (y las cifras de la
+>   semana), **nunca un nombre**: el nombre se lee del bot que hay, y un ganador que ya no juega (retirado, sustituido o
+>   cuenta borrada) sale como "Un bot que ya no juega". Así no se guarda nada nuevo de nadie. Entre el cierre del viernes
+>   y el refresh siguiente, la semana se calcula igual al leer el tablero. El primer refresh tras desplegar guardará todas
+>   las semanas pasadas con los bots que hay (los retirados antes no cuentan).
+> - **API**: `/api/board` lleva `weekly` (`current`: la semana en juego con los 3 primeros, el del lector si juega, y el
+>   S&P 500 en los mismos cierres; `winners`, la más reciente primero, con el S&P 500 y cuántos jugaron; `ranking`: más
+>   semanas ganadas, luego la más reciente; los retirados no entran) y cada línea `wins`; `/api/board/bot/{slug}` lleva
+>   `wins` (las semanas que ganó). Nada cambia en `/api/bots` ni en lo que lee el portal.
+> - **Web**: en la clasificación, la sección "Premios semanales" (`lib/weekly.ts`, textos en `i18n/weekly.ts`) con
+>   "Esta semana", "Más semanas ganadas" y "Ganadores", un enlace arriba y un trofeo con el número en cada línea (también
+>   en la portada); en la página de un bot, la insignia y "Semanas ganadas"; en Reglas, "Un trofeo cada semana".
+>   Glosario de [i18n.md](i18n.md) con premios, ganador y trofeo.
+> - **Tests**: `tests/test_weekly.py` (semana entera, empate, semana cerrada y Viernes Santo, lo que ya está guardado, y
+>   por la API: guardar, retirar al ganador, la semana en juego). `make test` y `astro check` en verde.
+> - **Probado** en local con la demo (`make demo` en el puerto 8093): 35 semanas pasadas con ganador, en los dos idiomas,
+>   de escritorio y a 375 px sin scroll lateral; y una copia de la demo congelada al miércoles 4 de noviembre para ver la
+>   semana a medias. Sin probar con datos de producción. Pendiente para otra vez si se quiere: Community del portal no
+>   los enseña.
 
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y

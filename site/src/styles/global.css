@@ -1964,3 +1964,12 @@
     background: var(--color-raised);
   }
 }
+
+/* Weekly prizes (lib/weekly.ts): a trophy for the best bot of each week, in the ink. */
+@layer components {
+  .trophy-tag {
+    border-color: var(--color-line-strong);
+    background: var(--color-raised);
+    color: var(--color-ink-strong);
+  }
+}

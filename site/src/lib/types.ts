@@ -10,14 +10,25 @@ export type Holding = { ticker: string; weight: number }; // weight as a fractio
 export type Line = {
   slug: string; id: string | null; you: boolean; handle: string; name: string; about: string; since: string | null; as_of: string | null;
   sessions: number; returns: Returns; ranks: Partial<Record<Period, number>>; holdings: Holding[]; holding: number; cash: number | null;
-  spark: number[]; stand_in?: boolean;
+  spark: number[]; stand_in?: boolean; wins?: number; // weeks won, on the board's lines
+};
+
+// Weekly prizes (league.py): the week being played as it stands, every week's winners, newest first,
+// and the bots that have won the most weeks. A winner that is no longer playing comes as { gone }.
+export type Who = { slug: string; name: string; handle: string; you: boolean };
+export type Winner = Who | { gone: true };
+export type Week = { week: string; from: string; to: string; sessions: number; return: number; index: number | null; entrants: number };
+export type Weekly = {
+  current: (Omit<Week, "return"> & { standing: (Who & { place: number; return: number })[] }) | null;
+  winners: (Week & { bots: Winner[] })[];
+  ranking: (Who & { wins: number; last: string })[];
 };
 
 export type Board = {
   sample: boolean; as_of: string | null; stale: boolean; periods: { key: Period; label: string }[];
   visible: boolean; signed_in: boolean; rows: Line[]; entrants: number;
   benchmark: { ticker: string; returns: Returns | null }; index: { date: string; value: number }[];
-  rules: { cost: number; universe: number; hold: number };
+  rules: { cost: number; universe: number; hold: number }; weekly: Weekly;
 };
 
 // A rebalance, as a bot's page lists it.
@@ -33,6 +44,7 @@ export type BotPage = Line & {
   curve: { date: string; bot: number; index: number | null }[]; entrants: number;
   rules?: string[]; bot?: Bot; universe?: number;
   log: Move[]; versions: Version[]; paused: boolean; starts: string | null; preview: Preview;
+  wins: (Omit<Week, "sessions"> & { shared: boolean })[]; // the weeks it won, newest first
 };
 
 // A bot's rules, in the markethub-bot/1 format.
