@@ -2,6 +2,7 @@
 // A bot's own page (/bot/?b=slug): its idea, its returns and ranks, its curve against the S&P 500
 // from its first close, and its portfolio close by close with every move. Its rules are shown to its owner alone.
 import Layout from "../layouts/Layout.astro";
+import Welcome from "../components/Welcome.astro";
 import type { Lang } from "../i18n";
 import { bot as words } from "../i18n/bot";
 
@@ -13,6 +14,7 @@ const t = words[lang];
 ---
 
 <Layout title={t.title} description={t.description} page="bot" noindex lang={lang}>
+	<div class="wrap"><Welcome lang={lang} class="mt-8" /></div>
 	<section class="wrap pt-10" id="bot">
 		<div class="skeleton h-6 w-40"></div><div class="skeleton mt-4 h-12 w-96 max-w-full"></div><div class="skeleton mt-8 h-72"></div>
 	</section>

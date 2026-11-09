@@ -25,10 +25,24 @@ reglas privadas.
 > "Premios semanales" y "Un trofeo cada semana" en producción. Un `POST /api/board/refresh` (lo que hace una visita) guardó
 > en `bot_meta/board.weeks` las dos semanas jugadas enteras hasta hoy (26 oct y 2 nov), sin nombres, y el resto del
 > documento quedó igual. Con 2 bots en producción, las dos las ganó "Bag holder", el único que las jugó enteras (la del 2
-> nov con −14,9 %: gana el mejor aunque pierda).
+> nov con −14,9 %: gana el mejor aunque pierda). **La bienvenida (`bl-onboarding`, entrada de abajo) se fusionó en
+> `main` después de este despliegue: no está desplegada.**
+
+> 2026-11-09: **Bienvenida en la primera visita** (rama `bl-onboarding`, fusionada en `main` con el OK del usuario; **sin desplegar**). Pedido junto con la
+> bienvenida de la app de iPhone (`market-hub-bots-mobile`, misma rama). La portada ya tiene "Cómo se juega"; quien llega
+> por un enlace a la clasificación o a un bot no la ve. Por eso, lo mínimo equivalente: **una tarjeta de tres pasos**
+> (`components/Welcome.astro`, textos en `i18n/welcome.ts`, los mismos que la app) en la clasificación y en la página de
+> un bot: qué es (un juego gratis, un bot de reglas hecho con Claude, en papel y con clasificación), solo papel y nunca
+> consejo, y "Crea tu bot con Claude" / "Entendido" / "Cómo se juega →". En pantalla ancha, los tres pasos en fila; en el
+> móvil, se deslizan de uno en uno. Se muestra hasta que se cierra (× o "Entendido"), o hasta que se ve la portada, o si
+> el lector ya tiene un bot en la clasificación (con un instante visible en un navegador nuevo, hasta que carga). Lo único
+> que se guarda es `bl.welcome = "seen"` en `localStorage` del navegador: **ninguna cookie** nueva (solo `mh_lang`, como
+> antes) y nada en el servidor. "Tu bot" sin sesión ya explica el juego ("Entra para jugar", gratis y en papel) y no lleva
+> la tarjeta. Probado con `make demo` (en el puerto 8133): en español y en inglés, en escritorio y en móvil, cerrar y
+> recargar, la portada y "Tu puesto". `make check` en verde.
 
 > 2026-11-09: **Premios semanales** (rama `bl-weekly-winners`, aquí y en `market-hub-bots-mobile`; fusionada en `main`
-> el mismo día con el OK del usuario; **sin desplegar**). El usuario: "añadir como premios semanales, cada semana un ganador y que haya una clasificación de eso
+> el mismo día con el OK del usuario; desplegada, entrada de arriba). El usuario: "añadir como premios semanales, cada semana un ganador y que haya una clasificación de eso
 > también". Un trofeo, solo reconocimiento: nada de dinero. El motor no cambia (todo en `league.py`), así que el portal tampoco.
 > - **Cómo se calcula** (`weeks()`, `winner()`): una semana son los cierres de lunes a viernes (Nueva York). Juega una
 >   semana entera el bot cuyo historial empezó en una semana anterior y que llegó al último cierre de esa semana; su

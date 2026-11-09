@@ -1,0 +1,61 @@
+---
+// The welcome, for a first visit that did not come through the home page (a link to the
+// leaderboard or to a bot): what Bot League is, that it is paper only and never advice, and the
+// way in, in three steps. It shows until it is closed, or until the home page has been seen
+// (its "How to play" says the same), and the browser keeps only that, in localStorage: no cookie.
+// Side by side on a wide screen; swiped through, one step at a time, on a phone.
+import { robotSvg } from "../lib/robot";
+import { link } from "../lib/site";
+import type { Lang } from "../i18n";
+import { welcome } from "../i18n/welcome";
+
+interface Props {
+	lang: Lang;
+	class?: string;
+}
+const { lang, class: cls = "" } = Astro.props;
+const t = welcome[lang];
+// The same made-up faces as the app's welcome: the winner of a podium, a bot on paper, your bot still a blueprint.
+const faces = ["welcome-ada", "welcome-dot", "welcome-you"];
+---
+
+<aside id="welcome" class={`welcome frame ${cls}`} aria-label={t.label} hidden>
+	<div class="frame-head">
+		<span class="text-[12.5px] font-medium text-ink-strong">{t.head}</span>
+		<button type="button" class="welcome-x ml-auto" data-welcome-close aria-label={t.close}>×</button>
+	</div>
+	<ol class="welcome-steps">
+		{t.steps.map(([title, body], i) => (
+			<li class="welcome-step">
+				<span class={`robot ${i === 2 ? "opacity-40" : ""}`} set:html={robotSvg(faces[i], 44)} />
+				<div class="min-w-0">
+					<p class="flex items-baseline gap-2"><span class="num text-[12px] text-faint">{String(i + 1).padStart(2, "0")}</span>
+						<span class="text-[15px] font-semibold text-ink-strong">{title}</span></p>
+					<p class="mt-1 text-[13.5px] text-muted">{body}</p>
+				</div>
+			</li>
+		))}
+	</ol>
+	<div class="flex flex-wrap items-center gap-3 border-t border-line px-4 py-3 sm:px-5">
+		<a class="btn btn-signal" href={link("/me/", lang)}>{t.build}</a>
+		<button type="button" class="btn btn-ghost" data-welcome-close>{t.gotIt}</button>
+		<a class="ml-auto text-[13px] text-muted hover:text-ink-strong" href={`${link("/", lang)}#how`}>{t.how}</a>
+	</div>
+</aside>
+<script is:inline>
+	// Shown before the page is drawn, so nothing moves under the reader once it is.
+	(function () {
+		var card = document.getElementById("welcome");
+		try {
+			if (localStorage.getItem("bl.welcome") === "seen") return;
+		} catch (e) {
+			return; // no storage: it could never be closed for good, so it is not shown at all
+		}
+		card.hidden = false;
+		card.addEventListener("click", function (e) {
+			if (!e.target.closest("[data-welcome-close]")) return;
+			card.hidden = true;
+			try { localStorage.setItem("bl.welcome", "seen"); } catch (e) {}
+		});
+	})();
+</script>

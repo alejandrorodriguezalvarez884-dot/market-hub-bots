@@ -1917,6 +1917,54 @@
   }
 }
 
+/* The welcome card on a first visit (components/Welcome.astro): three steps side by side, swiped
+   through one at a time on a phone. */
+@layer components {
+  .welcome[hidden] {
+    display: none;
+  }
+  .welcome-steps {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 18px 16px;
+    scrollbar-width: none;
+  }
+  .welcome-steps::-webkit-scrollbar {
+    display: none;
+  }
+  .welcome-step {
+    display: flex;
+    flex: 0 0 86%;
+    gap: 14px;
+    align-items: flex-start;
+    scroll-snap-align: start;
+  }
+  @media (min-width: 768px) {
+    .welcome-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 28px;
+      overflow: visible;
+      padding: 20px;
+    }
+  }
+  .welcome-x {
+    width: 28px;
+    height: 28px;
+    margin: -4px -6px -4px auto;
+    border-radius: 3px;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--color-muted);
+  }
+  .welcome-x:hover {
+    color: var(--color-ink-strong);
+    background: var(--color-raised);
+  }
+}
+
 /* Weekly prizes (lib/weekly.ts): a trophy for the best bot of each week, in the ink. */
 @layer components {
   .trophy-tag {

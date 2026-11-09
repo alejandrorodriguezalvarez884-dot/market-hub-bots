@@ -16,6 +16,8 @@ const L = (path: string) => link(path, lang);
 ---
 
 <Layout title={t.title} description={t.description} page="home" lang={lang}>
+	<!-- The home page says what the welcome card says (components/Welcome.astro): seen here, it is not shown elsewhere. -->
+	<script is:inline>try { localStorage.setItem("bl.welcome", "seen"); } catch (e) {}</script>
 	<!-- The first screen: the game in a line and the one button, to the chat that builds the bot. -->
 	<section class="hero">
 		<div class="wrap flex flex-col items-center pb-14 pt-12 text-center sm:pb-20 sm:pt-20">
