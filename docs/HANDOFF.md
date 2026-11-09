@@ -37,7 +37,8 @@ reglas privadas.
 >   la oculta en esa página. Antes de empezar, dice cuándo empieza. Solo describe.
 > - Probado: `make test` y `astro check` en verde, y en local con la demo (puerto 8140) en los dos idiomas, de escritorio y
 >   a 375 px sin scroll lateral: sin visita previa, con una visita de hace 13 cierres y con un cambio pendiente.
-> - **La notificación diaria está pendiente de una decisión del usuario** (ver la app, `market-hub-bots-mobile`).
+> - **La notificación diaria**: el usuario eligió un aviso local programado por la app de iPhone (rama `bl-daily-summary`
+>   de `market-hub-bots-mobile`); aquí no cambia nada ni se programa nada.
 
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
