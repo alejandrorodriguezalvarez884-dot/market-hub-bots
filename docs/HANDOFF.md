@@ -22,7 +22,7 @@ reglas privadas.
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
 > después (variables, secretos, recursos y tiempo de espera). Comprobado: portada, `/es/`, clasificación, "Tu bot", reglas,
 > salud y `/api/board` en 200; con un token falso, `/api/me` da nadie, `/api/bots` 401 y una escritura sin `Origin` 403.
-> **Sin probar con un token de verdad en producción** (haría falta entrar con una cuenta real desde la app); en local, sí.
+> Probado por el usuario el mismo día: entrar desde la app con su cuenta contra producción funciona.
 
 > 2026-11-09: **La app de iPhone de Bot League** (fusionado en `main` con el OK del usuario; desplegado, entrada de arriba). El usuario: "abrir una
 > rama para hacer la app de móvil de iPhone de bot league"; eligió una app aparte, en un repo nuevo (`market-hub-bots-mobile`,
