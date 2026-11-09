@@ -1,6 +1,6 @@
 # Bot League · Handoff
 
-Última actualización: 2026-11-08.
+Última actualización: 2026-11-09.
 
 ## Qué se pidió
 
@@ -17,6 +17,16 @@ solo desde el envío (el backtest es privado). Por defecto (no las pidió él): 
 reglas privadas.
 
 ## Dónde estamos
+
+> 2026-11-09: **La app de iPhone de Bot League** (rama `bot-league-ios`, sin desplegar ni fusionar). El usuario: "abrir una
+> rama para hacer la app de móvil de iPhone de bot league"; eligió una app aparte, en un repo nuevo (`market-hub-bots-mobile`,
+> misma rama). Aquí solo cambia el login: **Bot League lee el token de la app del portal** (`hubauth.py`), el que el portal
+> da en `/api/app/auth/...` (`tokens.py`: el mismo secreto, la sal `markethub.app-token`, un mes). Una petición con
+> `Authorization: Bearer <token>` es su usuario o nadie (la cookie no se mira); sus escrituras no necesitan `Origin` (un
+> navegador no añade esa cabecera solo); una clave `mhb_` no es un token, y las rutas del agente siguen sin aceptar el token.
+> El idioma sigue llegando en `x-mh-lang`. Test nuevo en `tests/test_api.py`; `make test` en verde. **Hasta desplegarlo, la
+> app solo ve lo público en producción.** Probado con la app en el simulador contra este servicio en local (`HUB_URL` al
+> portal local y el mismo secreto): crear, enviar y cambiar un bot con el chat de guion.
 
 > 2026-11-08: **Desplegados** `bot-league-00014-fvr` (c0deabc) y el portal `market-hub-00072-hc4` (56a10ee, su copia del
 > motor), con el OK del usuario y a la vez. Desde exports limpios, con el `.env` rehecho solo en cada export con los
