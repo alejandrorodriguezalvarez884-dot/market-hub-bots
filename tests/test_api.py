@@ -13,7 +13,7 @@ from botleague.api import create_app
 from botleague.chat import Chat, MemoryLedger
 from botleague.engine import FORMAT, MemoryBots
 from botleague.market import SAMPLE_TICKERS
-from conftest import HUB, ORIGIN, SECRET, Clock, at, hub_cookie, sessions, walk
+from conftest import HUB, ORIGIN, SECRET, Clock, at, hub_cookie, hub_token, sessions, walk
 
 DAYS = sessions(700, date(2023, 11, 6))
 BOT = {"format": FORMAT, "name": "Api bot", "about": "Momentum, monthly.", "universe": {"largest": 30},
@@ -63,6 +63,32 @@ def test_who_is_signed_in(app):
     forged = TestClient(app)
     forged.cookies.set("mh_session", hub_cookie("u1", secret="another"))
     assert forged.get("/api/me").json()["user"] is None
+
+
+def test_the_phone_app_signs_in_with_the_hubs_app_token(app):
+    phone = TestClient(app)  # no cookie and no Origin, as a native app
+    as_ana = {"authorization": f"Bearer {hub_token('u1', 'Ana Torres')}"}
+    assert phone.get("/api/me", headers=as_ana).json()["user"]["name"] == "Ana Torres"
+    assert phone.get("/api/bots", headers=as_ana).status_code == 200
+    # Its writes need no Origin: the token is not something a browser sends by itself.
+    sent = phone.put("/api/bots/mine", json={"bot": BOT}, headers=as_ana)
+    assert sent.status_code == 200 and sent.json()["handle"] == "Ana"
+    assert phone.get("/api/bots/mine", headers=as_ana).json()["bot"]["handle"] == "Ana"
+    # A token signed with another secret, or a session cookie's value, is nobody; and nobody's write is refused.
+    for bad in (hub_token("u1", secret="another"), hub_cookie("u1")):
+        with_bad = {"authorization": f"Bearer {bad}"}
+        assert phone.get("/api/me", headers=with_bad).json()["user"] is None
+        assert phone.put("/api/bots/mine", json={"bot": BOT}, headers=with_bad).status_code == 403
+    # A request with a token is the token's user or nobody: a browser's cookie is never borrowed.
+    both = client(app, "u2")
+    assert both.get("/api/me", headers={"authorization": f"Bearer {hub_token('u1', 'Ana Torres')}"}).json()["user"]["name"] == "Ana Torres"
+    assert both.get("/api/me", headers={"authorization": "Bearer not-a-token"}).json()["user"] is None
+    # The token is not a bot key: the agent's routes refuse it.
+    assert phone.get("/api/bot", headers=as_ana).status_code == 401
+    # The page's language still comes with the request.
+    en = phone.put("/api/bots/mine", json={"bot": {**BOT, "hold": 99}}, headers=as_ana)
+    es = phone.put("/api/bots/mine", json={"bot": {**BOT, "hold": 99}}, headers={**as_ana, "x-mh-lang": "es"})
+    assert en.status_code == es.status_code == 400 and en.json()["detail"] != es.json()["detail"]
 
 
 def test_the_board_is_the_members_bots_and_the_index(app):

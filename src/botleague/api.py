@@ -7,7 +7,8 @@ Open to everyone:
                                     board is public) and the index
     POST   /api/board/refresh       move the bots on to the last close, if they are behind
     GET    /api/board/bot/{slug}    a bot's page: its curve against the index, what it holds
-The member's own, with Market Hub's session cookie (the same routes as the portal's Community):
+The member's own, with Market Hub's session cookie or, from the Bot League phone app, the hub's app token
+(Authorization: Bearer <token>, hubauth.py) (the same routes as the portal's Community):
     GET    /api/bots                the board as the portal gives it, with the member's bot and key
     POST   /api/bots/refresh        as /api/board/refresh
     POST   /api/bots/kit            a new key, and the kit with it in its .env (a zip)
@@ -152,8 +153,10 @@ def create_app(bot_store: BotStore | None = None,
     @app.middleware("http")
     async def same_site_writes(request: Request, call_next):
         """Writes must come from this site: a foreign page can neither send the hub's cookie on a
-        POST (SameSite=Lax) nor pass this check. The agent's writes carry its key instead."""
-        if request.method in UNSAFE and request.url.path.startswith("/api/") and not agent_route(request) and not open_route(request):
+        POST (SameSite=Lax) nor pass this check. The agent's writes carry its key instead, and the
+        phone app's the hub's app token (hubauth.py)."""
+        if (request.method in UNSAFE and request.url.path.startswith("/api/") and not agent_route(request) and not open_route(request)
+                and not gate.from_app(request)):
             origin = request.headers.get("origin")
             host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
             if origin not in {f"{request.url.scheme}://{request.url.netloc}", f"https://{host}", *origins}:

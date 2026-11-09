@@ -65,6 +65,12 @@ class Market:
         return {t: [] if t in self.gone else [(d, c) for d, c in walk(t, self.days) if d <= self.upto] for t in tickers}
 
 
+def hub_token(user_id: str, name: str = "Ana", secret: str = SECRET) -> str:
+    """A token as Market Hub's portal hands the phone app (its tokens.py: same secret, its own salt)."""
+    user = {"id": user_id, "email": f"{user_id}@example.com", "name": name, "picture": "", "provider": "password"}
+    return itsdangerous.URLSafeTimedSerializer(secret, salt="markethub.app-token").dumps(user)
+
+
 def hub_cookie(user_id: str, name: str = "Ana", secret: str = SECRET) -> str:
     """A session cookie as Market Hub's portal writes it (Starlette's signed session)."""
     data = b64encode(json.dumps({"user": {"id": user_id, "email": f"{user_id}@example.com", "name": name, "picture": ""}}).encode())
