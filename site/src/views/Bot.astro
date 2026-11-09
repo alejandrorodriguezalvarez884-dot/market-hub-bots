@@ -27,6 +27,7 @@ const t = words[lang];
 	import { PERIODS, digits, type BotPage } from "../lib/types";
 	import { portfolioHistory } from "../lib/history";
 	import { treemap } from "../lib/mybot";
+	import { shareButton } from "../lib/share";
 	import { lang } from "../i18n";
 	import { bot as words } from "../i18n/bot";
 	import { common } from "../i18n/common";
@@ -92,7 +93,8 @@ const t = words[lang];
 			add(h("div", "mt-5 flex items-center gap-4 sm:gap-6"), robot(b.slug, 104, "robot-big"), add(h("div", "min-w-0"),
 				add(h("div", "flex flex-wrap items-center gap-2"), b.you ? h("span", "tag tag-you", t.yourBot) : null),
 				h("h1", "h2 mt-1", b.name),
-				h("p", "mt-1 text-[14px] text-muted", t.by(b.handle)))),
+				h("p", "mt-1 text-[14px] text-muted", t.by(b.handle)),
+				add(h("div", "mt-3"), shareButton({ slug: b.slug, name: b.name, returns: b.returns }, "btn btn-ghost py-1.5 text-[13px]")))),
 			b.about ? h("p", "mt-4 max-w-2xl text-[16px] text-ink", b.about) : null,
 			h("p", "mt-3 text-[13px] text-muted", started),
 			stats(b),

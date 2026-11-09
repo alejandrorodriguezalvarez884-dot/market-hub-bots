@@ -25,6 +25,9 @@ Reglas que no se negocian:
   `tests/test_shared.py` comprueba con documentos escritos por el código del portal
   (`scripts/portal_docs.py`) que aquí se leen, se avanzan y se escriben igual. `names.py` copia las
   reglas de nombres del portal (`community.py`, `opinion.publishable`).
+- **La cara de cada bot es una sola.** `site/src/lib/robot.ts` la dibuja en la web; `src/botleague/robot.py` es
+  su copia para la tarjeta que se comparte (`card.py`) y la app de iPhone tiene otra. Un cambio en uno se hace en
+  todos y se rehace `tests/fixtures/robot_faces.json` (`node scripts/robot_faces.mjs`); `tests/test_card.py` lo comprueba.
 - **Un solo escritor de las curvas: Bot League** (decisión del usuario, 2026-10-20). Aquí se
   avanzan los bots (refresh), se hacen el kit y las claves y se contesta al agente (`/api/bot/*`).
   El portal lee los mismos documentos, pide el refresh a `/api/board/refresh` cuando los encuentra

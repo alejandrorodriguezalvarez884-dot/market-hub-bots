@@ -30,6 +30,7 @@ const t = words[lang];
 	import { history as historyWords } from "../i18n/history";
 	import { robot, robotSvg } from "../lib/robot";
 	import { ApiError, api, botUrl, localVisitor } from "../lib/site";
+	import { shareButton } from "../lib/share";
 	import { PERIODS, digits, type BotPage, type ChatStatus, type Me, type MyBot, type Overview, type Spec } from "../lib/types";
 	import { said } from "../lib/doings";
 	import { changePanel } from "../lib/change";
@@ -155,6 +156,7 @@ const t = words[lang];
 				add(h("div", "mt-3 flex flex-wrap items-center gap-2"), statusOf(you), pending)),
 			add(h("div", "flex w-full flex-wrap items-center gap-3 sm:w-auto"),
 				button("btn btn-signal", changeOpen ? t.close : t.changeIt, () => toggleChange(!changeOpen)),
+				slug ? shareButton({ slug, name: you.name, returns: you.returns }) : null,
 				anchor("text-[13px] text-muted hover:text-ink-strong", t.publicPage, botUrl(slug))));
 	}
 

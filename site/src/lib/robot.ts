@@ -5,6 +5,11 @@
 //
 // robotSvg() returns markup built only from numbers and the constants below; the slug is hashed,
 // never written into it. robot() wraps it in an element for the client-side pages.
+//
+// The server draws the same face on a bot's card (src/botleague/robot.py, a copy of this file) and
+// the iPhone app has its own copy: a change here is made in both. `node scripts/robot_faces.mjs >
+// tests/fixtures/robot_faces.json` writes the faces this file draws, and tests/test_card.py checks
+// the server's copy draws the same ones.
 
 const LINE = "var(--color-ink-strong)";
 const DARK = "var(--color-deep)";
