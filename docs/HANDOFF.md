@@ -18,8 +18,8 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-11-09: **Premios semanales** (rama `bl-weekly-winners`, aquí y en `market-hub-bots-mobile`; sin fusionar ni
-> desplegar). El usuario: "añadir como premios semanales, cada semana un ganador y que haya una clasificación de eso
+> 2026-11-09: **Premios semanales** (rama `bl-weekly-winners`, aquí y en `market-hub-bots-mobile`; fusionada en `main`
+> el mismo día con el OK del usuario; **sin desplegar**). El usuario: "añadir como premios semanales, cada semana un ganador y que haya una clasificación de eso
 > también". Un trofeo, solo reconocimiento: nada de dinero. El motor no cambia (todo en `league.py`), así que el portal tampoco.
 > - **Cómo se calcula** (`weeks()`, `winner()`): una semana son los cierres de lunes a viernes (Nueva York). Juega una
 >   semana entera el bot cuyo historial empezó en una semana anterior y que llegó al último cierre de esa semana; su
