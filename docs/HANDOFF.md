@@ -18,6 +18,15 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-09: **Desplegado** `bot-league-00016-nqw` desde un export limpio de 6ef7a90 (los premios semanales), con el OK
+> del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
+> después (variables, secretos, recursos, escalado, concurrencia, cuenta de servicio, entrada y tiempo de espera).
+> Comprobado: portada, `/es/`, clasificación en los dos idiomas, reglas, "Tu bot", salud y `/api/board` en 200; la sección
+> "Premios semanales" y "Un trofeo cada semana" en producción. Un `POST /api/board/refresh` (lo que hace una visita) guardó
+> en `bot_meta/board.weeks` las dos semanas jugadas enteras hasta hoy (26 oct y 2 nov), sin nombres, y el resto del
+> documento quedó igual. Con 2 bots en producción, las dos las ganó "Bag holder", el único que las jugó enteras (la del 2
+> nov con −14,9 %: gana el mejor aunque pierda).
+
 > 2026-11-09: **Premios semanales** (rama `bl-weekly-winners`, aquí y en `market-hub-bots-mobile`; fusionada en `main`
 > el mismo día con el OK del usuario; **sin desplegar**). El usuario: "añadir como premios semanales, cada semana un ganador y que haya una clasificación de eso
 > también". Un trofeo, solo reconocimiento: nada de dinero. El motor no cambia (todo en `league.py`), así que el portal tampoco.
