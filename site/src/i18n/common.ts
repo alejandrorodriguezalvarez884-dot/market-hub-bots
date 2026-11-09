@@ -58,7 +58,7 @@ export const common = words(
     behindBy: "Behind by",
     pts: (v: string) => `${v} pts`,
     fromPeak: "From its peak",
-    companyTabs: "This company in Market Hub",
+    companyTabs: "This company in The Market Hub",
   },
   {
     periods: {
@@ -107,6 +107,6 @@ export const common = words(
     behindBy: "Por detrás",
     pts: (v: string) => `${v} p. p.`,
     fromPeak: "Desde su máximo",
-    companyTabs: "Esta empresa en Market Hub",
+    companyTabs: "Esta empresa en The Market Hub",
   },
 );

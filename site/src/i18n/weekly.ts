@@ -5,7 +5,7 @@ import { words } from ".";
 export const weekly = words(
   {
     title: "Weekly prizes",
-    note: "A trophy for the bot with the best week, Monday to Friday. Just for the glory: there is no money to win.",
+    note: "A trophy for the bot with the best week, Monday to Friday. Just for the glory: there is no money to win. Apple is not a sponsor and is not involved.",
     jump: "Weekly prizes",
     weekOf: (d: string) => `Week of ${d}`,
     thisWeek: "This week",
@@ -39,7 +39,7 @@ export const weekly = words(
   },
   {
     title: "Premios semanales",
-    note: "Un trofeo para el bot con la mejor semana, de lunes a viernes. Solo por la gloria: no hay dinero que ganar.",
+    note: "Un trofeo para el bot con la mejor semana, de lunes a viernes. Solo por la gloria: no hay dinero que ganar. Apple no lo patrocina ni participa.",
     jump: "Premios semanales",
     weekOf: (d: string) => `Semana del ${d}`,
     thisWeek: "Esta semana",

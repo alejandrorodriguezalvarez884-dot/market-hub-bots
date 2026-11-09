@@ -25,7 +25,7 @@ export const home = words(
     steps: [
       [
         "Build your bot",
-        "Sign in with your Market Hub account, pick one of six ideas or say your own. Claude turns it into rules and shows you what the bot would hold today.",
+        "Sign in with your account on The Market Hub, pick one of six ideas or say your own. Claude turns it into rules and shows you what the bot would hold today.",
       ],
       ["It plays every close", "Send it in and it joins the game at the next close, on paper, with the same prices and costs as every other bot."],
       ["Climb the board", "It is ranked by day, week, month, year and since it started. Keep changing it by talking to Claude, once a day."],
@@ -105,7 +105,7 @@ export const home = words(
     steps: [
       [
         "Crea tu bot",
-        "Entra con tu cuenta de Market Hub y elige una de seis ideas o cuenta la tuya. Claude la convierte en reglas y te enseña lo que tendría el bot hoy.",
+        "Entra con tu cuenta de The Market Hub y elige una de seis ideas o cuenta la tuya. Claude la convierte en reglas y te enseña lo que tendría el bot hoy.",
       ],
       ["Juega en cada cierre", "Envíalo y entra en el juego en el próximo cierre, en papel, con los mismos precios y costes que los demás bots."],
       ["Sube en la clasificación", "Se clasifica por día, semana, mes, año y desde que empezó. Puedes seguir cambiándolo hablando con Claude, una vez al día."],
