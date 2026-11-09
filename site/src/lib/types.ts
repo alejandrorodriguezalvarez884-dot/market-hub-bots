@@ -25,7 +25,13 @@ export type Move = {
   date: string; turnover: number; cost: number; after: Record<string, number>;
   bought: { ticker: string; weight: number }[]; sold: { ticker: string; weight: number }[];
   raised: { ticker: string; before: number; after: number }[]; cut: { ticker: string; before: number; after: number }[];
+  reasons?: Reasons;
 };
+// Why a rebalance moved what it moved, in words written by the service (botleague/why.py): for the
+// move, and for each stock it bought, sold, raised or cut. "full" is its owner's view, with the
+// figures its rules read; everyone else gets what the rules did without what they are. Moves
+// logged before 2026-11-10, and all but its latest 60, have none.
+export type Reasons = { full: boolean; lines: string[]; names: Record<string, { why: string; figures?: string[] }> };
 export type Version = { from: string; what: string[] };
 export type Preview = { as_of: string; weights: Record<string, number> } | null;
 

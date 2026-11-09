@@ -18,6 +18,35 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-09: **Por qué hizo cada movimiento** (rama `bl-why-moves`, sin desplegar ni fusionar). El usuario: "poder
+> indagar el por qué de cada movimiento". Tocar un rebalanceo explica, con las reglas del bot y las cifras que el motor
+> leyó en ese cierre, por qué entró cada compra, por qué salió cada venta y por qué cambiaron los pesos.
+> - **Cómo: se guarda al rebalancear, no se recalcula.** `engine.reasons()` anota en cada movimiento del registro
+>   (`log[].why`): cuántas empresas miró y cuántas pasaron sus filtros, cuántos puestos llena (`hold` menos las de
+>   "siempre"), la cifra de la regla de mercado, las reglas que leyó (filtros, puntuación, ponderación, tope) y, para cada
+>   acción comprada, vendida o con más o menos peso, su puesto, cada cifra de sus filtros y de su puntuación (4 cifras
+>   significativas) y el motivo: `rank`/`always` si la tiene; `paused`, `excluded`, `left`, `missing`, `filter` (con el
+>   primero que no pasó), `below` o `cash` si no. Recalcular para una fecha pasada pediría cientos de cierres por
+>   petición y las reglas de entonces (no siempre se guardan), y Yahoo puede revisar cierres. Para no acercarse al
+>   límite de 1 MB de un documento, solo los últimos `WHY_KEPT` = 60 movimientos guardan el porqué; los anteriores
+>   y los de antes de este cambio se leen como siempre (sin motivos, y la web lo dice).
+> - **Es el motor del portal**: el mismo cambio en `market-hub-landing` (`bots.py`, `test_bots.py`, misma rama), y
+>   `tests/fixtures/portal_docs.json` rehecho con su código; `test_shared.py` comprueba que lo que guarda el portal se
+>   cuenta aquí. `decide()` usa ahora `_ranked()`, el mismo orden de siempre (mismos tests).
+> - **En palabras, aquí** (`why.py`, EN/ES, aplicado en `league.doings` y en las rutas del dueño con `api.owned`):
+>   **el público** ve lo que hicieron las reglas sin lo que son: el tipo de motivo ("No pasó uno de sus filtros",
+>   "Puesto 12 por su puntuación, fuera de las 8 mejores que mantiene", "Excluida por su dueño", "Su regla de mercado
+>   pasó parte de la cartera a liquidez", "Vuelve al peso del último rebalanceo: los precios lo habían movido") y el
+>   puesto; nunca un factor, una cifra, un umbral ni un ajuste. **El dueño** ve además cuántas pasaron, cada cifra con
+>   su regla ("Su media de 20 sesiones frente a la de 100: +1,8 % (pide al menos 0 %)"), la cifra de la regla de mercado,
+>   la ponderación y el tope. La descarga de lo guardado (`/api/bots/mine`) lleva el `why` tal cual.
+> - **Web** (`lib/history.ts`): en "Qué cambió ese día", "Por qué" arriba y bajo cada acción su motivo; las cifras del
+>   dueño, plegadas en "Sus cifras en ese cierre". Pie: "Solo tú ves las cifras" o "Lo que hicieron sus reglas…".
+> - Probado: `make test` (85) y `astro check`/build sin avisos; en local con la demo, la página pública de un bot y Tu bot
+>   en español, de escritorio y a 375 px sin scroll lateral. La app, en `market-hub-bots-mobile` (misma rama).
+> - **Decisión del usuario**: si le vale la división público/dueño (la alternativa: enseñar también las cifras en
+>   público, que dejaría adivinar las reglas), y fusionar y desplegar Bot League y el portal a la vez (el motor).
+
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
 > después (variables, secretos, recursos y tiempo de espera). Comprobado: portada, `/es/`, clasificación, "Tu bot", reglas,

@@ -55,7 +55,7 @@ from fastapi.requests import Request
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import engine, es
+from . import engine, es, why
 from .chat import Chat, ChatOff, FileLedger, FirestoreLedger, MemoryLedger, Scripted
 from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, BOT_UNIVERSE_MAX, CHAT_ENABLED, PER_IP_PER_HOUR, PUBLIC_BOARD,
                      SAMPLE, SWITCHES_PER_USER_PER_DAY)
@@ -101,6 +101,12 @@ def bearer(header: str | None) -> str | None:
 
 def _firestore() -> bool:
     return os.environ.get("MARKETHUB_FIRESTORE") == "1"
+
+
+def owned(out, lang: str):
+    """The member's own bot as their page gets it: its rules in the page's language, and why each of
+    its moves was made with every figure behind it (theirs alone)."""
+    return why.page(es.rules(out, lang), lang, full=True)
 
 
 def create_app(bot_store: BotStore | None = None,
@@ -223,7 +229,7 @@ def create_app(bot_store: BotStore | None = None,
     def bot_page(request: Request, slug: str) -> dict:
         allow(request)
         user = gate.user(request)
-        page = league.bot(slug, user) if SLUG.fullmatch(slug) else None
+        page = league.bot(slug, user, es.lang_of(request)) if SLUG.fullmatch(slug) else None
         if not page:
             if not league.visible(user):
                 raise HTTPException(401, detail={"detail": "Members' bots are seen by members: sign in with your account on The Market Hub.",
@@ -240,7 +246,7 @@ def create_app(bot_store: BotStore | None = None,
         # The bot is shown under the first name of the account the member signed in with.
         bots.sync_player(user["id"], user.get("name"))
         lang = es.lang_of(request)
-        out = es.rules(bots.overview(user["id"]), lang)
+        out = owned(bots.overview(user["id"]), lang)
         return {**out, "periods": es.periods(out["periods"], lang)}
 
     @app.post("/api/bots/refresh")
@@ -309,7 +315,7 @@ def create_app(bot_store: BotStore | None = None,
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot rules changed")
-        return es.rules(mine, es.lang_of(request))
+        return owned(mine, es.lang_of(request))
 
     @app.put("/api/bots/mine/name")
     def rename(request: Request, name: str = Body(embed=True, max_length=200), about: str | None = Body(None, embed=True, max_length=1000)):
@@ -321,7 +327,7 @@ def create_app(bot_store: BotStore | None = None,
         except engine.Refused as exc:
             return refused(exc, request)
         log.info("bot renamed")
-        return es.rules(mine, es.lang_of(request))
+        return owned(mine, es.lang_of(request))
 
     @app.post("/api/bots/mine/switch")
     def switch(request: Request, action: str = Body(embed=True, max_length=10), ticker: str | None = Body(None, embed=True, max_length=12),
@@ -336,7 +342,7 @@ def create_app(bot_store: BotStore | None = None,
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot switch: %s", action if action in ("pause", "resume", "exclude", "include", "pin", "unpin") else "?")
-        return es.rules(mine, es.lang_of(request))
+        return owned(mine, es.lang_of(request))
 
     @app.delete("/api/bots/mine/pending")
     def cancel(request: Request):
@@ -350,7 +356,7 @@ def create_app(bot_store: BotStore | None = None,
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot change cancelled")
-        return es.rules(mine, es.lang_of(request))
+        return owned(mine, es.lang_of(request))
 
     def companies() -> list[tuple[str, str]] | None:
         """The companies a bot can choose among, for Claude to pick a theme's from: none if the list
@@ -436,7 +442,7 @@ def create_app(bot_store: BotStore | None = None,
         except MarketUnavailable as exc:
             market_down(exc)
         log.info("bot sent in from the page")
-        return es.rules(mine, es.lang_of(request))
+        return owned(mine, es.lang_of(request))
 
     @app.post("/api/bots/mine/chat")
     def chat_message(request: Request, message: str = Body(embed=True, max_length=2000), history: list = Body([], embed=True)):
