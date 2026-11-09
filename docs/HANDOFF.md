@@ -44,8 +44,9 @@ reglas privadas.
 >   dueño, plegadas en "Sus cifras en ese cierre". Pie: "Solo tú ves las cifras" o "Lo que hicieron sus reglas…".
 > - Probado: `make test` (85) y `astro check`/build sin avisos; en local con la demo, la página pública de un bot y Tu bot
 >   en español, de escritorio y a 375 px sin scroll lateral. La app, en `market-hub-bots-mobile` (misma rama).
-> - **Decisión del usuario**: si le vale la división público/dueño (la alternativa: enseñar también las cifras en
->   público, que dejaría adivinar las reglas), y fusionar y desplegar Bot League y el portal a la vez (el motor).
+> - **Decidido por el usuario (2026-11-09)**: la división público/dueño se queda así ("Keep it"): el público ve el motivo
+>   y el puesto, nunca las cifras ni las reglas. Pendiente suyo: fusionar y desplegar Bot League y el portal a la vez
+>   (el motor).
 
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
