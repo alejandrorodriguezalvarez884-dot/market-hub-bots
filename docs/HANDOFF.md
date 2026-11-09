@@ -18,7 +18,7 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-11-09: **Bienvenida en la primera visita** (rama `bl-onboarding`, sin fusionar ni desplegar). Pedido junto con la
+> 2026-11-09: **Bienvenida en la primera visita** (rama `bl-onboarding`, fusionada en `main` con el OK del usuario; **sin desplegar**). Pedido junto con la
 > bienvenida de la app de iPhone (`market-hub-bots-mobile`, misma rama). La portada ya tiene "Cómo se juega"; quien llega
 > por un enlace a la clasificación o a un bot no la ve. Por eso, lo mínimo equivalente: **una tarjeta de tres pasos**
 > (`components/Welcome.astro`, textos en `i18n/welcome.ts`, los mismos que la app) en la clasificación y en la página de
