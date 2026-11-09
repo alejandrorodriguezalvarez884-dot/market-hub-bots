@@ -18,6 +18,11 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-09 (noche): **Desplegado** `bot-league-00018-82h` desde un export limpio de e65e9da, con el OK del usuario: la
+> regla "Weekly prizes" (los premios son solo un reconocimiento y Apple no los patrocina, regla 5.3 de Apple, para la
+> revisión de la app de iPhone) y la marca como "The Market Hub". `make test` en verde. Configuración igual antes y
+> después. Comprobado `/rules/` y `/es/rules/`.
+
 > 2026-11-09 (noche): **Desplegado** `bot-league-00017-rt7` desde un export limpio de 748589a, con el OK del usuario y a la vez
 > que el portal (`market-hub-00075-ttb`, su copia del motor con el porqué de cada movimiento). Lleva fusionadas las ramas
 > `bl-share-card` (la tarjeta para compartir), `bl-daily-summary` (el resumen desde la última visita, `/api/bots/summary`)
