@@ -18,6 +18,15 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-09 (noche): **Desplegado** `bot-league-00017-rt7` desde un export limpio de 748589a, con el OK del usuario y a la vez
+> que el portal (`market-hub-00075-ttb`, su copia del motor con el porqué de cada movimiento). Lleva fusionadas las ramas
+> `bl-share-card` (la tarjeta para compartir), `bl-daily-summary` (el resumen desde la última visita, `/api/bots/summary`)
+> y `bl-why-moves` (el porqué de cada movimiento), además de la bienvenida que ya estaba en `main`. Al fusionar, el resumen
+> llamaba a `League._index()`, que la rama de premios semanales había quitado: vuelve a estar. Configuración igual antes y
+> después (`.env` rehecho solo en el export con los valores del servicio y borrado después). Comprobado: las páginas en los
+> dos idiomas, salud, tablero con sus ganadores semanales, página de un bot, `card.png` y `/api/bots/summary` (401 sin
+> sesión). Los movimientos de antes no traen el porqué: se guarda desde el próximo rebalanceo.
+
 > 2026-11-09: **Desplegado** `bot-league-00016-nqw` desde un export limpio de 6ef7a90 (los premios semanales), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
 > después (variables, secretos, recursos, escalado, concurrencia, cuenta de servicio, entrada y tiempo de espera).
