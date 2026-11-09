@@ -5,12 +5,14 @@
 import Layout from "../layouts/Layout.astro";
 import type { Lang } from "../i18n";
 import { board as words } from "../i18n/board";
+import { weekly as weeklyWords } from "../i18n/weekly";
 
 interface Props {
 	lang: Lang;
 }
 const { lang } = Astro.props;
 const t = words[lang];
+const tw = weeklyWords[lang];
 ---
 
 <Layout title={t.title} description={t.description} page="board" lang={lang}>
@@ -23,11 +25,13 @@ const t = words[lang];
 		<p class="mt-3 max-w-2xl text-[14px] text-muted" id="lede">
 			{t.lede}
 		</p>
+		<a href="#weekly" class="mt-3 inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-ink-strong" id="to-weekly" hidden>{tw.jump} ↓</a>
 		<div class="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
 			<div id="tabs"></div>
 			<span class="text-[12.5px] text-muted" id="count"></span>
 		</div>
 		<div id="board" class="mt-2"><div class="space-y-2 pt-3"><div class="skeleton h-10"></div><div class="skeleton h-10"></div><div class="skeleton h-10"></div><div class="skeleton h-10"></div></div></div>
+		<div id="weekly"></div>
 	</section>
 </Layout>
 
@@ -35,6 +39,7 @@ const t = words[lang];
 	import { locked, ordered, periodTabs, type Entry } from "../lib/board";
 	import { sparkline } from "../lib/chart";
 	import { indexFace, robot } from "../lib/robot";
+	import { trophy, weeklySection, winsTag } from "../lib/weekly";
 	import { add, h } from "../lib/dom";
 	import { day, ordinal, pct, plural, signedPct, tone } from "../lib/format";
 	import { api, botUrl, link, localVisitor } from "../lib/site";
@@ -51,6 +56,8 @@ const t = words[lang];
 	let period = (new URLSearchParams(location.search).get("p") as Period) || "1m";
 	if (!PERIODS.some((p) => p.key === period)) period = "1m";
 	let signin: string | null = null;
+	let scrolled = false;
+	document.getElementById("to-weekly")!.prepend(trophy(13));
 
 	const grid = "grid grid-cols-[1.8rem_minmax(0,1fr)_5.2rem] md:grid-cols-[2rem_minmax(0,1.5fr)_88px_5.6rem_5.6rem_6rem_minmax(0,1fr)] items-center gap-x-4 px-3 py-2.5";
 
@@ -69,7 +76,7 @@ const t = words[lang];
 		add(a, h("span", `num text-[13px] ${rank && rank <= 3 ? "text-ink-strong" : "text-muted"}`, rank ? String(rank) : ""),
 			add(h("span", "flex min-w-0 items-center gap-3"), robot(r.slug, 30), add(h("span", "min-w-0"),
 				add(h("span", "flex min-w-0 items-center gap-2"), h("span", "truncate font-semibold text-ink-strong", r.name),
-					r.you ? h("span", "tag tag-you shrink-0", c.you) : null),
+					winsTag(r.wins), r.you ? h("span", "tag tag-you shrink-0", c.you) : null),
 				h("span", "block truncate text-[12px] text-muted", c.by(r.handle)))),
 			add(h("span", "hidden justify-end md:flex"), sparkline(r.spark, 88, 26)),
 			h("span", `num text-right font-semibold ${tone(e.value)}`, e.value == null ? (r.since ? "—" : c.nextClose) : signedPct(e.value, digits(period))),
@@ -139,6 +146,10 @@ const t = words[lang];
 				h("p", "mt-1 text-[13.5px] text-muted", t.joinBody)),
 			Object.assign(h("a", "btn btn-signal", t.build), { href: link("/me/") }));
 		root.replaceChildren(...[b.visible ? podium(ordered(b, period)) : null, place(b), list, join].filter((x): x is HTMLElement => !!x));
+		const prizes = b.visible && b.rows.length > 0;
+		document.getElementById("to-weekly")!.hidden = !prizes;
+		document.getElementById("weekly")!.replaceChildren(...(prizes ? [weeklySection(b.weekly)] : []));
+		if (prizes && location.hash === "#weekly" && !scrolled) (scrolled = true), document.getElementById("weekly")!.scrollIntoView();
 	}
 
 	async function load() {
