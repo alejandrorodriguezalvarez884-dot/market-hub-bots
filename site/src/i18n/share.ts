@@ -1,0 +1,41 @@
+// Sharing a bot as a picture (lib/share.ts): the button, the dialog and what goes with the picture.
+import { words } from ".";
+
+export const share = words(
+  {
+    share: "Share",
+    title: "Share as a picture",
+    note: "The picture shows its results on paper, as the board does. Nothing more.",
+    story: "Story",
+    square: "Square",
+    format: "Format",
+    period: "Period",
+    shareIt: "Share",
+    download: "Download",
+    copyLink: "Copy link",
+    copied: "Link copied",
+    close: "Close",
+    loading: "Drawing the picture…",
+    failed: "The picture could not be drawn. Try again in a minute.",
+    alt: (name: string) => `${name}'s card: its place, its return and its line against the S&P 500`,
+    text: (name: string) => `${name} on Bot League, a paper game with no real money`,
+  },
+  {
+    share: "Compartir",
+    title: "Compártelo como imagen",
+    note: "La imagen enseña sus resultados en papel, como la clasificación. Nada más.",
+    story: "Historia",
+    square: "Cuadrada",
+    format: "Formato",
+    period: "Periodo",
+    shareIt: "Compartir",
+    download: "Descargar",
+    copyLink: "Copiar enlace",
+    copied: "Enlace copiado",
+    close: "Cerrar",
+    loading: "Dibujando la imagen…",
+    failed: "No se ha podido dibujar la imagen. Inténtalo de nuevo en un minuto.",
+    alt: (name: string) => `La tarjeta de ${name}: su puesto, su rentabilidad y su línea frente al S&P 500`,
+    text: (name: string) => `${name} en Bot League, un juego en papel sin dinero real`,
+  },
+);

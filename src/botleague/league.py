@@ -296,6 +296,11 @@ class League:
         base = closes.get(before[-1]) if before else closes.get(first)
         return [{"date": d, "bot": round(v, 6), "index": round(closes[d] / base, 6) if base and d in closes else None} for d, v in curve]
 
+    def ranked(self) -> dict[str, int]:
+        """How many bots have a place in each period (a bot too young for one has none)."""
+        rows = self.bots._state()["rows"]
+        return {k: sum(1 for r in rows if r["returns"].get(k) is not None) for k in [p[0] for p in PERIODS] + ["all"]}
+
     def bot(self, slug: str, user: dict | None) -> dict | None:
         """A bot's own page, by its public id: its line, its curve against the index, everything it
         holds and what it did. Its rules are its owner's."""

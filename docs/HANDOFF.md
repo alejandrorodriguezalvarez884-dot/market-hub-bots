@@ -73,6 +73,37 @@ reglas privadas.
 >   semana a medias. Sin probar con datos de producción. Pendiente para otra vez si se quiere: Community del portal no
 >   los enseña.
 
+> 2026-11-09: **Compartir un bot como imagen** (rama `bl-share-card`, sin fusionar ni desplegar). Lo pidió el usuario:
+> que un jugador pueda compartir su bot como imagen, en la web y en la app de iPhone.
+> - **La tarjeta la dibuja el servidor** (`src/botleague/card.py`): `GET /api/board/bot/{slug}/card.png?format=story|square|link&period=1d|1w|1m|1y|all&lang=en|es`.
+>   Un SVG escrito desde la página del bot (`League.bot`) y pasado a PNG con resvg (`resvg-py`, una rueda de 2 MB sin
+>   dependencias del sistema) con las fuentes de la web (IBM Plex, OFL, en `src/botleague/fonts/`, sin fuentes del sistema:
+>   la misma imagen en cualquier máquina). Así la web, la app y la vista previa de un enlace son la misma imagen, y hay
+>   un solo diseño que mantener. Se ve quien ve la página del bot (con el tablero cerrado, solo miembros); caché pública
+>   de 15 min (privada de 5 si el tablero no es público) y las 48 últimas en memoria. Tarda 0,1-0,35 s.
+> - **Qué dice**: la cara del bot, su nombre, el nombre de pila del jugador, el periodo con sus fechas, su rentabilidad
+>   (verde o roja, los colores del mercado), su puesto entre los bots con puesto en ese periodo ("3.º de 7 bots"), el
+>   S&P 500 en las mismas sesiones, las dos líneas desde 1, y "Bot League · un juego en papel, sin dinero real" con la
+>   dirección. Solo describe; un test comprueba que no dice comprar, vender, invertir ni objetivo. Antes del primer
+>   cierre: "Empieza a jugar en el cierre del …". Formatos: historia 1080×1920, cuadrada 1080×1080, enlace 1200×630.
+> - **La cara es la de la web**: `src/botleague/robot.py` es copia de `site/src/lib/robot.ts`, carácter a carácter (los
+>   números como los escribe JavaScript). `node scripts/robot_faces.mjs` escribe con el `.ts` las caras de 90 slugs en
+>   `tests/fixtures/robot_faces.json` y `tests/test_card.py` comprueba que Python dibuja las mismas. Anotado en `CLAUDE.md`.
+> - **Web**: botón "Compartir" en la página del bot y en "Tu bot" (`lib/share.ts`, textos en `i18n/share.ts`): un
+>   diálogo con la tarjeta, Historia/Cuadrada, los periodos con cifra, y "Compartir" (Web Share API con el archivo; la
+>   imagen se pide al elegir, para que el clic llegue a la hoja de compartir, como exige Safari), "Descargar" y "Copiar
+>   enlace". Donde el navegador no comparte archivos, el botón no sale y quedan los otros dos.
+> - **Vista previa de cada bot**: `/bot/?b=…` y `/es/bot/?b=…` los sirve ahora FastAPI con el título, la descripción
+>   ("De Ana · +12,4 % desde el inicio · 3.º de 7 bots · S&P 500 +8,8 %. Bot League es un juego en papel, sin dinero real.")
+>   y la imagen (`og:image`, formato enlace) de ese bot, solo si está en el tablero público. El resto de la web, igual.
+> - **App de iPhone**: misma rama en `market-hub-bots-mobile`; descarga esta imagen y abre la hoja de compartir.
+> - Probado: `make test` (89 tests) y `astro check`; en local (`make demo` en el puerto 8096) el diálogo en la página de
+>   un bot y en "Tu bot", en los dos idiomas, de escritorio y a 375 px, la descarga y las etiquetas de la vista previa.
+>   **Sin probar**: la hoja de compartir del navegador (el panel de pruebas no comparte archivos: hace falta Safari o
+>   Chrome en un móvil) y cómo pinta la vista previa cada red (WhatsApp, X…), que solo se ve desplegado.
+> - **Para desplegar**: nueva dependencia (`resvg-py`, `fonttools`), así que la imagen de Docker cambia; nada de
+>   configuración nueva.
+
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
 > después (variables, secretos, recursos y tiempo de espera). Comprobado: portada, `/es/`, clasificación, "Tu bot", reglas,

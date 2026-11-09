@@ -7,6 +7,9 @@ Open to everyone:
                                     board is public) and the index
     POST   /api/board/refresh       move the bots on to the last close, if they are behind
     GET    /api/board/bot/{slug}    a bot's page: its curve against the index, what it holds
+    GET    /api/board/bot/{slug}/card.png?format=story|square|link&period=1d|1w|1m|1y|all&lang=en|es
+                                    the bot's card, the picture its player shares (card.py)
+    GET    /bot/?b={slug}           the bot's page (also /es/bot/), with its card as its link preview
 The member's own, with Market Hub's session cookie or, from the Bot League phone app, the hub's app token
 (Authorization: Bearer <token>, hubauth.py) (the same routes as the portal's Community):
     GET    /api/bots                the board as the portal gives it, with the member's bot and key
@@ -52,10 +55,10 @@ from typing import Callable
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import engine, es
+from . import card, engine, es
 from .chat import Chat, ChatOff, FileLedger, FirestoreLedger, MemoryLedger, Scripted
 from .config import (BOT_BACKTESTS_PER_USER_PER_HOUR, BOT_SUBMISSIONS_PER_USER_PER_DAY, BOT_UNIVERSE_MAX, CHAT_ENABLED, PER_IP_PER_HOUR, PUBLIC_BOARD,
                      SAMPLE, SWITCHES_PER_USER_PER_DAY)
@@ -230,6 +233,20 @@ def create_app(bot_store: BotStore | None = None,
                                                  "signin": gate.signin_url(request)})
             raise HTTPException(404, "There is no such bot.")
         return es.rules(page, es.lang_of(request))
+
+    @app.get("/api/board/bot/{slug}/card.png")
+    def bot_card(request: Request, slug: str, format: str = "story", period: str = "all", lang: str = "") -> Response:
+        """A bot's card, the picture its player shares (card.py): ``format`` story (9:16), square or
+        link (the link preview), over one ``period`` of the board; seen by whoever sees its page."""
+        allow(request)
+        page = league.bot(slug, gate.user(request)) if SLUG.fullmatch(slug) else None
+        if not page:
+            raise HTTPException(404, "There is no such bot.")
+        fmt = format if format in card.SIZES else "story"
+        picture = card.png(card.svg(page, period, fmt, lang if lang in ("en", "es") else es.lang_of(request), league.ranked()))
+        return Response(picture, media_type="image/png", headers={
+            "Cache-Control": "public, max-age=900" if league.public else "private, max-age=300",
+            "Content-Disposition": f'inline; filename="bot-league-{slug}-{fmt}.png"'})
 
     # --- The member's own ---
 
@@ -532,5 +549,27 @@ def create_app(bot_store: BotStore | None = None,
     app.state.bots, app.state.league, app.state.chat = bots, league, chat
     static_dir = static_dir or os.environ.get("BOTLEAGUE_STATIC_DIR", "")
     if static_dir and Path(static_dir).is_dir():
+        def bot_html(request: Request, lang: str) -> Response:
+            """A bot's page as built, with the link preview of that bot (its card) when it is on the
+            public board: what a link to it shows in a chat or a post. Only what everyone sees."""
+            path = Path(static_dir) / ("es/bot/index.html" if lang == "es" else "bot/index.html")
+            if not path.is_file():
+                return Response(status_code=404)
+            html = path.read_text(encoding="utf-8")
+            slug = request.query_params.get("b", "")
+            page = league.bot(slug, None) if SLUG.fullmatch(slug) else None
+            if page:
+                base = str(request.base_url).rstrip("/")
+                image = f"{base}/api/board/bot/{slug}/card.png?format=link&lang={lang}&v={page.get('as_of') or 'new'}"
+                html = card.preview(html, page, image, lang, league.ranked())
+            return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
+
+        @app.api_route("/bot/", methods=["GET", "HEAD"], include_in_schema=False)
+        def bot_page_en(request: Request) -> Response:
+            return bot_html(request, "en")
+
+        @app.api_route("/es/bot/", methods=["GET", "HEAD"], include_in_schema=False)
+        def bot_page_es(request: Request) -> Response:
+            return bot_html(request, "es")
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="site")
     return app
