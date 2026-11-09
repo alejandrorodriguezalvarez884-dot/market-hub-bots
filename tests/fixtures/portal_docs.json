@@ -422,12 +422,12 @@
   "2025-08-14",
   "2025-08-15"
  ],
- "key": "mhb_UQCaLrhRUL1EHcVKACZof1PvujlH05zNB5eL5eDWHoE",
+ "key": "mhb_nzAB3m703NJJQOD-ab5w7Wuf0sMhuxSJ0WmOVT8gIOU",
  "bots": {
   "portal-user-1": {
    "user_id": "portal-user-1",
    "handle": "Ana",
-   "public_id": "5523f8e7ae",
+   "public_id": "621476c145",
    "spec": {
     "format": "markethub-bot/1",
     "name": "Trend",
@@ -525,6 +525,82 @@
       "T09": 0.2,
       "T15": 0.2,
       "T18": 0.2
+     },
+     "why": {
+      "of": 20,
+      "passed": 11,
+      "slots": 5,
+      "rules": {
+       "filters": [
+        {
+         "factor": "trend",
+         "days": 50,
+         "min": 0.0
+        }
+       ],
+       "score": [
+        {
+         "factor": "momentum",
+         "days": 63,
+         "skip": 0,
+         "weight": 1.0
+        }
+       ],
+       "weighting": "equal",
+       "max_weight": 1.0
+      },
+      "names": {
+       "T06": {
+        "f": [
+         0.05148
+        ],
+        "s": [
+         0.0484
+        ],
+        "rank": 3,
+        "why": "rank"
+       },
+       "T08": {
+        "f": [
+         0.1777
+        ],
+        "s": [
+         0.00951
+        ],
+        "rank": 5,
+        "why": "rank"
+       },
+       "T09": {
+        "f": [
+         0.006358
+        ],
+        "s": [
+         0.05126
+        ],
+        "rank": 1,
+        "why": "rank"
+       },
+       "T15": {
+        "f": [
+         0.05148
+        ],
+        "s": [
+         0.0484
+        ],
+        "rank": 4,
+        "why": "rank"
+       },
+       "T18": {
+        "f": [
+         0.006358
+        ],
+        "s": [
+         0.05126
+        ],
+        "rank": 2,
+        "why": "rank"
+       }
+      }
      }
     },
     {
@@ -544,14 +620,90 @@
       "T17": 0.2,
       "T18": 0.2,
       "T19": 0.2
+     },
+     "why": {
+      "of": 20,
+      "passed": 13,
+      "slots": 5,
+      "rules": {
+       "filters": [
+        {
+         "factor": "trend",
+         "days": 50,
+         "min": 0.0
+        }
+       ],
+       "score": [
+        {
+         "factor": "momentum",
+         "days": 63,
+         "skip": 0,
+         "weight": 1.0
+        }
+       ],
+       "weighting": "equal",
+       "max_weight": 1.0
+      },
+      "names": {
+       "T06": {
+        "f": [
+         0.09982
+        ],
+        "s": [
+         0.03049
+        ],
+        "rank": 8,
+        "why": "below"
+       },
+       "T08": {
+        "f": [
+         0.1777
+        ],
+        "s": [
+         0.04299
+        ],
+        "rank": 3,
+        "why": "rank"
+       },
+       "T15": {
+        "f": [
+         0.09982
+        ],
+        "s": [
+         0.03049
+        ],
+        "rank": 9,
+        "why": "below"
+       },
+       "T17": {
+        "f": [
+         0.1777
+        ],
+        "s": [
+         0.04299
+        ],
+        "rank": 4,
+        "why": "rank"
+       },
+       "T19": {
+        "f": [
+         0.04355
+        ],
+        "s": [
+         0.03815
+        ],
+        "rank": 5,
+        "why": "rank"
+       }
+      }
      }
     }
    ]
   }
  },
  "keys": {
-  "d9b119bd9566d8ea4c21cd00533340fdabcd8c81b05f2a112a09fc4b07e1398f": {
-   "hash": "d9b119bd9566d8ea4c21cd00533340fdabcd8c81b05f2a112a09fc4b07e1398f",
+  "5187a6e2d297f2bc10475084c083961c056d0f65b788ec6d2de2ff3679e616fc": {
+   "hash": "5187a6e2d297f2bc10475084c083961c056d0f65b788ec6d2de2ff3679e616fc",
    "user_id": "portal-user-1",
    "created_utc": "2025-06-23T15:00:00+00:00",
    "used_utc": null,
@@ -1578,7 +1730,7 @@
  },
  "mine": {
   "handle": "Ana",
-  "id": "5523f8e7ae",
+  "id": "621476c145",
   "name": "Trend",
   "about": "Rides what is over its average.",
   "submitted_utc": "2025-06-23T15:00:00+00:00",
@@ -1727,6 +1879,82 @@
      "T17": 0.2,
      "T18": 0.2,
      "T19": 0.2
+    },
+    "why": {
+     "of": 20,
+     "passed": 13,
+     "slots": 5,
+     "rules": {
+      "filters": [
+       {
+        "factor": "trend",
+        "days": 50,
+        "min": 0.0
+       }
+      ],
+      "score": [
+       {
+        "factor": "momentum",
+        "days": 63,
+        "skip": 0,
+        "weight": 1.0
+       }
+      ],
+      "weighting": "equal",
+      "max_weight": 1.0
+     },
+     "names": {
+      "T06": {
+       "f": [
+        0.09982
+       ],
+       "s": [
+        0.03049
+       ],
+       "rank": 8,
+       "why": "below"
+      },
+      "T08": {
+       "f": [
+        0.1777
+       ],
+       "s": [
+        0.04299
+       ],
+       "rank": 3,
+       "why": "rank"
+      },
+      "T15": {
+       "f": [
+        0.09982
+       ],
+       "s": [
+        0.03049
+       ],
+       "rank": 9,
+       "why": "below"
+      },
+      "T17": {
+       "f": [
+        0.1777
+       ],
+       "s": [
+        0.04299
+       ],
+       "rank": 4,
+       "why": "rank"
+      },
+      "T19": {
+       "f": [
+        0.04355
+       ],
+       "s": [
+        0.03815
+       ],
+       "rank": 5,
+       "why": "rank"
+      }
+     }
     }
    },
    {
@@ -1764,6 +1992,82 @@
      "T09": 0.2,
      "T15": 0.2,
      "T18": 0.2
+    },
+    "why": {
+     "of": 20,
+     "passed": 11,
+     "slots": 5,
+     "rules": {
+      "filters": [
+       {
+        "factor": "trend",
+        "days": 50,
+        "min": 0.0
+       }
+      ],
+      "score": [
+       {
+        "factor": "momentum",
+        "days": 63,
+        "skip": 0,
+        "weight": 1.0
+       }
+      ],
+      "weighting": "equal",
+      "max_weight": 1.0
+     },
+     "names": {
+      "T06": {
+       "f": [
+        0.05148
+       ],
+       "s": [
+        0.0484
+       ],
+       "rank": 3,
+       "why": "rank"
+      },
+      "T08": {
+       "f": [
+        0.1777
+       ],
+       "s": [
+        0.00951
+       ],
+       "rank": 5,
+       "why": "rank"
+      },
+      "T09": {
+       "f": [
+        0.006358
+       ],
+       "s": [
+        0.05126
+       ],
+       "rank": 1,
+       "why": "rank"
+      },
+      "T15": {
+       "f": [
+        0.05148
+       ],
+       "s": [
+        0.0484
+       ],
+       "rank": 4,
+       "why": "rank"
+      },
+      "T18": {
+       "f": [
+        0.006358
+       ],
+       "s": [
+        0.05126
+       ],
+       "rank": 2,
+       "why": "rank"
+      }
+     }
     }
    }
   ],
@@ -1772,7 +2076,7 @@
  },
  "overview_rows": [
   {
-   "id": "5523f8e7ae",
+   "id": "621476c145",
    "handle": "Ana",
    "stand_in": false,
    "name": "Trend",

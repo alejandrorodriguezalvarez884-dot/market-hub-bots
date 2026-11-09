@@ -261,6 +261,39 @@ def test_a_bots_page_shows_what_it_did_and_when_its_rules_changed(app):
     assert agent.patch("/api/bot", json={"bot": {**BOT, "hold": 6}}, headers={"authorization": f"Bearer {key}"}).json()["pending"]["bot"]["hold"] == 6
 
 
+def test_why_each_move_was_made_is_told_to_everyone_and_its_figures_to_its_owner(app):
+    clock = app.state.clock
+    clock.when = at(DAYS[-90], 12)
+    picky = {**BOT, "filters": [{"factor": "trend", "days": 50, "min": 0}], "max_weight": 0.2}
+    send(app, "u1", picky)
+    clock.when = at(DAYS[-1], 18)
+    client(app).post("/api/board/refresh")
+    page = client(app, "u2").get(f"/api/board/bot/{slug(app, 'u1')}").json()
+    first = page["log"][-1]
+    assert "why" not in first and not first["reasons"]["full"]
+    assert first["reasons"]["lines"][0] == "It holds the best 8 by its score."
+    bought = first["bought"][0]["ticker"]
+    said = first["reasons"]["names"][bought]
+    assert said["why"].startswith("Placed ") and "figures" not in said
+    # Nothing of its rules: no factor, no threshold, no setting.
+    text = json.dumps([m["reasons"] for m in page["log"]])
+    for secret in ("126", "50-session", "return over", "average", "20%", "filters"):
+        assert secret not in text.replace("one of its filters", ""), secret
+    sold = [m for m in page["log"] if m["sold"]]
+    assert sold and all(m["reasons"]["names"][x["ticker"]]["why"] for m in sold for x in m["sold"])
+    # Its owner gets the figures, on the bot's page, on their own page and in Spanish.
+    own = client(app, "u1").get(f"/api/board/bot/{slug(app, 'u1')}").json()["log"][-1]["reasons"]
+    assert own["full"] and own["lines"][0].startswith("At this close ") and "passed its filters" in own["lines"][0]
+    assert any(f.startswith("Its return over 126 sessions, leaving out the last 21: ") for f in own["names"][bought]["figures"])
+    assert any("(needs at least 0%)" in f for f in own["names"][bought]["figures"])
+    mine = client(app, "u1").get("/api/bots").json()["you"]["log"][-1]["reasons"]
+    assert mine == own
+    es = client(app, "u1").get("/api/bots", headers={"x-mh-lang": "es"}).json()["you"]["log"][-1]["reasons"]
+    assert es["lines"][0].startswith("En este cierre, ") and es["names"][bought]["why"].startswith("Puesto ")
+    # The download of what is kept has it as the engine keeps it.
+    assert "why" in client(app, "u1").get("/api/bots/mine").json()["bot"]["log"][-1]
+
+
 def test_a_change_waiting_for_the_next_close_can_be_cancelled_and_frees_the_day(app):
     clock = app.state.clock
     clock.when = at(DAYS[-30], 12)

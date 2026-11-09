@@ -26,22 +26,42 @@ function stepsOf(log: Move[], now: { weights: Record<string, number>; cash: numb
   return steps;
 }
 
-// What one rebalance did, in words: bought, sold, more and less weight, and what it traded.
+// What one rebalance did, in words: bought, sold, more and less weight, and what it traded. Under
+// each stock, why its rules moved it (and, for the owner, the figures they read); above, why the move.
 function moveParts(m: Move): HTMLElement[] {
   const t = words[lang()];
+  const why = m.reasons;
+  const reason = (ticker: string): HTMLElement | null => {
+    const r = why?.names[ticker];
+    if (!r) return null;
+    const box = add(h("div", "history-why"), r.why ? h("p", "text-[12.5px] text-muted", r.why) : null);
+    if (r.figures?.length) {
+      const more = add(h("details", "history-figures"), h("summary", "text-[12px] text-faint", t.figures),
+        add(h("ul", "mt-1 space-y-0.5"), ...r.figures.map((f) => h("li", "num text-[12px] text-ink", f))));
+      box.append(more);
+    }
+    return box;
+  };
   const group = (title: string, rows: [string, string][]) => rows.length
     ? add(h("div"), h("p", "text-[12.5px] text-muted", title),
-      add(h("ul", "mt-1 space-y-0.5"), ...rows.map(([ticker, note]) => add(h("li", "flex items-baseline justify-between gap-4 border-b border-line py-1"),
-        h("span", "num font-medium text-ink-strong", ticker), h("span", "num text-[12.5px] text-ink", note)))))
+      add(h("ul", "mt-1 space-y-0.5"), ...rows.map(([ticker, note]) => add(h("li", "border-b border-line py-1"),
+        add(h("div", "flex items-baseline justify-between gap-4"),
+          h("span", "num font-medium text-ink-strong", ticker), h("span", "num text-[12.5px] text-ink", note)),
+        reason(ticker)))))
     : null;
-  const parts = [
+  const parts: HTMLElement[] = [];
+  if (why?.lines.length) parts.push(add(h("div", "space-y-1"), h("p", "text-[12.5px] text-muted", t.why), ...why.lines.map((l) => h("p", "text-ink", l))));
+  parts.push(...[
     group(t.bought, m.bought.map((x) => [x.ticker, share(x.weight)])),
     group(t.sold, m.sold.map((x) => [x.ticker, share(x.weight)])),
     group(t.more, m.raised.map((x) => [x.ticker, `${share(x.before)} → ${share(x.after)}`])),
     group(t.less, m.cut.map((x) => [x.ticker, `${share(x.before)} → ${share(x.after)}`])),
-  ].filter((x): x is HTMLDivElement => !!x);
-  if (!parts.length) parts.push(h("p", "text-ink", Object.keys(m.after).length ? common[lang()].weightsBack : common[lang()].wentToCash));
+  ].filter((x): x is HTMLDivElement => !!x));
+  if (!m.bought.length && !m.sold.length && !m.raised.length && !m.cut.length) {
+    parts.push(h("p", "text-ink", Object.keys(m.after).length ? common[lang()].weightsBack : common[lang()].wentToCash));
+  }
   parts.push(h("p", "text-[12.5px] text-muted", t.traded(pct(m.turnover, 0), pct(m.cost, 2))));
+  parts.push(h("p", "text-[12px] text-faint", why ? (why.full ? t.ownerOnly : t.publicOnly) : t.noReasons));
   return parts;
 }
 

@@ -5,7 +5,7 @@ import { words } from ".";
 export const history = words(
   {
     title: "Its portfolio, close by close",
-    note: "Slide through the dates, or tap a move below",
+    note: "Slide through the dates, or tap a move below to see why",
     today: "Today",
     afterClose: (d: string) => `after the close of ${d}`,
     rebalancedAt: (d: string) => `rebalanced at the close of ${d}`,
@@ -35,10 +35,15 @@ export const history = words(
     reweightedFirst: (n: number) => `Reweighted ${n === 1 ? "1 stock" : `${n} stocks`}`,
     tradedShort: (x: string) => `traded ${x}`,
     showAll: (n: number) => `Show all ${n}`,
+    why: "Why",
+    figures: "Its figures at that close",
+    ownerOnly: "Only you see the figures: they come from your rules.",
+    publicOnly: "What its rules did. The rules themselves, and the figures they read, are its owner's.",
+    noReasons: "Why it made this move was not kept: reasons are kept from November 2026 on, for its latest 60 rebalances.",
   },
   {
     title: "Su cartera, cierre a cierre",
-    note: "Desliza por las fechas o toca un movimiento de abajo",
+    note: "Desliza por las fechas o toca un movimiento de abajo para ver por qué",
     today: "Hoy",
     afterClose: (d: string) => `tras el cierre del ${d}`,
     rebalancedAt: (d: string) => `rebalanceo en el cierre del ${d}`,
@@ -68,5 +73,10 @@ export const history = words(
     reweightedFirst: (n: number) => `Cambió el peso de ${n === 1 ? "1 acción" : `${n} acciones`}`,
     tradedShort: (x: string) => `movió el ${x}`,
     showAll: (n: number) => `Ver los ${n}`,
+    why: "Por qué",
+    figures: "Sus cifras en ese cierre",
+    ownerOnly: "Solo tú ves las cifras: salen de tus reglas.",
+    publicOnly: "Lo que hicieron sus reglas. Las reglas, y las cifras que leen, son de su dueño.",
+    noReasons: "No se guardó por qué hizo este movimiento: los motivos se guardan desde noviembre de 2026, para sus últimos 60 rebalanceos.",
   },
 );

@@ -25,7 +25,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import Callable
 
-from . import engine
+from . import engine, why
 from .config import BOT_UNIVERSE_MAX
 from .engine import BELL, NEW_YORK, PERIODS, YEAR, Bots, activity, describe, returns
 from .market import BENCHMARK
@@ -46,12 +46,13 @@ def start_day(submitted_utc: str) -> str:
     return day.isoformat()
 
 
-def doings(doc: dict) -> dict:
-    """What a bot has done, for everyone: its rebalances (what it bought, sold, raised and cut), when
-    its rules changed (never what they became), whether it is paused, and, before its first close,
-    when it starts and what its rules would hold at the last close."""
+def doings(doc: dict, lang: str = "en", full: bool = False) -> dict:
+    """What a bot has done, for everyone: its rebalances (what it bought, sold, raised and cut, and
+    why, in words: why.told), when its rules changed (never what they became), whether it is paused,
+    and, before its first close, when it starts and what its rules would hold at the last close.
+    ``full`` is for its owner: why each move was made with the figures and the rules behind it."""
     started = bool(doc.get("curve"))
-    return {"log": activity(doc.get("log") or [], LOG_SHOWN), "paused": bool(doc.get("paused")),
+    return {"log": why.told(activity(doc.get("log") or [], LOG_SHOWN), lang, full), "paused": bool(doc.get("paused")),
             "versions": [{"from": v.get("from"), "what": v.get("what")} for v in doc.get("versions") or []],
             "starts": None if started or not doc.get("submitted_utc") else start_day(doc["submitted_utc"]),
             "preview": None if started else doc.get("preview")}
@@ -237,6 +238,10 @@ class League:
 
     # --- Reading ---
 
+    def _index(self) -> list[list]:
+        """The S&P 500's closes the refresh keeps, the last year's."""
+        return self.bots.store.meta().get("benchmark") or []
+
     def visible(self, user: dict | None) -> bool:
         """Whether the members' bots are shown: to members, or to everyone when the board is public."""
         return bool(user) or self.public
@@ -324,9 +329,9 @@ class League:
         rows = self.bots._state()["rows"]
         return {k: sum(1 for r in rows if r["returns"].get(k) is not None) for k in [p[0] for p in PERIODS] + ["all"]}
 
-    def bot(self, slug: str, user: dict | None) -> dict | None:
+    def bot(self, slug: str, user: dict | None, lang: str = "en") -> dict | None:
         """A bot's own page, by its public id: its line, its curve against the index, everything it
-        holds and what it did. Its rules are its owner's."""
+        holds and what it did. Its rules, and the figures behind each move, are its owner's."""
         if not self.visible(user):
             return None
         user_id = user["id"] if user else ""
@@ -340,7 +345,7 @@ class League:
         held = sorted((doc.get("weights") or {}).items(), key=lambda x: -x[1])
         out = {**Bots._line(row, user_id), "slug": slug, "spark": spark(doc.get("curve") or []),
                "holdings": [{"ticker": t, "weight": w} for t, w in held], "curve": self._against_index(doc.get("curve") or [], meta.get("benchmark") or []),
-               "entrants": len(state["rows"]), "wins": self.wins(slug, row["since"], meta), **doings(doc)}
+               "entrants": len(state["rows"]), "wins": self.wins(slug, row["since"], meta), **doings(doc, lang, full=mine)}
         if mine:
             out.update(rules=describe(doc["spec"], doc["universe"]), bot=doc["spec"], universe=len(doc["universe"]))
         return out

@@ -846,6 +846,16 @@
   .history-picker {
     scroll-margin-top: 80px;
   }
+  .history-why {
+    margin-top: 2px;
+  }
+  .history-figures summary {
+    cursor: pointer;
+    width: fit-content;
+  }
+  .history-figures[open] summary {
+    color: var(--color-muted);
+  }
   .history-moves {
     border-top: 1px solid var(--color-line);
   }

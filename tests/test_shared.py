@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from botleague import why
 from botleague.engine import FORMAT, Bots, MemoryBots, Prices, check, run
 from conftest import Clock, Market, at
 
@@ -34,6 +35,10 @@ def test_the_portals_bot_reads_the_same_here():
     bots, *_ = here(portal_store(), 385)
     assert bots.mine("portal-user-1") == PORTAL["mine"]
     assert bots.overview("portal-user-1")["rows"] == PORTAL["overview_rows"]
+    # Why its moves were made, as the portal kept it, is told here.
+    told = why.told(PORTAL["mine"]["log"], "es", full=True)
+    first = told[-1]["reasons"]
+    assert first["lines"][0].startswith("En este cierre, ") and all(first["names"][x["ticker"]]["why"] for x in told[-1]["bought"])
 
 
 def test_a_key_made_on_the_portal_opens_the_agent_routes_here():
@@ -68,3 +73,4 @@ def test_what_is_written_here_has_the_portals_shape():
     assert [type(x) for x in mine["curve"][0]] == [type(x) for x in theirs["curve"][0]]
     assert set(store.keys_of("u2")[0]) == set(next(iter(PORTAL["keys"].values())))
     assert set(store.meta()) == set(PORTAL["meta"])
+    assert set(mine["log"][0]) == set(theirs["log"][0]) and set(mine["log"][0]["why"]) == set(theirs["log"][0]["why"])
