@@ -18,6 +18,19 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-09: **Bienvenida en la primera visita** (rama `bl-onboarding`, sin fusionar ni desplegar). Pedido junto con la
+> bienvenida de la app de iPhone (`market-hub-bots-mobile`, misma rama). La portada ya tiene "Cómo se juega"; quien llega
+> por un enlace a la clasificación o a un bot no la ve. Por eso, lo mínimo equivalente: **una tarjeta de tres pasos**
+> (`components/Welcome.astro`, textos en `i18n/welcome.ts`, los mismos que la app) en la clasificación y en la página de
+> un bot: qué es (un juego gratis, un bot de reglas hecho con Claude, en papel y con clasificación), solo papel y nunca
+> consejo, y "Crea tu bot con Claude" / "Entendido" / "Cómo se juega →". En pantalla ancha, los tres pasos en fila; en el
+> móvil, se deslizan de uno en uno. Se muestra hasta que se cierra (× o "Entendido"), o hasta que se ve la portada, o si
+> el lector ya tiene un bot en la clasificación (con un instante visible en un navegador nuevo, hasta que carga). Lo único
+> que se guarda es `bl.welcome = "seen"` en `localStorage` del navegador: **ninguna cookie** nueva (solo `mh_lang`, como
+> antes) y nada en el servidor. "Tu bot" sin sesión ya explica el juego ("Entra para jugar", gratis y en papel) y no lleva
+> la tarjeta. Probado con `make demo` (en el puerto 8133): en español y en inglés, en escritorio y en móvil, cerrar y
+> recargar, la portada y "Tu puesto". `make check` en verde.
+
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
 > después (variables, secretos, recursos y tiempo de espera). Comprobado: portada, `/es/`, clasificación, "Tu bot", reglas,
