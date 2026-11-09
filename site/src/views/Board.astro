@@ -45,6 +45,7 @@ const tw = weeklyWords[lang];
 	import { add, h } from "../lib/dom";
 	import { day, ordinal, pct, plural, signedPct, tone } from "../lib/format";
 	import { api, botUrl, link, localVisitor } from "../lib/site";
+	import { summaryCard } from "../lib/summary";
 	import { PERIODS, digits, type Board, type Me, type Period } from "../lib/types";
 	import { lang } from "../i18n";
 	import { board as words } from "../i18n/board";
@@ -60,6 +61,7 @@ const tw = weeklyWords[lang];
 	let signin: string | null = null;
 	let scrolled = false;
 	document.getElementById("to-weekly")!.prepend(trophy(13));
+	let summary: HTMLElement | null = null; // the player's summary since their last visit
 
 	const grid = "grid grid-cols-[1.8rem_minmax(0,1fr)_5.2rem] md:grid-cols-[2rem_minmax(0,1.5fr)_88px_5.6rem_5.6rem_6rem_minmax(0,1fr)] items-center gap-x-4 px-3 py-2.5";
 
@@ -152,7 +154,7 @@ const tw = weeklyWords[lang];
 			add(h("div", "min-w-0"), h("p", "text-[16px] font-medium text-ink-strong", t.joinTitle),
 				h("p", "mt-1 text-[13.5px] text-muted", t.joinBody)),
 			Object.assign(h("a", "btn btn-signal", t.build), { href: link("/me/") }));
-		root.replaceChildren(...[b.visible ? podium(ordered(b, period)) : null, place(b), list, join].filter((x): x is HTMLElement => !!x));
+		root.replaceChildren(...[summary, b.visible ? podium(ordered(b, period)) : null, place(b), list, join].filter((x): x is HTMLElement => !!x));
 		const prizes = b.visible && b.rows.length > 0;
 		document.getElementById("to-weekly")!.hidden = !prizes;
 		document.getElementById("weekly")!.replaceChildren(...(prizes ? [weeklySection(b.weekly)] : []));
@@ -166,6 +168,12 @@ const tw = weeklyWords[lang];
 			document.getElementById("asof")!.textContent = t.moving;
 			await api("/api/board/refresh", { method: "POST" }).catch(() => null);
 			board = await api<Board>("/api/board");
+			draw();
+		}
+		// Once the bots are at the last close: how the player's own did since their last visit.
+		const mine = board.rows.find((r) => r.you);
+		if (mine) {
+			summary = await summaryCard(mine.slug, board.as_of);
 			draw();
 		}
 	}

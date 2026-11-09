@@ -34,6 +34,7 @@ SPARK_POINTS = 64
 LOG_SHOWN = 120  # rebalances on a bot's page
 WEEKS_KEPT = 520  # weekly winners kept in bot_meta/board, the latest
 STANDING_SHOWN = 3  # bots shown in the week that is being played
+SUMMARY_MOVES = 3  # rebalances a summary lists (it counts them all)
 
 
 def start_day(submitted_utc: str) -> str:
@@ -82,6 +83,28 @@ def spark(curve: list, points: int = SPARK_POINTS) -> list[float]:
         return [round(v, 5) for v in values]
     step = (len(values) - 1) / (points - 1)
     return [round(values[round(k * step)], 5) for k in range(points)]
+
+
+def _at(curve: list, day: str) -> float | None:
+    """A curve's value at the close of ``day``, or at the last close before it; None before its first."""
+    found = None
+    for d, v in curve:
+        if d > day:
+            break
+        found = float(v)
+    return found
+
+
+def _places(docs: list[dict], day: str | None) -> dict[str, int]:
+    """Each bot's place since it started, at the close of ``day`` (None: its last close), among the
+    bots that had played by then: as the board ranks them (engine.Bots._state), by user id."""
+    scored = []
+    for d in docs:
+        curve = d.get("curve") or []
+        value = (float(curve[-1][1]) if curve else None) if day is None else _at(curve, day)
+        if value is not None:
+            scored.append((-(value - 1), (d.get("handle") or "").lower(), d.get("public_id") or "", d["user_id"]))
+    return {u: n for n, (*_, u) in enumerate(sorted(scored), 1)}
 
 
 class Remembering:
@@ -321,3 +344,47 @@ class League:
         if mine:
             out.update(rules=describe(doc["spec"], doc["universe"]), bot=doc["spec"], universe=len(doc["universe"]))
         return out
+
+    # --- The player's summary ---
+
+    def summary(self, user_id: str, since: str | None = None) -> dict | None:
+        """How the player's bot did since their last visit, or over the last close when there is no
+        new close since then (``since`` is the close the device last showed; nothing is kept here).
+
+        Its return against the S&P 500 over the same closes, its place since it started now and then,
+        what it bought and sold, the changes that came in, and what waits for the next close. Only
+        what happened: nothing in it says what to do."""
+        doc = self.store.get(user_id)
+        if not doc:
+            return None
+        pending = self.bots._pending(doc)
+        head = {"name": doc["spec"]["name"], "slug": doc.get("public_id"), "paused": bool(doc.get("paused")),
+                "pending": {"what": pending["what"], "applies": start_day(pending["changed_utc"])} if pending else None}
+        curve = doc.get("curve") or []
+        if not curve:
+            return {**head, "started": False, "starts": start_day(doc["submitted_utc"]) if doc.get("submitted_utc") else None}
+        days = [d for d, _ in curve]
+        as_of = days[-1]
+        index = self._index()
+        visit = bool(since) and since < as_of
+        base = since if visit else (days[-2] if len(days) > 1 else None)
+        if base is not None and base < days[0]:
+            base = None  # from before it started: since its start
+        # The close it counts from: one of its own, or the session before its first.
+        before = [d for d, _ in index if d < days[0]]
+        start = _at(curve, base) if base else 1.0
+        frm = max(d for d in days if d <= base) if base else (before[-1] if before else None)
+        closes = dict((d, float(c)) for d, c in index)
+        first, last = closes.get(frm) if frm else None, closes.get(as_of)
+        self.bots._state()  # the read the board is worked out from (it keeps the bots it read)
+        docs = [d for d in self.store.last if d.get("user_id") and d["user_id"] != user_id] + [doc]
+        now, then = _places(docs, None), _places(docs, frm) if base else {}
+        log = [e for e in activity(doc.get("log") or [], LOG_SHOWN) if (frm is None or e["date"] > frm)]
+        return {**head, "started": True, "as_of": as_of, "from": frm, "since_visit": visit, "from_start": base is None,
+                "sessions": sum(1 for d in days if frm is None or d > frm),
+                "bot": float(curve[-1][1]) / start - 1 if start else None,
+                "index": last / first - 1 if first and last else None, "ticker": BENCHMARK,
+                "place": {"now": now.get(user_id), "of": len(now), "then": then.get(user_id), "of_then": len(then) if then else None},
+                "moves": log[:SUMMARY_MOVES], "moved": len(log),
+                "changed": [{"from": v.get("from"), "what": v.get("what")} for v in doc.get("versions") or []
+                            if frm is None or (v.get("from") or "") > frm]}

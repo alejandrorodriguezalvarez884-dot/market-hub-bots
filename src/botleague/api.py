@@ -72,6 +72,7 @@ log = logging.getLogger("botleague.api")
 
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 SLUG = re.compile(r"[a-z0-9\-]{1,60}")
+DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class RateLimiter:
@@ -259,6 +260,14 @@ def create_app(bot_store: BotStore | None = None,
         lang = es.lang_of(request)
         out = es.rules(bots.overview(user["id"]), lang)
         return {**out, "periods": es.periods(out["periods"], lang)}
+
+    @app.get("/api/bots/summary")
+    def summary(request: Request, since: str | None = None) -> dict:
+        """How the member's bot did since the close their device last showed (``since``), or over
+        the last close. The device keeps that date; nothing about the visit is kept here."""
+        user = member(request)
+        allow(request)
+        return {"summary": league.summary(user["id"], since if since and DAY.fullmatch(since) else None)}
 
     @app.post("/api/bots/refresh")
     def refresh_bots(request: Request) -> dict:
