@@ -18,7 +18,7 @@ reglas privadas.
 
 ## Dónde estamos
 
-> 2026-11-09: **La app de iPhone de Bot League** (rama `bot-league-ios`, sin desplegar ni fusionar). El usuario: "abrir una
+> 2026-11-09: **La app de iPhone de Bot League** (fusionado en `main` con el OK del usuario, sin desplegar). El usuario: "abrir una
 > rama para hacer la app de móvil de iPhone de bot league"; eligió una app aparte, en un repo nuevo (`market-hub-bots-mobile`,
 > misma rama). Aquí solo cambia el login: **Bot League lee el token de la app del portal** (`hubauth.py`), el que el portal
 > da en `/api/app/auth/...` (`tokens.py`: el mismo secreto, la sal `markethub.app-token`, un mes). Una petición con
