@@ -1,0 +1,48 @@
+// The player's summary (lib/summary.ts): how their bot did since their last visit, or over the last
+// close, on the board and on Your bot. It says what happened, never what to do.
+import { words } from ".";
+
+export const summary = words(
+  {
+    sinceVisit: "Since your last visit",
+    lastClose: "At the last close",
+    sinceStart: "Since it started",
+    fromTo: (a: string, b: string) => `from the close of ${a} to that of ${b}`,
+    toClose: (d: string) => `to the close of ${d}`,
+    closes: ["close", "closes"] as [string, string],
+    yourBot: "Your bot",
+    place: (rank: string, of: number) => `${rank} of ${of} since it started`,
+    upFrom: (rank: string) => `up from ${rank}`,
+    downFrom: (rank: string) => `down from ${rank}`,
+    same: "same place",
+    noTrades: "No trades: the weights moved with prices.",
+    traded: (d: string, what: string) => `${d}: ${what}`,
+    more: (n: number) => `and ${n === 1 ? "1 more rebalance" : `${n} more rebalances`}`,
+    changed: (d: string, what: string) => `From ${d}: ${what}`,
+    waiting: (d: string, what: string) => `At the next close (${d}): ${what}`,
+    paused: "Paused: in cash.",
+    starts: (d: string) => `Your bot starts playing at the close of ${d}. Its first figures come after it.`,
+    hide: "Hide",
+  },
+  {
+    sinceVisit: "Desde tu última visita",
+    lastClose: "En el último cierre",
+    sinceStart: "Desde que empezó",
+    fromTo: (a: string, b: string) => `del cierre del ${a} al del ${b}`,
+    toClose: (d: string) => `al cierre del ${d}`,
+    closes: ["cierre", "cierres"],
+    yourBot: "Tu bot",
+    place: (rank: string, of: number) => `${rank} de ${of} desde el inicio`,
+    upFrom: (rank: string) => `sube desde el ${rank}`,
+    downFrom: (rank: string) => `baja desde el ${rank}`,
+    same: "mismo puesto",
+    noTrades: "Sin operaciones: los pesos se movieron con los precios.",
+    traded: (d: string, what: string) => `${d}: ${what}`,
+    more: (n: number) => `y ${n === 1 ? "1 rebalanceo más" : `${n} rebalanceos más`}`,
+    changed: (d: string, what: string) => `Desde el ${d}: ${what}`,
+    waiting: (d: string, what: string) => `En el próximo cierre (${d}): ${what}`,
+    paused: "En pausa: en liquidez.",
+    starts: (d: string) => `Tu bot empieza a jugar en el cierre del ${d}. Sus primeras cifras llegan después.`,
+    hide: "Ocultar",
+  },
+);

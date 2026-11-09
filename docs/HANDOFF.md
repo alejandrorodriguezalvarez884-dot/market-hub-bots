@@ -18,6 +18,27 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-09: **El resumen al entrar** (rama `bl-daily-summary`, sin fusionar ni desplegar). El usuario: "lo de la
+> notificación con el resumen, que salga también un resumen cada vez que entres en la app".
+> - **API, solo un añadido**: `GET /api/bots/summary?since=AAAA-MM-DD` (con sesión o token de la app; `league.summary`).
+>   Cuenta desde `since` (el último cierre que el navegador o el teléfono enseñó) o, si no hay cierre nuevo desde entonces
+>   o no llega, desde el cierre anterior al último. Devuelve la rentabilidad del bot y la del S&P 500 en esos mismos
+>   cierres, su puesto desde el inicio ahora y entonces (con la misma ordenación que el tablero), sus rebalanceos en ese
+>   tramo (3 y la cuenta), los cambios que entraron, la pausa y lo que espera al próximo cierre (y cuándo entra). Un
+>   `since` anterior a su inicio cuenta desde el inicio (frente al índice desde la sesión anterior a su primera). El motor
+>   no cambia (el portal tampoco). Test nuevo en `tests/test_api.py`.
+> - **Nada nuevo en el servidor**: la "última visita" es una fecha de cierre que guarda el navegador (`localStorage`,
+>   `bl-seen`: el id público del bot, ese cierre y desde cuál contó). Mientras no hay cierre nuevo se repite el mismo
+>   resumen, así que la clasificación y "Tu bot" dicen lo mismo. No hace falta tocar la privacidad del portal.
+> - **Web** (`site/src/lib/summary.ts`, textos en `i18n/summary.ts`): una tarjeta arriba de la clasificación y de "Tu bot",
+>   cuando el jugador tiene bot, tras mover los bots al último cierre. "Desde tu última visita / En el último cierre /
+>   Desde que empezó", del cierre X al Y, N cierres; tu bot ±x % y el S&P 500 ±y %; "2.º de 7 desde el inicio · sube desde
+>   el 4.º"; los rebalanceos en palabras; "◆ Desde el …: reglas cambiadas"; "En el próximo cierre (…): excluye AMGN". Un ×
+>   la oculta en esa página. Antes de empezar, dice cuándo empieza. Solo describe.
+> - Probado: `make test` y `astro check` en verde, y en local con la demo (puerto 8140) en los dos idiomas, de escritorio y
+>   a 375 px sin scroll lateral: sin visita previa, con una visita de hace 13 cierres y con un cambio pendiente.
+> - **La notificación diaria está pendiente de una decisión del usuario** (ver la app, `market-hub-bots-mobile`).
+
 > 2026-11-09: **Desplegado** `bot-league-00015-j7f` desde un export limpio de ff10c5e (el login de la app de iPhone), con el OK
 > del usuario. `.env` rehecho solo en el export con los valores del servicio y borrado después; configuración igual antes y
 > después (variables, secretos, recursos y tiempo de espera). Comprobado: portada, `/es/`, clasificación, "Tu bot", reglas,

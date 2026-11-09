@@ -1916,3 +1916,28 @@
     text-underline-offset: 3px;
   }
 }
+
+/* The player's summary (lib/summary.ts): since their last visit, on the board and on Your bot. */
+@layer components {
+  .summary {
+    position: relative;
+  }
+  .summary > a {
+    padding-right: 1.75rem;
+  }
+  .summary-hide {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.6rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 4px;
+    color: var(--color-faint);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .summary-hide:hover {
+    color: var(--color-ink-strong);
+    background: var(--color-raised);
+  }
+}

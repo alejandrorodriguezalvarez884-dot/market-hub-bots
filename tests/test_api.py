@@ -439,3 +439,44 @@ def test_always_and_never_are_switches_on_the_page():
     got = owner.post("/api/bots/mine/switch", json={"action": "exclude", "ticker": "AMD"}).json()
     mine = got["pending"] or got
     assert mine["always"] == [] and mine["exclude"] == ["AMD"]
+
+
+def test_the_players_summary_since_their_last_visit_or_the_last_close(app):
+    clock = app.state.clock
+    clock.when = at(DAYS[-40], 12)
+    send(app, "u1")
+    send(app, "u2", bot={**BOT, "name": "Other", "hold": 3})
+    page = client(app, "u1")
+    assert page.get("/api/bots/summary").json()["summary"] == {"name": "Api bot", "slug": slug(app, "u1"), "paused": False, "pending": None,
+                                                               "started": False, "starts": DAYS[-40]}
+    clock.when = at(DAYS[-1], 18)
+    client(app).post("/api/board/refresh")
+    me = app.state.store.get("u1")
+    curve = dict(me["curve"])
+    index = dict(app.state.store.meta()["benchmark"])
+    # No visit before: the last close.
+    s = page.get("/api/bots/summary").json()["summary"]
+    assert s["as_of"] == DAYS[-1] and s["from"] == DAYS[-2] and not s["since_visit"] and s["sessions"] == 1
+    assert s["bot"] == pytest.approx(curve[DAYS[-1]] / curve[DAYS[-2]] - 1)
+    assert s["index"] == pytest.approx(index[DAYS[-1]] / index[DAYS[-2]] - 1)
+    assert s["place"]["of"] == 2 and s["place"]["then"] in (1, 2)
+    assert s["place"]["now"] == page.get("/api/bots").json()["you"]["ranks"]["all"]  # as the board ranks it
+    # Since a visit ten closes ago (a weekend day counts from the close before it).
+    s = page.get("/api/bots/summary", params={"since": DAYS[-11]}).json()["summary"]
+    assert s["since_visit"] and s["from"] == DAYS[-11] and s["sessions"] == 10
+    assert s["bot"] == pytest.approx(curve[DAYS[-1]] / curve[DAYS[-11]] - 1)
+    assert all(m["date"] > DAYS[-11] for m in s["moves"]) and s["moved"] >= len(s["moves"])
+    # From before it started: since its start, against the index from the session before its first.
+    s = page.get("/api/bots/summary", params={"since": DAYS[-60]}).json()["summary"]
+    assert s["from_start"] and s["from"] == DAYS[-41] and s["bot"] == pytest.approx(curve[DAYS[-1]] - 1)
+    assert s["index"] == pytest.approx(index[DAYS[-1]] / index[DAYS[-41]] - 1) and s["place"]["then"] is None
+    # The close already seen: the last close again. Rubbish is the same as nothing.
+    assert page.get("/api/bots/summary", params={"since": DAYS[-1]}).json()["summary"]["from"] == DAYS[-2]
+    assert page.get("/api/bots/summary", params={"since": "soon"}).json()["summary"]["from"] == DAYS[-2]
+    # What waits for the next close, and when it applies.
+    clock.when = at(DAYS[-1], 19)
+    page.post("/api/bots/mine/switch", json={"action": "pause"})
+    assert page.get("/api/bots/summary").json()["summary"]["pending"]["what"] == ["paused"]
+    # Members only, and nothing for a member without a bot.
+    assert client(app).get("/api/bots/summary").status_code == 401
+    assert client(app, "u3").get("/api/bots/summary").json() == {"summary": None}

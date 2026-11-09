@@ -66,6 +66,14 @@ export type Backtest = {
   months: { month: string; return: number; benchmark: number }[]; turnover_per_year: number; costs_per_year: number;
   holdings: Holding[]; cash: number; curve: { date: string; bot: number; benchmark: number }[]; notes: string[];
 };
+// How the player's bot did since the close their device last showed, or over the last close (league.summary).
+export type Summary = {
+  name: string; slug: string | null; paused: boolean; pending: { what: string[]; applies: string } | null; started: boolean; starts?: string | null;
+  as_of?: string; from?: string | null; since_visit?: boolean; from_start?: boolean; sessions?: number;
+  bot?: number | null; index?: number | null; ticker?: string;
+  place?: { now: number | null; of: number; then: number | null; of_then: number | null };
+  moves?: Move[]; moved?: number; changed?: Version[];
+};
 export type Key = { created_utc: string; used_utc: string | null };
 export type Overview = { you: MyBot | null; key: Key | null; name: string; stale: boolean };
 

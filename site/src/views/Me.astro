@@ -38,6 +38,7 @@ const t = words[lang];
 	import { me as words } from "../i18n/me";
 	import { companies as companyWords } from "../i18n/companies";
 	import { share } from "../lib/words";
+	import { summaryCard } from "../lib/summary";
 
 	const t = words[lang()];
 	const th = historyWords[lang()];
@@ -47,6 +48,7 @@ const t = words[lang];
 	let data: Overview;
 	let page: BotPage | null = null; // the bot's public page, read for its curve against the index and its start
 	let rebuilding = false; // building a new bot, in place of the one there is
+	let summary: HTMLElement | null = null; // the player's summary since their last visit
 
 	const button = (cls: string, text: string, onClick: (b: HTMLButtonElement) => void) => {
 		const b = h("button", cls, text);
@@ -272,7 +274,7 @@ const t = words[lang];
 		root.replaceChildren();
 		// Before it starts: what it would hold first, beside where its line will be.
 		const body = you.since ? [curve(you), portfolio(you)] : [add(h("div", "grid gap-x-10 lg:grid-cols-2"), holds(you), curve(you))];
-		add(root, head(you), change(you), you.since ? numbers(you) : null, ...body, rules(you), corner());
+		add(root, summary, head(you), change(you), you.since ? numbers(you) : null, ...body, rules(you), corner());
 	}
 
 	async function load() {
@@ -289,6 +291,11 @@ const t = words[lang];
 		if (data.stale) {
 			await api("/api/bots/refresh", { method: "POST" }).catch(() => null);
 			await reload();
+		}
+		// Once the bot is at the last close: how it did since the player's last visit.
+		if (data.you?.id && data.you.since) {
+			summary = await summaryCard(data.you.id, data.you.as_of);
+			if (lastMe) draw(lastMe);
 		}
 	}
 	load().catch((e) => root.replaceChildren(h("p", "py-16 text-center text-[15px] text-muted", e instanceof Error ? e.message : t.unread)));

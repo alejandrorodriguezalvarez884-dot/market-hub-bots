@@ -59,7 +59,7 @@ function changed(step: Step, before: Step | undefined, changes: Version[]): HTML
 }
 
 // One move in a line of words: "Bought AMGN and AXP, sold TXN and CRM".
-function inWords(m: Move): string {
+export function inWords(m: Move): string {
   const t = words[lang()];
   const bits: string[] = [];
   if (m.bought.length) bits.push(t.boughtList(list(m.bought.map((x) => x.ticker))));
