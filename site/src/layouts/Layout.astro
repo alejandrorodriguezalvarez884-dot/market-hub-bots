@@ -100,6 +100,7 @@ const [aboutBefore, aboutAfter] = t.about.split("{hub}");
 					</ul>
 				</nav>
 				<div class="ml-auto flex items-center gap-3" id="account">
+					<a class="whitespace-nowrap text-[13px] text-muted hover:text-ink-strong" href={hub("/signout/", lang)} data-signout hidden>{t.signOut}</a>
 					<a class="btn btn-primary py-1.5 text-[13px]" href={link("/me/", lang)} data-me>{t.yourBot}</a>
 				</div>
 			</div>
@@ -138,8 +139,10 @@ const [aboutBefore, aboutAfter] = t.about.split("{hub}");
 			</div>
 		</footer>
 		<script>
-			// The way in says who is in: "Your bot" for a member, "Sign in" for a visitor.
-			import { api, link, localVisitor } from "../lib/site";
+			// The way in says who is in: "Your bot" for a member, "Sign in" for a visitor. A member can
+			// also sign out: the session is the portal's cookie, so its sign-out page clears it and
+			// sends them back here (a local run has no session to leave).
+			import { api, hub, link, localVisitor } from "../lib/site";
 			import type { Me } from "../lib/types";
 			import { lang } from "../i18n";
 			import { languageChoice } from "../i18n/choice";
@@ -154,6 +157,11 @@ const [aboutBefore, aboutAfter] = t.about.split("{hub}");
 					if (me.user) {
 						a.textContent = t.yourBot;
 						a.href = link("/me/");
+						const out = document.querySelector<HTMLAnchorElement>("[data-signout]");
+						if (out && !me.local) {
+							out.href = `${hub("/signout/")}?next=${encodeURIComponent(location.href)}`;
+							out.hidden = false;
+						}
 					} else {
 						a.textContent = t.signIn;
 						a.href = me.signin ?? link("/me/");

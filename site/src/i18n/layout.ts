@@ -10,6 +10,7 @@ export const layout = words(
     rules: "Rules",
     yourBot: "Your bot",
     signIn: "Sign in",
+    signOut: "Sign out",
     main: "Main",
     shareAlt: "Bot League, by The Market Hub",
     about:
@@ -27,6 +28,7 @@ export const layout = words(
     rules: "Reglas",
     yourBot: "Tu bot",
     signIn: "Entrar",
+    signOut: "Salir",
     main: "Principal",
     shareAlt: "Bot League, de The Market Hub",
     about:

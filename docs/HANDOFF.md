@@ -18,6 +18,12 @@ reglas privadas.
 
 ## Dónde estamos
 
+> 2026-11-10: **Salir** (pedido del usuario: no había forma de cerrar sesión en la web), **sin desplegar**. Con sesión, la
+> cabecera lleva «Salir» junto a «Tu bot». Como la cookie es la del portal y aquí nunca se toca, el enlace lleva a la página
+> nueva del portal `/signout/?next=<esta página>`, que la borra y devuelve aquí (desde Bot League, sin preguntar). En una
+> copia local sin portal (`local`) no sale. **Hay que desplegar antes el portal** (`market-hub-landing`, que trae
+> `/signout/`) y después Bot League. Probado en local con las dos webs; `make test` y `make check` en verde.
+
 > 2026-11-09 (noche): **Desplegado** `bot-league-00018-82h` desde un export limpio de e65e9da, con el OK del usuario: la
 > regla "Weekly prizes" (los premios son solo un reconocimiento y Apple no los patrocina, regla 5.3 de Apple, para la
 > revisión de la app de iPhone) y la marca como "The Market Hub". `make test` en verde. Configuración igual antes y
